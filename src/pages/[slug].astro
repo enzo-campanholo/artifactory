@@ -1,0 +1,33 @@
+---
+import ArtifactLayout from "@artifactory/design-system/artifact-layout";
+import type { GetStaticPaths, InferGetStaticPropsType } from "astro";
+import { getCollection, render } from "astro:content";
+
+export const getStaticPaths = (async () => {
+  const artifacts = await getCollection("artifacts");
+  return artifacts.map((artifact) => {
+    const slug = artifact.id;
+    return { params: { slug }, props: { artifact } };
+  });
+}) satisfies GetStaticPaths;
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { artifact } = Astro.props;
+const { Content, headings } = await render(artifact);
+const { id, title, lang, subject, published, draft } = artifact.data;
+const isPublic = artifact.data.public;
+---
+
+<ArtifactLayout
+  id={id}
+  title={title}
+  lang={lang}
+  subject={subject}
+  published={published}
+  draft={draft}
+  public={isPublic}
+  headings={headings}
+>
+  <Content />
+</ArtifactLayout>

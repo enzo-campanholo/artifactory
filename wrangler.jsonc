@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "artifactory",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-12",
+  "workers_dev": false,
+  "preview_urls": false,
+  // CI fills in the domain, the database ID and both vars from repository variables before it
+  // deploys (scripts/deploy-config.ts), so the repo names no Cloudflare account.
+  "routes": [{ "pattern": "artifactory.example.com", "custom_domain": true }],
+  "alias": {
+    "build-id": "./dist-worker/build-id.json",
+    "question-manifest": "./dist-worker/question-manifest.json",
+  },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"],
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "artifactory",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  // `pnpm dev:worker` and the Worker tests replace both with local stand-ins.
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "https://example.cloudflareaccess.com",
+    "ACCESS_AUD": "example-access-aud",
+  },
+}

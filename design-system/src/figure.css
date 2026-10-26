@@ -1,0 +1,38 @@
+@layer components {
+  :is(figure.figure, figure.diagram) {
+    margin-block: var(--block-clearance);
+    margin-inline: 0;
+    break-inside: avoid;
+
+    > figcaption {
+      margin-block-start: var(--space-2);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-caption);
+      font-weight: var(--font-weight-frame);
+      line-height: var(--line-height-caption);
+    }
+  }
+
+  .figure-number {
+    margin-inline-end: var(--space-2);
+    font-weight: var(--font-weight-frame-strong);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .figure-stage {
+    display: grid;
+    place-items: center;
+    padding-block: var(--space-3);
+    border-block: var(--rule) solid var(--color-text);
+    overflow-x: auto;
+  }
+
+  @media print {
+    .figure-stage > svg {
+      max-block-size: 70vh;
+      inline-size: auto;
+    }
+  }
+}

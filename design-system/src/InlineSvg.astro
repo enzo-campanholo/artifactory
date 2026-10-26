@@ -1,0 +1,83 @@
+---
+import { componentError } from "./component-errors.ts";
+
+interface Props {
+  svg: string;
+  alt: string;
+  minScale?: number | undefined;
+}
+
+const { svg, alt, minScale = 2 / 3 } = Astro.props;
+
+const root = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(svg);
+if (root === null)
+  throw componentError(["Figure", "Stepper"], "the imported SVG file has no <svg> root element");
+const [, attributeText = "", drawing = ""] = root;
+
+// The component sets the SVG's role and accessible name, so the file's own give way.
+const ownAttributes = Object.fromEntries(
+  [...attributeText.matchAll(/([^\s=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)]
+    .map(([, name = "", doubleQuoted, singleQuoted]): [string, string] => [
+      name,
+      doubleQuoted ?? singleQuoted ?? "",
+    ])
+    .filter(([name]) => name !== "role" && !name.startsWith("aria-")),
+);
+
+// DESIGN.md's Square Corner Rule, for figures and D2's boxes alike.
+const content = drawing.replace(/<rect\b[^>]*>/g, (rect) =>
+  rect.replace(/\s(?:rx|ry)\s*=\s*(?:"[^"]*"|'[^']*')/g, ""),
+);
+
+const viewBox = ownAttributes.viewBox ?? viewBoxOfSize(ownAttributes.width, ownAttributes.height);
+if (viewBox === undefined) {
+  throw componentError(
+    ["Figure", "Stepper"],
+    'the imported SVG file has no viewBox; give its <svg> root `viewBox="0 0 W H"`',
+  );
+}
+
+function viewBoxOfSize(width = "", height = ""): string | undefined {
+  const pixels = /^(\d+(?:\.\d+)?)(?:px)?$/;
+  const [, w] = pixels.exec(width.trim()) ?? [];
+  const [, h] = pixels.exec(height.trim()) ?? [];
+  return w === undefined || h === undefined ? undefined : `0 0 ${w} ${h}`;
+}
+
+// Without a size an inline SVG fills the column, which blows small drawings up. Its viewBox
+// gives its natural size, and the stylesheet shrinks it to fit narrower screens, down to
+// `minScale` of it so its labels stay at 8 px or more: two thirds for the 12-unit labels of a
+// hand-written figure, and for a diagram whatever its smallest label allows. Narrower than that,
+// the stage scrolls.
+const [, , width, height] = viewBox.trim().split(/[\s,]+/);
+const attributes =
+  width === undefined || height === undefined
+    ? { ...ownAttributes, viewBox }
+    : { width, height, ...ownAttributes, viewBox };
+const minWidthStyle =
+  width === undefined
+    ? undefined
+    : `--min-drawing-width: ${String(Math.ceil(Number(width) * minScale))}px`;
+---
+
+<svg {...attributes} style={minWidthStyle} role="img" aria-label={alt}>
+  <g aria-hidden="true" set:html={content} />
+</svg>
+
+<style>
+  @layer components {
+    svg {
+      display: block;
+      min-inline-size: var(--min-drawing-width, 0);
+      max-inline-size: 100%;
+      block-size: auto;
+      margin-inline: auto;
+    }
+
+    @media print {
+      svg {
+        min-inline-size: 0;
+      }
+    }
+  }
+</style>

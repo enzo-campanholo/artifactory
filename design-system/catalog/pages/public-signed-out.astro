@@ -1,0 +1,14 @@
+---
+import CatalogLayout from "../CatalogLayout.astro";
+import Questions, { getHeadings } from "../questions.mdx";
+---
+
+<CatalogLayout
+  title="Public, the owner signed out"
+  about="A public artifact's page as the owner sees it once their session has expired: the page they always see, and a signed-out notice whose action links to the Library to sign in, since reloading a public page never reaches the sign-in."
+  headings={getHeadings()}
+  scene="signed-out"
+  viewer="owner"
+>
+  <Questions />
+</CatalogLayout>

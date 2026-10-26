@@ -1,0 +1,492 @@
+---
+import "./figure-colours.css";
+import InlineSvg from "./InlineSvg.astro";
+import StepControls from "./StepControls.astro";
+import { drawInStandard, inOneFrame, smallestLabelSize } from "./d2-board.ts";
+import { componentError } from "./component-errors.ts";
+import { inSteps, printedLines, steppedCode, steppedFigure } from "./stepper.ts";
+
+interface Captioned {
+  /**
+   * One short caption per step, in step order, shown beside the buttons. Screen readers announce
+   * it with the step number and, for code, the step's lines; without captions they hear only
+   * those. Leave it out only when the prose around the stepper already explains each step.
+   */
+  captions?: string[];
+}
+
+interface Described {
+  /** What the drawing shows as a whole, in a sentence or two. Screen readers read it. */
+  alt: string;
+}
+
+interface DiagramSteps extends Captioned, Described {
+  /**
+   * The diagram's boards, imported with `?steps` from a `.d2` file next to the entry. The root
+   * board is the first step, unless everything is drawn under `steps`, and each board in `steps`
+   * is the next.
+   */
+  diagram: string[];
+}
+
+interface FigureSteps extends Captioned, Described {
+  /**
+   * The drawing, imported with `?raw` from an `.svg` file next to the entry. Each element with a
+   * `data-step` shows only in the steps it lists: `data-step="2"` in step 2, `"2-4"` in steps 2 to
+   * 4, `"2-"` from step 2 to the end, and `"1, 3"` in steps 1 and 3. Elements without one always
+   * show. The highest step number named is the number of steps.
+   */
+  figure: string;
+}
+
+interface CodeSteps extends Captioned {
+  /**
+   * The lines each step highlights, one entry per step, counting lines from 1: `"3"`, `"3-5"`,
+   * `"3-"` (line 3 to the end) or `"1-2, 6"`. The other lines turn grey. Put one fenced code block
+   * inside the stepper, with blank lines around it.
+   */
+  lines: string[];
+}
+
+/**
+ * Steps the owner through a mechanism, a diagram or a code walkthrough one step at a time, with
+ * back and forward buttons above it. Use it when the order is the point: the stages of a process,
+ * a drawing built up part by part, or a program read a few lines at a time. For a picture that
+ * reads at once, use `Diagram` or `Figure`.
+ *
+ * Give it exactly one of `diagram`, `figure` or `lines`:
+ *
+ * ````mdx
+ * import mitose from "./mitose.d2?steps";
+ * import bomba from "./bomba.svg?raw";
+ *
+ * <Stepper diagram={mitose} alt="As quatro fases da mitose." captions={["Prófase", "Metáfase", "Anáfase", "Telófase"]} />
+ *
+ * <Stepper figure={bomba} alt="A bomba de sódio e potássio em três tempos." captions={["A bomba prende três Na⁺.", "Ela os solta fora da célula.", "Ela traz dois K⁺ para dentro."]} />
+ *
+ * <Stepper lines={["1", "2-3", "5"]} captions={["Recebe o raio.", "Calcula a área.", "Devolve."]}>
+ *
+ * ```ts
+ * …
+ * ```
+ *
+ * </Stepper>
+ * ````
+ *
+ * A D2 diagram steps through its `steps` boards, each drawn as a whole, in one frame the size of
+ * the largest board: write every board so it reads on its own. Diagrams and drawings take their
+ * colours as in `Diagram` and `Figure`. A stepper needs at least two steps, and `captions`, when
+ * given, needs one caption per step.
+ *
+ * Printed, a stepper shows every step: each board under its number and caption, and code with each
+ * step's lines and caption listed under it. A figure prints once, at its last step, with the
+ * captions listed under it, so make the last step the complete drawing.
+ */
+type Props = DiagramSteps | FigureSteps | CodeSteps;
+
+const props = Astro.props;
+const { captions } = props;
+const alt = "alt" in props ? props.alt : "";
+
+// TypeScript accepts a prop from another member of a union, so the types alone let two sources in.
+const sources = ["diagram", "figure", "lines"].filter((source) => source in props);
+if (sources.length !== 1) {
+  throw componentError("Stepper", "give it exactly one of `diagram`, `figure` or `lines`");
+}
+
+let count: number;
+let boards: { svg: string; crop: string }[] | undefined;
+let figure: string | undefined;
+let code: string | undefined;
+let linesOfStep: number[][] | undefined;
+if ("diagram" in props) {
+  const { frame, boards: framed } = inOneFrame(props.diagram.map(drawInStandard));
+  boards = framed.map(({ svg, box }) => ({
+    svg,
+    crop: [
+      `--frame-width: ${String(frame.width)}`,
+      `--board-width: ${String(box.width)}`,
+      `--board-height: ${String(box.height)}`,
+      `--board-x: ${String(box.x - frame.x)}`,
+      `--board-y: ${String(box.y - frame.y)}`,
+    ].join("; "),
+  }));
+  count = boards.length;
+} else if ("figure" in props) {
+  ({ svg: figure, count } = steppedFigure(props.figure));
+} else {
+  ({ html: code, linesOfStep } = steppedCode(await Astro.slots.render("default"), props.lines));
+  count = props.lines.length;
+}
+
+// A diagram that failed has no boards, and its failure is already reported against the .d2 file.
+const diagramFailed = boards?.length === 0;
+if (!diagramFailed && count < 2) {
+  throw componentError("Stepper", `it has ${String(count)} step; give it at least two`);
+}
+if (!diagramFailed && captions !== undefined && captions.length !== count) {
+  throw componentError(
+    "Stepper",
+    `it has ${String(count)} steps but ${String(captions.length)} captions; give one caption per step`,
+  );
+}
+
+const boardMinScale =
+  boards && boards.length > 0
+    ? Math.min(1, Math.max(1 / 2, 8 / Math.min(...boards.map(({ svg }) => smallestLabelSize(svg)))))
+    : undefined;
+const countWidth = `min-inline-size: ${String(String(count).length)}ch`;
+const printedSteps = linesOfStep
+  ? linesOfStep.map((lines, index) => {
+      const caption = captions ? `: ${captions[index] ?? ""}` : "";
+      return {
+        number: String(index + 1),
+        en: `(${printedLines(lines, { line: "line", lines: "lines" })})${caption}`,
+        pt: `(${printedLines(lines, { line: "linha", lines: "linhas" })})${caption}`,
+      };
+    })
+  : figure &&
+    captions?.map((caption, index) => ({
+      number: `${String(index + 1)}.`,
+      en: caption,
+      pt: caption,
+    }));
+---
+
+{!diagramFailed && (
+  <artifact-stepper class="stepper" data-count={count}>
+    <StepControls kind="stepper" class="stepper-controls">
+      <p class="step-counter">
+        <span class="stepper-current" style={countWidth}>
+          1
+        </span>{" "}
+        <span data-lang="en">of</span>
+        <span data-lang="pt">de</span> {count} {code && <span class="stepper-lines step-unseen" />}
+      </p>
+      {captions && (
+        <div class="stepper-captions">
+          {captions.map((caption, index) => (
+            <p {...inSteps([index + 1])}>{caption}</p>
+          ))}
+        </div>
+      )}
+    </StepControls>
+    {boards && (
+      <div class="stepper-stage stepper-boards">
+        {boards.map((board, index) => (
+          <div {...inSteps([index + 1])}>
+            <p class="stepper-step">
+              <span class="stepper-step-number">{index + 1}.</span> {captions?.[index]}
+            </p>
+            <div class="stepper-board" style={board.crop}>
+              <InlineSvg svg={board.svg} alt={alt} minScale={boardMinScale} />
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+    {figure && (
+      <div class="stepper-stage stepper-figure figure">
+        <InlineSvg svg={figure} alt={alt} />
+      </div>
+    )}
+    {code && <div class="stepper-stage stepper-code" set:html={code} />}
+    {printedSteps && (
+      <ol class="stepper-steps">
+        {printedSteps.map((step) => (
+          <li class="stepper-step">
+            <span class="stepper-step-number">{step.number}</span>{" "}
+            <span data-lang="en">{step.en}</span>
+            <span data-lang="pt">{step.pt}</span>
+          </li>
+        ))}
+      </ol>
+    )}
+    <p class="stepper-announcement step-unseen" aria-live="polite"></p>
+  </artifact-stepper>
+)}
+
+<script>
+  import { lineRuns } from "./stepper.ts";
+
+  const texts = {
+    en: {
+      step: (step: number, count: number) => `Step ${String(step)} of ${String(count)}.`,
+      lines: { one: "Line", many: "Lines", to: "to", and: "and" },
+    },
+    pt: {
+      step: (step: number, count: number) => `Passo ${String(step)} de ${String(count)}.`,
+      lines: { one: "Linha", many: "Linhas", to: "a", and: "e" },
+    },
+  };
+
+  function saidLines(lines: number[], words: (typeof texts)["en"]["lines"]): string {
+    const runs = lineRuns(lines).map(({ from, to }) =>
+      from === to ? String(from) : `${String(from)} ${words.to} ${String(to)}`,
+    );
+    const last = runs.pop() ?? "";
+    const list = runs.length === 0 ? last : `${runs.join(", ")} ${words.and} ${last}`;
+    return `${lines.length === 1 ? words.one : words.many} ${list}.`;
+  }
+
+  class ArtifactStepper extends HTMLElement {
+    #step = 1;
+
+    constructor() {
+      super();
+      this.addEventListener("click", (event) => {
+        if (!(event.target instanceof Element)) return;
+        const button = event.target.closest("button");
+        if (button === this.#part("button.stepper-back")) this.#go(-1);
+        if (button === this.#part("button.stepper-forward")) this.#go(1);
+      });
+      this.addEventListener("keydown", (event) => {
+        if (!(event.target instanceof HTMLButtonElement)) return;
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        this.#go(event.key === "ArrowLeft" ? -1 : 1);
+      });
+    }
+
+    connectedCallback() {
+      for (const button of this.querySelectorAll(".stepper-controls button")) {
+        button.removeAttribute("disabled");
+      }
+      this.#show();
+    }
+
+    get #count(): number {
+      return Number(this.dataset.count);
+    }
+
+    get #texts() {
+      const lang = this.closest("[lang]")?.getAttribute("lang") ?? "en";
+      return lang.startsWith("pt") ? texts.pt : texts.en;
+    }
+
+    #part(selector: string): HTMLElement {
+      const part = this.querySelector<HTMLElement>(selector);
+      if (part === null) throw new Error(`artifact-stepper has no ${selector}`);
+      return part;
+    }
+
+    #go(by: number) {
+      const step = Math.min(Math.max(this.#step + by, 1), this.#count);
+      if (step === this.#step) return;
+      this.#step = step;
+      this.dataset.stepped = "";
+      this.#show();
+      this.#part(".stepper-announcement").textContent = [
+        this.#texts.step(step, this.#count),
+        this.querySelector(".stepper-lines")?.textContent,
+        this.querySelector(".stepper-captions > :not([data-off])")?.textContent,
+      ]
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    #show() {
+      const step = String(this.#step);
+      for (const part of this.querySelectorAll<HTMLElement | SVGElement>("[data-in-steps]")) {
+        const steps = (part.dataset.inSteps ?? "").split(" ");
+        part.toggleAttribute("data-off", !steps.includes(step));
+      }
+      this.#part(".stepper-current").textContent = step;
+      const lines = this.querySelector(".stepper-lines");
+      if (lines !== null) {
+        const lit = [...this.querySelectorAll(".stepper-code .line")].flatMap((line, index) =>
+          line.hasAttribute("data-off") ? [] : [index + 1],
+        );
+        lines.textContent = saidLines(lit, this.#texts.lines);
+      }
+      this.#part("button.stepper-back").setAttribute("aria-disabled", String(this.#step === 1));
+      this.#part("button.stepper-forward").setAttribute(
+        "aria-disabled",
+        String(this.#step === this.#count),
+      );
+    }
+  }
+
+  customElements.define("artifact-stepper", ArtifactStepper);
+</script>
+
+<style is:global>
+  @layer components {
+    artifact-stepper {
+      display: block;
+      margin-block: var(--block-clearance);
+    }
+
+    .stepper-captions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      min-inline-size: 0;
+
+      > * {
+        grid-area: 1 / 1;
+      }
+    }
+
+    .stepper-code pre {
+      margin: 0;
+    }
+
+    .stepper-boards,
+    .stepper-figure {
+      display: grid;
+      place-items: center;
+      padding-block: var(--space-3);
+      border-block: var(--rule) solid var(--color-text);
+      overflow-x: auto;
+    }
+
+    .stepper-boards > [data-off] {
+      display: none;
+    }
+
+    .stepper-figure [data-off],
+    .stepper-captions > [data-off] {
+      visibility: hidden;
+      opacity: 0;
+    }
+
+    /* Shiki's spans read their colour from these variables, so a line passes the grey to them. */
+    @media screen {
+      .stepper-code .line[data-off] {
+        --astro-code-foreground: var(--color-text-muted);
+        --astro-code-token-keyword: var(--color-text-muted);
+        --astro-code-token-function: var(--color-text-muted);
+        --astro-code-token-parameter: var(--color-text-muted);
+        --astro-code-token-string: var(--color-text-muted);
+        --astro-code-token-string-expression: var(--color-text-muted);
+        --astro-code-token-constant: var(--color-text-muted);
+        --astro-code-token-punctuation: var(--color-text-muted);
+        --astro-code-token-link: var(--color-text-muted);
+      }
+
+      .stepper-code .line:not([data-off])::before {
+        color: var(--color-text);
+        font-weight: var(--font-weight-frame-strong);
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .stepper [data-in-steps] {
+        transition:
+          opacity 0.2s,
+          visibility 0.2s;
+      }
+
+      .stepper-code .line,
+      .stepper-code .line > *,
+      .stepper-code .line::before {
+        transition: color 0.2s;
+      }
+
+      /* @starting-style also fires on page load, so the first board would fade in unasked. */
+      .stepper[data-stepped] .stepper-boards > * {
+        @starting-style {
+          opacity: 0;
+        }
+      }
+    }
+
+    .stepper-controls {
+      margin-block-end: var(--space-2);
+    }
+
+    .stepper-current {
+      display: inline-block;
+      text-align: end;
+    }
+
+    .stepper-captions > p {
+      margin: 0;
+      font-size: var(--font-size-frame);
+    }
+
+    .stepper-step,
+    .stepper-steps {
+      display: none;
+    }
+
+    .stepper-step-number {
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame-strong);
+      font-variant-numeric: tabular-nums;
+    }
+
+    @media print {
+      .stepper [data-in-steps] {
+        transition: none;
+      }
+
+      .stepper-controls {
+        display: none;
+      }
+
+      .stepper-boards {
+        justify-items: stretch;
+        row-gap: var(--space-4);
+
+        > [data-off] {
+          display: block;
+        }
+
+        > * {
+          break-inside: avoid;
+        }
+      }
+
+      .stepper-step {
+        display: block;
+        margin: 0 0 var(--space-2);
+        font-size: var(--font-size-frame);
+      }
+
+      /* Every board is drawn in the largest board's frame, which would print each early board with
+         the empty space of the last one. In print, each is cut back to its own box. */
+      .stepper-board {
+        inline-size: min(100%, var(--board-width) * 1px);
+        aspect-ratio: var(--board-width) / var(--board-height);
+        margin-inline: auto;
+        overflow: hidden;
+
+        > svg {
+          inline-size: calc(100% * var(--frame-width) / var(--board-width));
+          max-inline-size: none;
+          margin-block-start: calc(-100% * var(--board-y) / var(--board-width));
+          margin-inline-start: calc(-100% * var(--board-x) / var(--board-width));
+        }
+      }
+
+      .stepper-steps {
+        display: block;
+        margin: var(--space-2) 0 0;
+        padding: 0;
+        list-style: none;
+        break-before: avoid;
+
+        > .stepper-step {
+          margin-block-end: var(--space-1);
+        }
+      }
+
+      .stepper-figure {
+        break-inside: avoid;
+      }
+
+      .stepper-figure [data-in-steps]:not([data-in-last-step]) {
+        visibility: hidden;
+        opacity: 0;
+      }
+
+      .stepper-figure [data-in-last-step] {
+        visibility: visible;
+        opacity: 1;
+      }
+    }
+  }
+</style>

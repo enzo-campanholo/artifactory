@@ -1,0 +1,76 @@
+<artifact-attempts-panel class="attempts-panel">
+  <section aria-labelledby="artifact-attempts-heading">
+    <h2 id="artifact-attempts-heading" class="artifact-label">
+      <span data-lang="en">Your attempts</span>
+      <span data-lang="pt">Suas tentativas</span>
+    </h2>
+    <p class="attempts-none">
+      <span data-lang="en">No attempts yet.</span>
+      <span data-lang="pt">Nenhuma tentativa ainda.</span>
+    </p>
+    <ol class="attempts-list"></ol>
+    <button type="button" class="control-text attempts-show-all" hidden>
+      <span data-lang="en">Show all</span>
+      <span data-lang="pt">Mostrar todas</span>
+    </button>
+  </section>
+</artifact-attempts-panel>
+
+<script>
+  import "./attempts-panel.ts";
+</script>
+
+<style is:global>
+  @layer components {
+    .attempts-panel {
+      display: block;
+
+      h2 {
+        margin: 0;
+      }
+
+      @media print {
+        display: none;
+      }
+    }
+
+    .attempts-none {
+      margin: var(--space-2) 0 0;
+      padding-inline: var(--inset);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame-small);
+    }
+
+    .attempts-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame-small);
+      font-variant-numeric: tabular-nums;
+      line-height: var(--line-height-frame);
+
+      > li {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0 var(--space-3);
+        box-sizing: border-box;
+        min-block-size: var(--target);
+        padding-inline: var(--inset);
+        border-block-end: var(--rule) solid var(--color-text);
+
+        &[hidden] {
+          display: none;
+        }
+
+        &[data-shown] {
+          font-weight: var(--font-weight-frame-strong);
+        }
+      }
+    }
+  }
+</style>

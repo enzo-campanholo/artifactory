@@ -1,0 +1,20 @@
+owner: Owner {shape: person}
+
+browser: Browser {
+  grid-columns: 2
+  grid-gap: 100
+  page: Artifact page
+  store: State store
+  page -> store: answers
+}
+
+worker: Worker {
+  grid-columns: 2
+  grid-gap: 60
+  api: State API
+  db: D1 {shape: cylinder}
+  api -> db
+}
+
+owner -> browser.page: studies
+browser.store -> worker.api: saves

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-worker/
+.astro/
+.build/
+design-system/.impeccable/config.local.json
+design-system/.impeccable/hook.cache.json
+.wrangler/
+.look/
+sources/
+design-system/.impeccable/questions/
+design-system/.impeccable/review/

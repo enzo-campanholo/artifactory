@@ -1,0 +1,317 @@
+---
+import { questionAnchor, questionMarkers } from "./question-markers.ts";
+import type { AutoCheckedKind, Json } from "./scoring.ts";
+
+type Props = { id: string; prompt: string } & (
+  | { kind: AutoCheckedKind; answerKey: Json; modelAnswer?: never }
+  | { kind: "open-question"; modelAnswer: string; answerKey?: never }
+);
+
+const { props } = Astro;
+const { id, kind, modelAnswer, prompt } = props;
+const Tag = `artifact-${kind}` as const;
+const markers = questionMarkers(
+  props.kind === "open-question" ? { id, kind } : { id, kind: props.kind, key: props.answerKey },
+);
+const anchor = questionAnchor(id);
+// Question IDs are kebab-case, so no question's anchor can end in "--prompt".
+const promptId = `${anchor}--prompt`;
+const hints = {
+  "single-choice": { en: "Choose one", pt: "Escolha uma" },
+  numeric: { en: "Work it out", pt: "Calcule" },
+  "open-question": { en: "Answer in your own words", pt: "Responda com suas palavras" },
+} satisfies Record<Props["kind"], { en: string; pt: string }>;
+const hint = hints[kind];
+---
+
+<Tag {...markers} class="question" role="group" inert="">
+  <form>
+    <div class="question-header">
+      <span class="question-number">
+        <span data-lang="en">Question</span>
+        <span data-lang="pt">Questão</span>
+      </span>
+      <span class="question-hint" data-hint="open">
+        <span data-lang="en">{hint.en}</span>
+        <span data-lang="pt">{hint.pt}</span>
+      </span>
+      {modelAnswer !== undefined && (
+        <span class="question-hint" data-hint="compare">
+          <span data-lang="en">Compare with the model answer</span>
+          <span data-lang="pt">Compare com a resposta-modelo</span>
+        </span>
+      )}
+      <p class="question-status" role="status" tabindex="-1"></p>
+    </div>
+    <fieldset aria-describedby={promptId}>
+      <div class="question-prompt" id={promptId} set:html={prompt} />
+      <slot />
+      {modelAnswer === undefined && (
+        <div class="question-actions">
+          <button type="submit" class="control-button question-check" aria-disabled="true">
+            <span data-lang="en">Check</span>
+            <span data-lang="pt">Verificar</span>
+          </button>
+        </div>
+      )}
+    </fieldset>
+    {modelAnswer !== undefined && (
+      <details class="question-model-answer">
+        <summary class="control-button" aria-disabled="true">
+          <span data-lang="en">Show the model answer</span>
+          <span data-lang="pt">Ver a resposta-modelo</span>
+        </summary>
+        <div class="question-model-answer-body" tabindex="-1">
+          <p class="question-model-answer-heading">
+            <span data-lang="en">Model answer</span>
+            <span data-lang="pt">Resposta-modelo</span>
+          </p>
+          <div class="question-model-answer-text" set:html={modelAnswer} />
+        </div>
+        <fieldset class="question-actions question-own-mark">
+          <button
+            type="submit"
+            class="control-button control-button-outline"
+            name="mark"
+            value="right"
+          >
+            <span data-lang="en">I got it right</span>
+            <span data-lang="pt">Acertei</span>
+          </button>
+          <button
+            type="submit"
+            class="control-button control-button-outline"
+            name="mark"
+            value="wrong"
+          >
+            <span data-lang="en">I got it wrong</span>
+            <span data-lang="pt">Errei</span>
+          </button>
+        </fieldset>
+      </details>
+    )}
+    <div class="question-actions question-recovery" hidden></div>
+  </form>
+</Tag>
+
+<style is:global>
+  @layer components {
+    .question {
+      --question-padding: 1.375rem;
+      --question-border: var(--stroke);
+
+      display: block;
+      margin-block: 1.875rem;
+      padding: 1rem var(--question-padding) 1.25rem;
+      border: var(--question-border) solid var(--color-text);
+      background: var(--color-surface);
+
+      &[data-status="saving"] {
+        border-style: dashed;
+      }
+
+      &:is([data-status="not-saved"], [data-status="lost"]) {
+        --question-border: 3px;
+        --question-padding: calc(1.375rem - 1px);
+
+        border-style: dotted;
+        padding-block: calc(1rem - 1px) calc(1.25rem - 1px);
+      }
+
+      fieldset {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        min-inline-size: 0;
+      }
+
+      @media (width < 64rem) {
+        --question-padding: var(--gutter);
+
+        .artifact-main > & {
+          margin: 1.625rem calc(-1 * var(--gutter));
+          border-inline: 0;
+          padding-block: 0.875rem 1.125rem;
+        }
+      }
+
+      @media print {
+        break-inside: avoid;
+      }
+    }
+
+    .question-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-1) 0.75rem;
+      box-sizing: border-box;
+      min-block-size: 2.125rem;
+      margin: 0 calc(-1 * var(--question-padding)) 0.75rem;
+      padding: 0 var(--question-padding) var(--inset);
+      border-block-end: var(--rule) solid var(--color-text);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame-strong);
+      line-height: var(--line-height-frame);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .question-hint {
+      display: none;
+      font-weight: var(--font-weight-frame);
+
+      .question:not([data-status]) &[data-hint="open"] {
+        display: inline;
+      }
+
+      .question:not([data-status]):has(details[open]) &[data-hint="open"] {
+        display: none;
+      }
+
+      .question:not([data-status]):has(details[open]) &[data-hint="compare"] {
+        display: inline;
+      }
+    }
+
+    .question-status {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin: 0;
+      margin-inline-start: auto;
+      font-weight: var(--font-weight-frame);
+      text-align: start;
+
+      &:empty {
+        display: none;
+      }
+
+      &::before {
+        content: "";
+        flex: none;
+        inline-size: var(--sign-size);
+        block-size: var(--sign-size);
+        background: currentColor;
+        mask: center / contain no-repeat;
+        print-color-adjust: exact;
+
+        @media (forced-colors: active) {
+          forced-color-adjust: none;
+          background: CanvasText;
+        }
+      }
+
+      [data-status="saving"] > form > .question-header > &::before {
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M2 9h3v3H2zm6.5 0h3v3h-3zM15 9h3v3h-3z'/%3E%3C/svg%3E");
+      }
+
+      :is([data-status="not-saved"], [data-status="lost"]) > form > .question-header > &::before {
+        inline-size: 0.375rem;
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='7 0 6 20'%3E%3Cpath d='M10 5v7m0 3.5v.5' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='square'/%3E%3C/svg%3E");
+      }
+
+      :is([data-status="saved"], [data-status="answered-elsewhere"])[data-mark="right"]
+        > form
+        > .question-header
+        > &::before {
+        mask-image: var(--sign-tick);
+      }
+
+      :is([data-status="saved"], [data-status="answered-elsewhere"])[data-mark="wrong"]
+        > form
+        > .question-header
+        > &::before {
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m4 4 12 12M16 4 4 16' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='square'/%3E%3C/svg%3E");
+      }
+    }
+
+    .question-prompt > :first-child {
+      margin-block-start: 0;
+    }
+
+    .question-prompt > :last-child {
+      margin-block-end: 0;
+    }
+
+    .question-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-2) 0.75rem;
+      margin-block-start: var(--space-3);
+
+      &[hidden] {
+        display: none;
+      }
+
+      @media (width < 64rem) {
+        justify-content: flex-end;
+      }
+
+      @media print {
+        display: none;
+      }
+    }
+
+    .question[data-status] fieldset > .question-actions {
+      display: none;
+    }
+
+    .question-model-answer {
+      margin-block-start: var(--space-3);
+
+      > summary {
+        display: flex;
+        list-style: none;
+        inline-size: fit-content;
+
+        &::-webkit-details-marker {
+          display: none;
+        }
+
+        @media (width < 64rem) {
+          margin-inline-start: auto;
+        }
+
+        @media print {
+          display: none;
+        }
+      }
+
+      &[open] > summary {
+        display: none;
+      }
+
+      .question[data-status] & > .question-own-mark {
+        display: none;
+      }
+    }
+
+    .question-model-answer-body {
+      padding-block-start: var(--inset);
+      border-block-start: var(--rule) solid var(--color-text);
+    }
+
+    .question-model-answer-heading {
+      margin: 0 0 0.125rem;
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-caption);
+      font-weight: var(--font-weight-frame-strong);
+      line-height: var(--line-height-frame);
+    }
+
+    .question-model-answer-text {
+      > :first-child {
+        margin-block-start: 0;
+      }
+
+      > :last-child {
+        margin-block-end: 0;
+      }
+    }
+  }
+</style>

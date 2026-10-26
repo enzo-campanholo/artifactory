@@ -1,0 +1,14 @@
+---
+import CatalogLayout from "../CatalogLayout.astro";
+import Questions, { getHeadings } from "../questions.mdx";
+---
+
+<CatalogLayout
+  title="Public, a visitor"
+  about="A public artifact's page as a visitor sees it, on throwaway state: no back link, its place kept empty, and one line under the date saying the answers stay on this page. It shows only on artifacts with questions, and not in print. A visitor never sees a notice about saving or signing in."
+  headings={getHeadings()}
+  scene="unanswered"
+  viewer="visitor"
+>
+  <Questions />
+</CatalogLayout>

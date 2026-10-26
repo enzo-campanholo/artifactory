@@ -1,0 +1,214 @@
+---
+/**
+ * A margin note on one paragraph: a remark, a caveat or a pointer that would interrupt the sentence
+ * if it stood in it. On a wide screen it sits in the right margin, level with its paragraph's
+ * first line; on narrower screens it folds behind a "Note" marker ("Nota" in Portuguese) at the
+ * end of the paragraph, which opens it under the paragraph. Keep it to a sentence or two of plain
+ * text, inline math or inline code.
+ *
+ * Put it at the very end of a paragraph of the main text, right after the last word with no space
+ * before it, and give each paragraph one note at most. Never put one in a question, a list or a
+ * heading. For text the owner must read, write it in the paragraph instead.
+ *
+ * ```mdx
+ * import Note from "@artifactory/design-system/note";
+ *
+ * A transformada é a integral de $y(t)e^{-st}$ de zero ao infinito.<Note>A integral começa em zero: o que acontece antes de $t = 0$ não conta.</Note>
+ * ```
+ */
+// The reference documents every component through its `Props`, and a note takes only its text.
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface Props {}
+
+// Astro keeps the whitespace around a literal `&#x2060;`, and the marker could wrap after it alone.
+// It drops the whitespace around an expression.
+const wordJoiner = "\u2060";
+---
+
+<artifact-note class="note">
+  {wordJoiner}
+  <button type="button" class="note-marker" aria-expanded="false">
+    <span data-lang="en">Note</span>
+    <span data-lang="pt">Nota</span>
+  </button>
+  <span class="note-text">
+    <span class="note-label">
+      <span data-lang="en">Note</span>
+      <span data-lang="pt">Nota</span>
+    </span>{" "}
+    <slot />
+  </span>
+</artifact-note>
+
+<script>
+  const wideLayout = matchMedia("screen and (width >= 80rem)");
+  let stackingQueued = false;
+
+  function queueMarginNoteStacking() {
+    if (stackingQueued) return;
+    stackingQueued = true;
+    requestAnimationFrame(stackMarginNotes);
+  }
+
+  function stackMarginNotes() {
+    stackingQueued = false;
+    const texts = [
+      ...document.querySelectorAll<HTMLElement>(".artifact-main > p > .note > .note-text"),
+    ];
+    for (const text of texts) text.style.removeProperty("--note-shift");
+    if (!wideLayout.matches) return;
+
+    const boxes = texts.map((text) => {
+      const { top, bottom } = text.getBoundingClientRect();
+      return { text, top, bottom, gap: parseFloat(getComputedStyle(text).marginBlockEnd) };
+    });
+    let clearFrom = -Infinity;
+    for (const box of boxes) {
+      const shift = Math.max(0, clearFrom - box.top);
+      if (shift > 0) box.text.style.setProperty("--note-shift", `${String(shift)}px`);
+      clearFrom = box.bottom + shift + box.gap;
+    }
+  }
+
+  class ArtifactNote extends HTMLElement {
+    constructor() {
+      super();
+      this.addEventListener("click", (event) => {
+        if (!(event.target instanceof Element)) return;
+        const marker = event.target.closest(".note-marker");
+        if (marker === null) return;
+        marker.setAttribute(
+          "aria-expanded",
+          String(marker.getAttribute("aria-expanded") !== "true"),
+        );
+      });
+    }
+
+    connectedCallback() {
+      queueMarginNoteStacking();
+    }
+  }
+
+  customElements.define("artifact-note", ArtifactNote);
+  addEventListener("resize", queueMarginNoteStacking);
+  void document.fonts.ready.then(queueMarginNoteStacking);
+  const main = document.querySelector(".artifact-main");
+  if (main !== null) new ResizeObserver(queueMarginNoteStacking).observe(main);
+</script>
+
+<style is:global>
+  @layer components {
+    /* Chrome breaks a line between the word joiner and the marker, so the note keeps them together. */
+    .note {
+      white-space: nowrap;
+    }
+
+    .note-marker,
+    .note-label {
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-weight: var(--font-weight-frame-strong);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .note-label {
+      margin-inline-end: 0.25em;
+      font-size: var(--font-size-label);
+    }
+
+    .note-marker {
+      position: relative;
+      margin-inline-start: 0.375rem;
+      padding: 0 0.375rem;
+      border: var(--rule) solid var(--color-text);
+      background: none;
+      color: var(--color-text);
+      font-size: 0.75rem;
+      line-height: 1.6667;
+      vertical-align: 1px;
+      cursor: pointer;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: -0.75rem -0.5rem;
+      }
+
+      &[aria-expanded="true"] {
+        background: var(--color-text);
+        color: var(--color-surface);
+      }
+
+      @media (hover: hover) {
+        &:hover:not([aria-expanded="true"]) {
+          background: var(--color-surface-subtle);
+        }
+      }
+
+      @media (forced-colors: active) {
+        &[aria-expanded="true"] {
+          background: CanvasText;
+          color: Canvas;
+          forced-color-adjust: none;
+        }
+      }
+
+      @media print {
+        display: none;
+      }
+    }
+
+    .note-text {
+      display: none;
+      font-size: 0.85em;
+      line-height: 1.45;
+      white-space: normal;
+
+      artifact-note:not(:defined) > &,
+      .note-marker[aria-expanded="true"] + & {
+        display: block;
+        margin-block: 0.75rem 0;
+        padding-block: var(--space-2);
+        border-block: var(--rule) solid var(--color-text);
+      }
+
+      @media screen {
+        .note-marker[aria-expanded="true"] + & > .note-label {
+          display: none;
+        }
+      }
+
+      @media print {
+        display: block;
+        margin-block: var(--space-2) 0;
+        padding-block: var(--space-2);
+        border-block: var(--rule) solid var(--color-text);
+      }
+    }
+
+    @media screen and (width >= 80rem) {
+      .artifact-main > p > .note {
+        > .note-marker {
+          display: none;
+        }
+
+        > .note-text,
+        > .note-marker[aria-expanded="true"] + .note-text {
+          position: absolute;
+          inset-block-start: calc(0.25rem + var(--note-shift, 0px));
+          inset-inline-start: calc(100% + var(--artifact-gap));
+          display: block;
+          inline-size: var(--artifact-rail);
+          margin: 0 0 var(--space-3);
+          padding: 0;
+          border: 0;
+
+          > .note-label {
+            display: inline;
+          }
+        }
+      }
+    }
+  }
+</style>

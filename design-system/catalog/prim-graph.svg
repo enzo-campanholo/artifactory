@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240">
+  <g data-part="A-B">
+    <line x1="40" y1="50" x2="210" y2="30" class="stroke-text" stroke-width="2" />
+    <rect x="113" y="28" width="24" height="24" class="fill-surface" />
+    <text x="125" y="45" text-anchor="middle" font-size="15">4</text>
+  </g>
+  <g data-part="A-D">
+    <line x1="40" y1="50" x2="110" y2="200" class="stroke-text" stroke-width="2" />
+    <rect x="63" y="113" width="24" height="24" class="fill-surface" />
+    <text x="75" y="130" text-anchor="middle" font-size="15">2</text>
+  </g>
+  <g data-part="B-D">
+    <line x1="210" y1="30" x2="110" y2="200" class="stroke-text" stroke-width="2" />
+    <rect x="148" y="103" width="24" height="24" class="fill-surface" />
+    <text x="160" y="120" text-anchor="middle" font-size="15">3</text>
+  </g>
+  <g data-part="B-C">
+    <line x1="210" y1="30" x2="380" y2="60" class="stroke-text" stroke-width="2" />
+    <rect x="283" y="33" width="24" height="24" class="fill-surface" />
+    <text x="295" y="50" text-anchor="middle" font-size="15">6</text>
+  </g>
+  <g data-part="B-E">
+    <line x1="210" y1="30" x2="300" y2="200" class="stroke-text" stroke-width="2" />
+    <rect x="243" y="103" width="24" height="24" class="fill-surface" />
+    <text x="255" y="120" text-anchor="middle" font-size="15">5</text>
+  </g>
+  <g data-part="C-E">
+    <line x1="380" y1="60" x2="300" y2="200" class="stroke-text" stroke-width="2" />
+    <rect x="328" y="118" width="24" height="24" class="fill-surface" />
+    <text x="340" y="135" text-anchor="middle" font-size="15">1</text>
+  </g>
+  <g data-part="D-E">
+    <line x1="110" y1="200" x2="300" y2="200" class="stroke-text" stroke-width="2" />
+    <rect x="193" y="188" width="24" height="24" class="fill-surface" />
+    <text x="205" y="205" text-anchor="middle" font-size="15">7</text>
+  </g>
+  <g data-part="A">
+    <circle cx="40" cy="50" r="18" class="fill-surface stroke-text" stroke-width="2" />
+    <text x="40" y="56" text-anchor="middle" font-size="17">A</text>
+  </g>
+  <g data-part="B">
+    <circle cx="210" cy="30" r="18" class="fill-surface stroke-text" stroke-width="2" />
+    <text x="210" y="36" text-anchor="middle" font-size="17">B</text>
+  </g>
+  <g data-part="C">
+    <circle cx="380" cy="60" r="18" class="fill-surface stroke-text" stroke-width="2" />
+    <text x="380" y="66" text-anchor="middle" font-size="17">C</text>
+  </g>
+  <g data-part="D">
+    <circle cx="110" cy="200" r="18" class="fill-surface stroke-text" stroke-width="2" />
+    <text x="110" y="206" text-anchor="middle" font-size="17">D</text>
+  </g>
+  <g data-part="E">
+    <circle cx="300" cy="200" r="18" class="fill-surface stroke-text" stroke-width="2" />
+    <text x="300" y="206" text-anchor="middle" font-size="17">E</text>
+  </g>
+</svg>

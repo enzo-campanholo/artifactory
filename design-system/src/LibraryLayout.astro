@@ -1,0 +1,421 @@
+---
+import "./tokens.css";
+import "./page.css";
+import "./math.css";
+import LayerOrder from "./LayerOrder.astro";
+import StartFailed from "./StartFailed.astro";
+import StateNotices from "./StateNotices.astro";
+import ThemeEye from "./ThemeEye.astro";
+import ThemeHead from "./ThemeHead.astro";
+import { shortDate } from "./dates.ts";
+import { keptSummariesKey } from "./library-statuses.ts";
+import paintFromKeptCopy from "./library-revisit-paint.js?raw";
+import { libraryQuestionsBlock } from "./question-markers.ts";
+
+/**
+ * The page that lists artifacts: the Library and the drafts page. Each row links to an artifact and
+ * shows its title, subject and published date, then "Public" if anyone with the link can open it.
+ * When the list holds more than one subject, the owner can show one subject at a time. Each row
+ * also shows the status of the artifact's latest attempt: the statuses this device last loaded
+ * paint with the list, and the load corrects them. The page ends with what each latest attempt has
+ * to revisit, grouped by artifact in the list's order and narrowed with the list by the subject
+ * shown, painted and corrected as the statuses are. The platform renders these pages; an artifact
+ * never uses this layout.
+ */
+interface Props {
+  /** The page's heading and document title. */
+  heading: string;
+  /** The line shown when there's nothing to list: what the page lists, and how an artifact gets there. */
+  empty: string;
+  /** The artifacts to list, shown in the order given. */
+  artifacts: {
+    /** The artifact ID from the frontmatter, which the row's status belongs to. */
+    id: string;
+    /** The artifact's URL, which the whole row links to. */
+    href: string;
+    title: string;
+    /** Rows can be filtered by it, and the filter offers each subject given here once. */
+    subject: string;
+    /**
+     * The artifact's main language, set as the `lang` of its title. A subject takes the language
+     * most of its artifacts have, and `pt-BR` on a tie.
+     */
+    lang: "pt-BR" | "en";
+    /** The published date from the frontmatter, which is midnight UTC on that day. */
+    published: Date;
+    /** Whether anyone with the link can open the artifact, which the row says after its date. */
+    public: boolean;
+  }[];
+  /** The link to the other list, in the running head. */
+  otherList: { href: string; label: string };
+}
+
+const { heading, empty, artifacts, otherList } = Astro.props;
+const subjects = [...new Set(artifacts.map((artifact) => artifact.subject))]
+  .sort(new Intl.Collator("pt-BR").compare)
+  .map((name) => {
+    const listed = artifacts.filter((artifact) => artifact.subject === name);
+    const inEnglish = listed.filter((artifact) => artifact.lang === "en").length;
+    return {
+      name,
+      lang: inEnglish > listed.length - inEnglish ? "en" : "pt-BR",
+      count: listed.length,
+    };
+  });
+const subjectLang = new Map(subjects.map(({ name, lang }) => [name, lang]));
+const rowsShown = (count: number) => (count === 1 ? "1 artifact" : `${String(count)} artifacts`);
+// `published` is midnight UTC, so formatting it in any other time zone can show the day before.
+const publishedOn = (date: Date) => shortDate(date, "en", { timeZone: "UTC" });
+---
+
+<!doctype html>
+<html lang="en" data-build-id="">
+  <head>
+    <meta charset="utf-8" />
+    <ThemeHead />
+    <StartFailed />
+    <LayerOrder />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="icon" href="/favicon.svg" />
+    <title>{heading}</title>
+  </head>
+  <body>
+    <StateNotices page="library" />
+    <main class="page">
+      <div class="library-running-head">
+        <p>artifactory</p>
+        <ThemeEye />
+        <p>
+          <a href={otherList.href}>{otherList.label}</a>
+        </p>
+      </div>
+      <h1 class="page-heading">{heading}</h1>
+      {artifacts.length === 0 ? (
+        <p class="library-empty">{empty}</p>
+      ) : (
+        <>
+          {subjects.length > 1 && (
+            <>
+              <p class="library-filter">
+                <label for="library-subject">Subject</label>
+                <select id="library-subject" autocomplete="off">
+                  <option value="" data-shown={rowsShown(artifacts.length)}>
+                    All
+                  </option>
+                  {subjects.map(({ name, lang, count }) => (
+                    <option value={name} lang={lang} data-shown={rowsShown(count)}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <output class="library-count" for="library-subject">
+                  {rowsShown(artifacts.length)}
+                </output>
+              </p>
+              {/* Inline and before the list, so a filtered list never paints in full first. */}
+              <script is:inline>
+                {
+                  const select = document.getElementById("library-subject");
+                  const count = document.querySelector(".library-count");
+                  const filter = document.head.appendChild(document.createElement("style"));
+                  const show = (subject) => {
+                    select.value = subject;
+                    const chosen = `[data-subject="${CSS.escape(subject)}"]`;
+                    // A hidden group is still the next group's sibling, so without the margin rule
+                    // the first group shown would stand 1.5rem under the heading instead of 0.75rem.
+                    filter.textContent =
+                      subject === ""
+                        ? ""
+                        : `.library-row:not(${chosen}), .library-revisit-group:not(${chosen}),
+                          library-revisit:not(:has(${chosen})) { display: none; }
+                          .library-revisit-group:nth-child(1 of ${chosen}) { margin-block-start: 0; }`;
+                    const { shown } = select.selectedOptions[0].dataset;
+                    if (count.textContent !== shown) count.textContent = shown;
+                    const url = new URL(location.href);
+                    if (subject === "") url.searchParams.delete("subject");
+                    else url.searchParams.set("subject", subject);
+                    history.replaceState(history.state, "", url);
+                  };
+                  const requested = new URLSearchParams(location.search).get("subject") ?? "";
+                  show(
+                    [...select.options].some(({ value }) => value === requested) ? requested : "",
+                  );
+                  select.addEventListener("change", () => show(select.value));
+                }
+              </script>
+            </>
+          )}
+          <ol class="library-list">
+            {artifacts.map((artifact) => (
+              <li
+                class="library-row"
+                data-artifact-id={artifact.id}
+                data-subject={artifact.subject}
+              >
+                <a class="library-title" href={artifact.href} lang={artifact.lang}>
+                  {artifact.title}
+                </a>
+                <p class="library-meta">
+                  <span lang={subjectLang.get(artifact.subject)}>{artifact.subject}</span>
+                  <time datetime={artifact.published.toISOString().slice(0, 10)}>
+                    {publishedOn(artifact.published)}
+                  </time>
+                  {artifact.public && <strong class="library-public">Public</strong>}
+                </p>
+              </li>
+            ))}
+          </ol>
+          {/*
+           * Inline and right after the list, so the statuses this device last loaded paint with
+           * the rows and the load only corrects them. It writes the markup the module writes.
+           */}
+          <script is:inline define:vars={{ keptSummariesKey }}>
+            let kept = {};
+            try {
+              kept = JSON.parse(localStorage.getItem(keptSummariesKey) ?? "{}") ?? {};
+            } catch {
+              // A cache that can't be read paints no statuses, and the load fills them in.
+            }
+            for (const row of document.querySelectorAll(".library-row")) {
+              const summary = Object.hasOwn(kept, row.dataset.artifactId)
+                ? kept[row.dataset.artifactId]
+                : undefined;
+              const { answered, total } = summary?.progress ?? {};
+              if (typeof answered !== "number" || typeof total !== "number" || answered === 0) {
+                continue;
+              }
+              const status = row.appendChild(document.createElement("p"));
+              status.className = "library-status";
+              status.textContent =
+                summary.finished === true
+                  ? "Finished"
+                  : `In progress · ${answered} of ${total} answered`;
+            }
+          </script>
+          <library-revisit></library-revisit>
+          {/* Written empty: a clean build fills it in, as it stamps the build ID. */}
+          <Fragment set:html={libraryQuestionsBlock([])} />
+          <script
+            is:inline
+            data-kept-summaries-key={keptSummariesKey}
+            set:html={paintFromKeptCopy}
+          />
+        </>
+      )}
+    </main>
+  </body>
+</html>
+
+<script>
+  import "./library-revisit.ts";
+  import {
+    httpLibraryTransport,
+    keptLibraryTransport,
+    memoryLibraryTransport,
+    startLibraryStatuses,
+  } from "./library-statuses.ts";
+  import type { Summary } from "./scoring.ts";
+
+  const { buildId = "" } = document.documentElement.dataset;
+  const transport =
+    import.meta.env.PUBLIC_STATE_TRANSPORT === "http"
+      ? keptLibraryTransport(httpLibraryTransport())
+      : memoryLibraryTransport({ buildId, summaries: {} });
+  const statuses = startLibraryStatuses({ buildId, transport });
+  document.documentElement.dataset.storeStarted = "";
+
+  function statusText({ progress: { answered, total }, finished }: Summary): string {
+    if (answered === 0) return "";
+    return finished ? "Finished" : `In progress · ${String(answered)} of ${String(total)} answered`;
+  }
+
+  function showStatuses() {
+    if (!statuses.loaded) return;
+    for (const row of document.querySelectorAll<HTMLElement>(".library-row")) {
+      const rowSummary = statuses.summary(row.dataset.artifactId ?? "");
+      const text = rowSummary === undefined ? "" : statusText(rowSummary);
+      let status = row.querySelector(".library-status");
+      if (text === "") {
+        status?.remove();
+        continue;
+      }
+      if (status === null) {
+        status = row.appendChild(document.createElement("p"));
+        status.className = "library-status";
+      }
+      if (status.textContent !== text) status.textContent = text;
+    }
+  }
+
+  statuses.subscribe(showStatuses);
+</script>
+
+<style is:global>
+  @layer components {
+    .library-running-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0 var(--space-3);
+      box-sizing: border-box;
+      min-block-size: 2.125rem;
+      padding: 0 var(--inset) var(--inset);
+      border-block-end: var(--rule-heavy) solid var(--color-text);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame);
+      line-height: var(--line-height-frame);
+
+      > p {
+        margin: 0;
+      }
+
+      a {
+        display: inline-flex;
+        align-items: center;
+        min-block-size: var(--target);
+        margin-block: calc((1lh - var(--target)) / 2);
+      }
+    }
+
+    .library-filter {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-2) 0.75rem;
+      margin: 0 0 var(--space-3);
+      padding-inline: var(--inset);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame);
+
+      select {
+        max-inline-size: 100%;
+        min-block-size: var(--target);
+        padding-inline: var(--inset) var(--space-4);
+        border: var(--stroke) solid var(--color-text);
+        border-radius: 0;
+        background: var(--color-surface);
+        color: var(--color-text);
+        font: inherit;
+      }
+    }
+
+    .library-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      border-block-start: var(--rule) solid var(--color-text);
+    }
+
+    .library-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      overflow-wrap: anywhere;
+      align-items: baseline;
+      gap: 0.375rem var(--space-3);
+      padding: 0.75rem var(--inset) 0.875rem;
+      border-block-end: var(--rule) solid var(--color-text);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+    }
+
+    .library-title {
+      grid-column: 1;
+      font-size: var(--font-size-heading-2);
+      font-stretch: var(--font-stretch-title);
+      font-weight: var(--font-weight-frame-strong);
+      line-height: var(--line-height-heading);
+      text-decoration: none;
+      text-wrap: balance;
+
+      @media (hover: hover) {
+        &:hover {
+          text-decoration: underline var(--underline);
+        }
+      }
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+      }
+
+      &:focus-visible {
+        outline: none;
+
+        &::after {
+          outline: var(--stroke) solid var(--color-text);
+          outline-offset: -2px;
+        }
+      }
+    }
+
+    .library-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 0.375em;
+      grid-column: 1;
+      margin: 0;
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .library-meta > :not(:last-child)::after {
+      content: "·";
+      margin-inline-start: 0.375em;
+    }
+
+    .library-public {
+      font-weight: var(--font-weight-frame-strong);
+    }
+
+    .library-status {
+      grid-column: 2;
+      grid-row: 1;
+      margin: 0;
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame);
+      font-variant-numeric: tabular-nums;
+      text-align: end;
+    }
+
+    library-revisit {
+      display: block;
+    }
+
+    .library-revisit-group + .library-revisit-group {
+      margin-block-start: var(--space-4);
+    }
+
+    .library-revisit-title {
+      margin: 0 0 var(--space-2);
+      font-size: var(--font-size-heading-3);
+      font-stretch: var(--font-stretch-title);
+      line-height: var(--line-height-heading-3);
+      overflow-wrap: anywhere;
+    }
+
+    .library-empty {
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+    }
+
+    @media (width < 40rem) {
+      .library-row {
+        grid-template-columns: 1fr;
+      }
+
+      .library-status {
+        grid-column: 1;
+        grid-row: auto;
+        text-align: start;
+      }
+    }
+  }
+</style>

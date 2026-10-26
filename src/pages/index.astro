@@ -1,0 +1,11 @@
+---
+import LibraryLayout from "@artifactory/design-system/library-layout";
+import { listedArtifacts } from "../library.ts";
+---
+
+<LibraryLayout
+  heading="Library"
+  empty="No artifacts yet. Ask an agent for one, and it appears here."
+  artifacts={await listedArtifacts({ drafts: false })}
+  otherList={{ href: "/drafts/", label: "Drafts" }}
+/>

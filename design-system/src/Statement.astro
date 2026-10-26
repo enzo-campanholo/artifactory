@@ -1,0 +1,121 @@
+---
+import "./statement-blocks.css";
+import { splitAtRule } from "./split-at-rule.ts";
+import { statementParts, withRunInLabel } from "./statements.ts";
+
+/**
+ * A definition, theorem, lemma, corollary or worked example, numbered by the page as a clause of
+ * its section so that it can be cited ("Teorema 2.1"). Its number stands in the margin in the
+ * paragraphs' series, its label runs in at the start of its first line ("**Teorema** (Valor
+ * médio)."), and a theorem, lemma or corollary reads in italic while a definition or example stays
+ * upright. Use it for each definition or result the subject names and the owner should be able to
+ * cite, and for each worked example: a problem solved in full, with its solution shown openly after
+ * "Solução." / "Solution.". An example teaches; when the owner should work the problem out
+ * themselves, ask it as a question instead (`OpenQuestion`, `NumericQuestion`). Keep explanations in
+ * paragraphs, and asides in a `Note`. Cite it anywhere in the artifact with `Ref`.
+ *
+ * Write it at the top level of a section, after the first `##` heading: never inside a list, a
+ * question or another component. Its content is ordinary Markdown (paragraphs, math, lists, and in
+ * an example tables and figures too, which keep the page's numbering), with a blank line after the
+ * opening tag and before the closing one. Don't write the kind, the number or the name in the
+ * text: the page writes them. In a definition, set the defined term in bold. In an example, write
+ * the problem, a blank line, `---`, another blank line, then the solution, as in an
+ * `OpenQuestion`'s model answer; never write "Solução" yourself. Only an example has a `---`.
+ *
+ * ```mdx
+ * import Statement from "@artifactory/design-system/statement";
+ *
+ * <Statement kind="definition" id="derivavel" name="Função derivável">
+ *
+ * Uma função $f$ é **derivável** em $(a, b)$ quando $f'(x)$ existe para cada $x \in (a, b)$.
+ *
+ * </Statement>
+ *
+ * <Statement kind="theorem" id="valor-medio" name="Valor médio">
+ *
+ * Se $f$ é contínua em $[a, b]$ e derivável em $(a, b)$, então $f'(c) = \frac{f(b) - f(a)}{b - a}$ para algum $c \in (a, b)$.
+ *
+ * </Statement>
+ *
+ * <Statement kind="example" id="valor-medio-parabola" name="Uma parábola">
+ *
+ * Onde, em $(0, 2)$, a tangente a $f(x) = x^2$ é paralela à secante de $0$ a $2$?
+ *
+ * ---
+ *
+ * A secante tem inclinação $\frac{4 - 0}{2 - 0} = 2$ e $f'(c) = 2c$, então $c = 1$.
+ *
+ * </Statement>
+ * ```
+ */
+interface Props {
+  /**
+   * What it states. The page writes the kind's label in the artifact's main language
+   * ("Definição", "Teorema", "Lema", "Corolário", "Exemplo" / "Definition", "Theorem", "Lemma",
+   * "Corollary", "Example").
+   */
+  kind: "definition" | "theorem" | "lemma" | "corollary" | "example";
+  /**
+   * The statement's ID: readable lowercase kebab-case, unique among the artifact's statements.
+   * `<Ref to="…">` cites it, and `#S-<id>` links to it.
+   */
+  id: string;
+  /**
+   * The name the subject gives it, in plain text, shown in parentheses after the label
+   * ("Teorema (Valor médio)."). Leave it out when it has none.
+   */
+  name?: string;
+}
+
+const { kind, id, name } = Astro.props;
+const content = (await Astro.slots.render("default")).trim();
+const parts = splitAtRule(content);
+const { attributes, label, solution } = statementParts({ id, kind, name, solution: parts?.after });
+const body = withRunInLabel(parts?.before ?? content, label) + (solution ?? "");
+---
+
+<div class="statement" {...attributes}>
+  <Fragment set:html={body} />
+</div>
+
+<style is:global>
+  @layer components {
+    .statement {
+      > .equation,
+      code {
+        font-style: normal;
+      }
+
+      @media print {
+        &:not([data-statement-kind="example"]) {
+          break-inside: avoid;
+        }
+
+        > p:has(> .statement-label:only-child) {
+          break-after: avoid;
+        }
+      }
+    }
+
+    :is(
+      [data-statement-kind="theorem"],
+      [data-statement-kind="lemma"],
+      [data-statement-kind="corollary"]
+    ) {
+      font-style: italic;
+    }
+
+    .statement-label {
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame);
+      font-style: normal;
+      font-weight: var(--font-weight-frame-strong);
+      line-height: var(--line-height-frame);
+    }
+
+    .statement-name {
+      font-weight: var(--font-weight-frame);
+    }
+  }
+</style>

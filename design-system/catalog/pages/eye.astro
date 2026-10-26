@@ -1,0 +1,230 @@
+---
+import Bilingual from "../../src/Bilingual.astro";
+import EyeDrawing from "../../src/EyeDrawing.astro";
+import { eyePoses } from "../../src/eye-drawing.ts";
+import CatalogLayout from "../CatalogLayout.astro";
+
+const specimens = [
+  {
+    name: "open",
+    shut: false,
+    caption:
+      "Open: blinks every few seconds and follows the pointer. Hovered, it widens and its pupil shrinks. Press it to shut it.",
+  },
+  {
+    name: "shut",
+    shut: true,
+    caption:
+      "Shut: now and then opens part of the way, holds a moment with the pupil following and shuts again. Hovered, it opens a crack. Press it to open it.",
+  },
+] as const;
+
+const groups = [
+  {
+    heading: "Resting",
+    poses: [
+      { name: "open", pose: eyePoses.open, caption: "Open: the light theme." },
+      { name: "shut", pose: eyePoses.shut, caption: "Shut: the dark theme." },
+    ],
+  },
+  {
+    heading: "Hovered",
+    poses: [
+      {
+        name: "widened",
+        pose: eyePoses.widened,
+        caption: "Widened: an open eye hovered, its pupil shrunk.",
+      },
+      {
+        name: "peeking",
+        pose: eyePoses.peeking,
+        caption: "Peeking: a shut eye hovered, open a crack.",
+      },
+    ],
+  },
+  {
+    heading: "Reduced motion",
+    poses: [
+      {
+        name: "still-open",
+        pose: eyePoses.open,
+        caption: "At rest, open: no blink, hover or following, the pupil centred.",
+      },
+      {
+        name: "still-shut",
+        pose: eyePoses.shut,
+        caption: "At rest, shut: no peek, and a press changes the pose at once.",
+      },
+    ],
+  },
+];
+---
+
+<CatalogLayout
+  title="Eye"
+  about="The eye in the running head toggles the theme. The living eyes move as it does, at four times its size and, under each, at its own size in a running head like an artifact's; a press opens or shuts them without changing the theme, and under reduced motion they rest still. The fixed poses are drawn by the same geometry, at four times the eye's size and at its own size."
+  headings={[]}
+>
+  <section class="eye-poses" aria-label="Alive">
+    <p class="eye-poses-heading">Alive</p>
+    <div class="eye-poses-row eye-poses-row-alive">
+      {specimens.map(({ name, shut, caption }) => (
+        <figure class="eye-pose">
+          <eye-specimen class="eye-pose-stage">
+            <button
+              type="button"
+              class="theme-eye-button eye-specimen-large"
+              aria-pressed={shut ? "true" : "false"}
+            >
+              <span class="theme-eye-name">
+                <Bilingual en="Shut" pt="Fechado" />
+              </span>
+              <EyeDrawing
+                pose={shut ? eyePoses.shut : eyePoses.open}
+                id={`eye-specimen-${name}`}
+                class="eye-pose-large"
+              />
+            </button>
+          </eye-specimen>
+          <div class="artifact-masthead eye-pose-masthead">
+            <div class="artifact-running-head">
+              <p class="artifact-back-line" aria-hidden="true">
+                <a class="artifact-back" href="/" tabindex="-1">
+                  <svg class="icon" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M16 10H4m5-5-5 5 5 5"></path>
+                  </svg>
+                  <Bilingual en="Library" pt="Biblioteca" />
+                </a>
+              </p>
+              <eye-specimen class="theme-eye">
+                <button
+                  type="button"
+                  class="theme-eye-button"
+                  aria-pressed={shut ? "true" : "false"}
+                >
+                  <span class="theme-eye-name">
+                    <Bilingual en="Shut, in the running head" pt="Fechado, no cabeçalho" />
+                  </span>
+                  <EyeDrawing
+                    pose={shut ? eyePoses.shut : eyePoses.open}
+                    id={`eye-specimen-${name}-in-head`}
+                  />
+                </button>
+              </eye-specimen>
+              <p class="artifact-size" aria-hidden="true">
+                <Bilingual en="3 sections · 4 questions" pt="3 seções · 4 questões" />
+              </p>
+            </div>
+          </div>
+          <figcaption>{caption}</figcaption>
+        </figure>
+      ))}
+    </div>
+  </section>
+  {groups.map(({ heading, poses }) => (
+    <section class="eye-poses" aria-label={heading}>
+      <p class="eye-poses-heading">{heading}</p>
+      <div class="eye-poses-row">
+        {poses.map(({ name, pose, caption }) => (
+          <figure class="eye-pose">
+            <div class="eye-pose-stage">
+              <EyeDrawing pose={pose} id={`eye-pose-${name}-large`} class="eye-pose-large" />
+              <EyeDrawing pose={pose} id={`eye-pose-${name}`} />
+            </div>
+            <figcaption>{caption}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  ))}
+</CatalogLayout>
+
+<script>
+  import { animateEye, type EyeMotion } from "../../src/eye-motion.ts";
+
+  class EyeSpecimen extends HTMLElement {
+    #motion: EyeMotion | undefined;
+
+    connectedCallback() {
+      const button = this.querySelector("button");
+      const drawing = this.querySelector<SVGSVGElement>(".eye-drawing");
+      if (button === null || drawing === null) throw new Error("The eye specimen has no drawing");
+      let shut = button.getAttribute("aria-pressed") === "true";
+      this.#motion = animateEye(drawing, button, shut);
+      button.addEventListener("click", () => {
+        shut = !shut;
+        button.setAttribute("aria-pressed", String(shut));
+        this.#motion?.rest(shut);
+      });
+    }
+
+    disconnectedCallback() {
+      this.#motion?.stop();
+    }
+  }
+
+  customElements.define("eye-specimen", EyeSpecimen);
+</script>
+
+<style>
+  .eye-poses {
+    margin-block-end: var(--space-5);
+  }
+
+  .eye-poses-heading {
+    margin: 0 0 var(--space-2);
+    font-family: var(--font-frame);
+    font-size: var(--font-size-label);
+    font-stretch: var(--font-stretch-frame);
+    font-weight: var(--font-weight-frame-strong);
+    letter-spacing: var(--letter-spacing-label);
+    text-transform: uppercase;
+  }
+
+  .eye-poses-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: var(--space-4);
+  }
+
+  .eye-poses-row-alive {
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  }
+
+  .eye-pose {
+    margin: 0;
+  }
+
+  .eye-pose-stage {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding-block: var(--space-4);
+    border-block: var(--rule) solid var(--color-text);
+    color: var(--color-text);
+  }
+
+  .eye-pose-stage :global(.eye-pose-large) {
+    inline-size: 144px;
+    block-size: 96px;
+  }
+
+  .eye-specimen-large {
+    inline-size: 100%;
+    block-size: auto;
+    margin-block: 0;
+  }
+
+  .eye-pose-masthead {
+    margin-block-start: var(--space-4);
+  }
+
+  figcaption {
+    margin-block-start: var(--space-2);
+    font-family: var(--font-frame);
+    font-size: var(--font-size-caption);
+    font-stretch: var(--font-stretch-frame);
+    font-weight: var(--font-weight-frame);
+    line-height: var(--line-height-caption);
+  }
+</style>

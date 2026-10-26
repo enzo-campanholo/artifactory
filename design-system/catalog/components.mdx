@@ -1,0 +1,272 @@
+import Diagram from "../src/Diagram.astro";
+import Figure from "../src/Figure.astro";
+import Note from "../src/Note.astro";
+import Proof from "../src/Proof.astro";
+import Ref from "../src/Ref.astro";
+import Statement from "../src/Statement.astro";
+import Stepper from "../src/Stepper.astro";
+import orbitSteps from "./orbit-steps.svg?raw";
+import plot from "./plot.svg?raw";
+import stateSync from "./state-sync.d2";
+import studySteps from "./study-steps.d2?steps";
+
+## Text
+
+A paragraph with **strong** and _emphasised_ text, `inline code` and [a link](#diagram). Inline math such as $v_{\text{média}} = \frac{\Delta s}{\Delta t}$ sits in the sentence. Every paragraph after a section heading is numbered in the margin, so it can be cited.<Note>A margin note sits level with its paragraph on a wide screen, and folds behind a marker on narrower ones.</Note>
+
+### A subsection
+
+A subsection shares its paragraphs' numbering.
+
+- A list item
+- Another, with $E = mc^2$
+
+1. A numbered item
+2. Another
+
+A table holds data with short cells. A column marked `---:` aligns right:
+
+| Quantity                                         | Symbol |               Value |
+| ------------------------------------------------ | ------ | ------------------: |
+| Base                                             | $b$    |    $8\,\mathrm{cm}$ |
+| Height                                           | $h$    |    $3\,\mathrm{cm}$ |
+| Rectangle area                                   | $A$    | $24\,\mathrm{cm}^2$ |
+| Radius of a circle whose area is the rectangle's | $r$    | $2.76\,\mathrm{cm}$ |
+
+Display math is numbered on its own series:
+
+$$
+\text{área} = \int_0^r 2 \pi \rho \, \mathrm{d}\rho = \pi r^2
+$$
+
+$$
+v = \frac{\Delta s}{\Delta t}
+$$
+
+```ts
+export function area(radius: number): number {
+  return Math.PI * radius ** 2; // a comment
+}
+```
+
+Code with a line too long for the column scrolls inside its rules:
+
+```ts
+export function annulusArea(outerRadius: number, innerRadius: number): number {
+  return Math.PI * (outerRadius ** 2 - innerRadius ** 2); // the ring between two circles of the same centre
+}
+```
+
+So does a table too wide for the column:
+
+| Trial | t (s) | x (m) | v (m/s) | a (m/s²) | F (N) | E (J) |
+| ----- | ----: | ----: | ------: | -------: | ----: | ----: |
+| 1     |  1.00 |  0.75 |    1.50 |     1.50 |  3.00 |  2.25 |
+| 2     |  2.00 |  3.00 |    3.00 |     1.50 |  3.00 |  9.00 |
+| 3     |  3.00 |  6.75 |    4.50 |     1.50 |  3.00 | 20.25 |
+
+## Statements
+
+A statement takes the next clause number, in the paragraphs' series, so <Ref to="mean-value" /> is cited by the number in its margin.
+
+<Statement kind="definition" id="differentiable" name="Differentiable on an interval">
+
+A function $f$ is **differentiable on** $(a, b)$ when $f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}$ exists at every $x \in (a, b)$.
+
+</Statement>
+
+<Statement kind="theorem" id="mean-value" name="Mean value">
+
+Let $f$ be continuous on $[a, b]$ and differentiable on $(a, b)$. Then for some $c \in (a, b)$,
+
+$$
+f'(c) = \frac{f(b) - f(a)}{b - a}.
+$$
+
+In particular, if $f(a) = f(b)$, then $f'(c) = 0$ for some $c \in (a, b)$.
+
+</Statement>
+
+<Proof of="mean-value">
+
+The function
+
+$$
+g(x) = f(x) - \frac{f(b) - f(a)}{b - a}(x - a)
+$$
+
+is continuous on $[a, b]$ and differentiable on $(a, b)$, with $g(a) = g(b) = f(a)$. So $g$ has an extremum at some $c \in (a, b)$, where $g'(c) = 0$, which is $f'(c) = \frac{f(b) - f(a)}{b - a}$.
+
+</Proof>
+
+<Ref to="mean-value" /> asks for <Ref to="differentiable" /> only inside the interval, not at its
+ends.
+
+### Consequences
+
+<Statement kind="lemma" id="zero-derivative">
+
+- If $f'(x) = 0$ for every $x \in (a, b)$, then $f$ is constant on $[a, b]$.
+
+</Statement>
+
+<Statement kind="corollary" id="same-derivative" name="Functions with the same derivative differ by a constant">
+
+If $f' = g'$ on $(a, b)$, then $f - g$ is constant on $[a, b]$.
+
+</Statement>
+
+Applying <Ref to="zero-derivative" /> to $f - g$ gives <Ref to="same-derivative" />.
+
+A proof that doesn't follow its statement names it:
+
+<Proof of="zero-derivative">
+
+For $x \in (a, b]$, <Ref to="mean-value" /> on $[a, x]$ gives some $c \in (a, x)$ with
+
+$$
+f(x) - f(a) = f'(c)\,(x - a) = 0.
+$$
+
+</Proof>
+
+A proof right after another statement still names the one it proves, and stands clear of it. This one opens with an equation and ends with a list, whose last item carries the square:
+
+<Statement kind="theorem" id="rolle" name="Rolle">
+
+If $f$ is continuous on $[a, b]$, differentiable on $(a, b)$ and $f(a) = f(b)$, then $f'(c) = 0$ for some $c \in (a, b)$.
+
+</Statement>
+
+<Statement kind="corollary" id="one-crossing">
+
+If $f'$ has no zero in $(a, b)$, then $f$ takes each value at most once on $[a, b]$.
+
+</Statement>
+
+<Proof of="rolle">
+
+$$
+\max_{[a, b]} f \quad \text{and} \quad \min_{[a, b]} f
+$$
+
+both exist, since $f$ is continuous on $[a, b]$.
+
+- If both equal $f(a)$, then $f$ is constant, and any $c \in (a, b)$ will do.
+- Otherwise one of them is reached at some $c \in (a, b)$, an interior extremum, where $f'(c) = 0$.
+
+</Proof>
+
+<Proof of="one-crossing">
+
+- If $f(x) = f(y)$ with $a \le x < y \le b$, then <Ref to="rolle" /> on $[x, y]$ gives a zero of $f'$ in $(x, y)$.
+- So no two points of $[a, b]$ share a value.
+
+</Proof>
+
+### Examples
+
+A worked example is a statement too. Its solution follows a run-in label, shown openly, and its equations, tables and figures keep the page's numbering:
+
+<Statement kind="example" id="parabola-tangent" name="A parabola’s parallel tangent">
+
+Where in $(0, 2)$ is the tangent to $f(x) = x^2$ parallel to the secant from $0$ to $2$?
+
+---
+
+The secant's slope is
+
+$$
+\frac{f(2) - f(0)}{2 - 0} = \frac{4 - 0}{2} = 2,
+$$
+
+and $f'(c) = 2c$, so the $c$ of <Ref to="mean-value" /> is $1$:
+
+| $x$ | $f(x)$ | $f'(x)$ |
+| --: | -----: | ------: |
+|   0 |      0 |       0 |
+|   1 |      1 |       2 |
+|   2 |      4 |       4 |
+
+The tangent at $1$ has the secant's slope, $2$.
+
+</Statement>
+
+<Statement kind="example" id="distance-travelled">
+
+A car's velocity $v(t)$ rises towards a limit, as plotted below. How far does it travel by the time $T$?
+
+<Figure
+  src={plot}
+  alt="A velocity curve rising towards a dashed limit, with the area under it shaded and labelled as the distance travelled."
+  caption="The car's velocity over time."
+/>
+
+---
+
+$$
+d = \int_0^T v(t) \, \mathrm{d}t,
+$$
+
+the shaded area under the curve up to $T$.
+
+</Statement>
+
+<Ref to="parabola-tangent" /> works <Ref to="mean-value" /> through for one function.
+
+## Diagram
+
+<Diagram
+  src={stateSync}
+  alt="The owner studies an artifact page in the browser. The page hands answers to the state store, which saves them to the Worker's state API, which writes them to D1."
+  caption="Where an answer goes once the owner gives it."
+/>
+
+## Figure
+
+<Figure
+  src={plot}
+  alt="A velocity curve rising towards a dashed limit, with the area under it shaded and labelled as the distance travelled."
+  caption="The area under the velocity curve is the distance travelled."
+/>
+
+## Stepper
+
+A D2 diagram, one board per step:
+
+<Stepper
+  diagram={studySteps}
+  alt="A study loop built up one stage at a time: read, answer, check, and back to reading."
+  captions={[
+    "Start by reading the material.",
+    "Then answer the questions.",
+    "Check the answers.",
+    "Go back to what was wrong.",
+  ]}
+/>
+
+An SVG drawing, with no captions:
+
+<Stepper
+  figure={orbitSteps}
+  alt="A small circle moving a quarter orbit at a time around a larger one."
+/>
+
+A code walkthrough:
+
+<Stepper
+  lines={["1", "2", "1-3"]}
+  captions={[
+    "The function takes a radius.",
+    "It returns the area of the circle.",
+    "That's the whole function.",
+  ]}
+>
+
+```ts
+export function area(radius: number): number {
+  return Math.PI * radius ** 2;
+}
+```
+
+</Stepper>

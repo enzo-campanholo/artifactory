@@ -1,0 +1,24 @@
+---
+import type { SectionHeading } from "./artifact-outline.ts";
+
+interface Props {
+  sections: SectionHeading[];
+}
+
+const { sections } = Astro.props;
+---
+
+<ol class="artifact-sections">
+  {sections.map(({ slug, html, mathText }, index) => (
+    <li>
+      <a
+        class="artifact-section-link"
+        href={`#${slug}`}
+        aria-label={mathText === undefined ? undefined : `${String(index + 1)} ${mathText}`}
+      >
+        <span class="artifact-section-number">{index + 1}</span>
+        <span class="artifact-section-title" set:html={html} />
+      </a>
+    </li>
+  ))}
+</ol>

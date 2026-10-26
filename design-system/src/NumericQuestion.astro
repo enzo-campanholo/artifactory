@@ -1,0 +1,216 @@
+---
+import { componentError } from "./component-errors.ts";
+import Question from "./Question.astro";
+import { questionAnchor } from "./question-markers.ts";
+import { numericKeyProblem, type NumericKey } from "./scoring.ts";
+
+/**
+ * An auto-checked question whose answer is a single computed number. The owner works it out, types
+ * the number and presses Check, and the question locks and shows right or wrong once the answer is
+ * saved. A wrong answer also shows the right one, with its unit and tolerance. Prefer it to
+ * `SingleChoice` whenever options would let the owner rule some out or work backwards from them
+ * instead of computing. Ask one number per question: a vector's components or a quadratic's two
+ * roots are one question each ("the smaller root", "the larger root").
+ *
+ * The owner may write `,` or `.` as the decimal separator, a sign, `e` notation (`6,02e23`) or a
+ * fraction (`3/4`), but no thousands separators, `π`, `√` or expressions. Input that isn't a
+ * number gets a message and uses up nothing. Without a tolerance the check is exact, so give one
+ * that matches the computation's precision whenever the answer is rounded.
+ *
+ * Write the question inside it. It can hold math, code and lists:
+ *
+ * ```mdx
+ * import NumericQuestion from "@artifactory/design-system/numeric-question";
+ *
+ * <NumericQuestion id="queda-livre" answer="9.81" tolerance={0.01} unit="m/s²">
+ *
+ * Uma pedra cai 4,905 m em 1 s a partir do repouso. Qual é a aceleração $g$?
+ *
+ * </NumericQuestion>
+ * ```
+ */
+interface Props {
+  /**
+   * The question's ID: readable kebab-case, unique within the artifact and never reused, even
+   * after the question is removed. The owner's answers belong to it, and `#q-<id>` links to it.
+   */
+  id: string;
+  /**
+   * The right number, as a string with `.` as its separator: `"9.81"`, `"-3/4"`, `"6.02e23"`. A
+   * fraction stays exact, and the right answer shows it as written, in the page's convention.
+   */
+  answer: string;
+  /**
+   * How far from `answer` a right answer may be, inclusive: with `0.01`, `9.80` to `9.82` are right
+   * for `"9.81"`. Give this or `relativeTolerance`, not both.
+   */
+  tolerance?: number;
+  /**
+   * How far from `answer` a right answer may be, as a fraction of it: `0.01` is 1 %. For an answer
+   * whose size makes a fixed tolerance meaningless. It can't be used when `answer` is zero.
+   */
+  relativeTolerance?: number;
+  /**
+   * The unit, in plain Unicode text (`"m/s²"`, `"mol⁻¹"`, `"°C"`), shown beside the field. The
+   * owner types only the number.
+   */
+  unit?: string;
+}
+
+const { id, answer, tolerance, relativeTolerance, unit } = Astro.props;
+const key: NumericKey = { value: answer };
+if (tolerance !== undefined) key.tolerance = tolerance;
+if (relativeTolerance !== undefined) key.relativeTolerance = relativeTolerance;
+const problem = numericKeyProblem(key);
+if (problem !== undefined) throw componentError("NumericQuestion", problem);
+const prompt = (await Astro.slots.render("default")).trim();
+if (prompt === "") throw componentError("NumericQuestion", "write the question inside it");
+const anchor = questionAnchor(id);
+const fieldId = `${anchor}--field`;
+const unitId = `${anchor}--unit`;
+---
+
+<Question id={id} kind="numeric" answerKey={key} prompt={prompt}>
+  <div class="numeric-question-answer">
+    <label class="numeric-question-label" for={fieldId}>
+      <span data-lang="en">Your answer</span>
+      <span data-lang="pt">Sua resposta</span>
+    </label>
+    <div class="numeric-question-field">
+      <input
+        id={fieldId}
+        type="text"
+        inputmode="text"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        maxlength="100"
+        required
+        aria-describedby={unit === undefined ? undefined : unitId}
+      />
+      {unit !== undefined && (
+        <span class="numeric-question-unit" id={unitId}>
+          {unit}
+        </span>
+      )}
+    </div>
+  </div>
+</Question>
+
+<script>
+  import "./numeric-question-element.ts";
+</script>
+
+<style is:global>
+  @layer components {
+    .numeric-question-answer {
+      display: grid;
+      gap: 0.375rem;
+      margin-block-start: 0.75rem;
+    }
+
+    .numeric-question-label {
+      inline-size: fit-content;
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-caption);
+      font-weight: var(--font-weight-frame-number);
+      line-height: var(--line-height-frame);
+    }
+
+    .numeric-question-field {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: var(--space-1) var(--inset);
+      font-family: var(--font-body);
+      font-size: var(--font-size-body);
+      font-weight: var(--font-weight-body);
+      line-height: var(--line-height-body);
+
+      .question[data-status] & {
+        column-gap: 0.25em;
+      }
+
+      input {
+        box-sizing: border-box;
+        inline-size: min(100%, 16rem);
+        min-block-size: var(--target);
+        margin: 0;
+        padding: 0 0.875rem;
+        border: var(--stroke) solid var(--color-text);
+        border-radius: 0;
+        background: var(--color-surface);
+        color: var(--color-text);
+        font: inherit;
+        font-variant-numeric: tabular-nums;
+
+        @media (width < 64rem) {
+          flex-grow: 1;
+        }
+
+        .question[data-status] & {
+          flex-grow: 0;
+          inline-size: auto;
+          min-inline-size: 1ch;
+          min-block-size: 0;
+          padding: 0;
+          border: 0;
+          background: none;
+          field-sizing: content;
+          opacity: 1;
+          -webkit-text-fill-color: currentColor;
+
+          @media (forced-colors: active) {
+            forced-color-adjust: none;
+            color: CanvasText;
+            background: Canvas;
+          }
+        }
+      }
+    }
+
+    .numeric-question-right-answer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0 var(--space-2);
+      margin: var(--space-3) 0 0;
+      padding-block-start: var(--inset);
+      border-block-start: var(--rule) solid var(--color-text);
+
+      &::before {
+        content: "";
+        flex: none;
+        align-self: center;
+        inline-size: var(--sign-size);
+        block-size: var(--sign-size);
+        background: var(--color-text);
+        mask: center / contain no-repeat var(--sign-tick);
+        print-color-adjust: exact;
+
+        @media (forced-colors: active) {
+          forced-color-adjust: none;
+          background: CanvasText;
+        }
+      }
+    }
+
+    .numeric-question-right-answer-label {
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-caption);
+      font-weight: var(--font-weight-frame-strong);
+      line-height: var(--line-height-frame);
+    }
+
+    .numeric-question-right-answer-value {
+      font-family: var(--font-body);
+      font-size: var(--font-size-body);
+      line-height: var(--line-height-body);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+  }
+</style>

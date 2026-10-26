@@ -1,0 +1,36 @@
+---
+interface Props {
+  kind: "stepper" | "stage";
+  class?: string;
+}
+
+const { kind, class: className } = Astro.props;
+---
+
+<div class:list={["step-controls", className]}>
+  <div class="step-where">
+    <slot />
+  </div>
+  <button type="button" class={`control-button control-button-outline ${kind}-back`} disabled>
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="m13 4-6 6 6 6"></path>
+    </svg>
+    <span class="step-unseen" data-lang="en">
+      Previous step
+    </span>
+    <span class="step-unseen" data-lang="pt">
+      Passo anterior
+    </span>
+  </button>
+  <button type="button" class={`control-button control-button-outline ${kind}-forward`} disabled>
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="m7 4 6 6-6 6"></path>
+    </svg>
+    <span class="step-unseen" data-lang="en">
+      Next step
+    </span>
+    <span class="step-unseen" data-lang="pt">
+      Próximo passo
+    </span>
+  </button>
+</div>

@@ -1,0 +1,115 @@
+---
+import "./state-notices.css";
+
+interface Props {
+  page: "artifact" | "public-artifact" | "library";
+}
+
+const { page } = Astro.props;
+const artifact = page !== "library";
+---
+
+{/* The no-break space keeps each " · " on the line of the text before it. */}
+<artifact-state-notices class="state-notices" role="status">
+  <p class="state-notice" data-notice="startFailed" hidden>
+    <span data-lang="en">This page couldn't start</span>
+    <span data-lang="pt">Esta página não pôde começar</span>
+    <span class="state-notice-separator">&nbsp;·</span>{" "}
+    <button type="button" class="state-notice-action">
+      <span data-lang="en">Reload</span>
+      <span data-lang="pt">Recarregar</span>
+    </button>
+  </p>
+  <p class="state-notice" data-notice="loadFailed" hidden>
+    {artifact ? (
+      <>
+        <span data-lang="en">Couldn't check your answers</span>
+        <span data-lang="pt">Não foi possível conferir suas respostas</span>
+      </>
+    ) : (
+      <>
+        <span data-lang="en">Couldn't load your progress</span>
+        <span data-lang="pt">Não foi possível carregar seu progresso</span>
+      </>
+    )}
+    <span class="state-notice-separator">&nbsp;·</span>{" "}
+    <button type="button" class="state-notice-action" data-action="retry">
+      <span data-lang="en">Try again</span>
+      <span data-lang="pt">Tentar de novo</span>
+    </button>
+  </p>
+  <p class="state-notice" data-notice="signedOut" hidden>
+    <span data-lang="en">Signed out</span>
+    <span data-lang="pt">Sessão encerrada</span>
+    <span class="state-notice-separator">&nbsp;·</span>{" "}
+    {/* A no-break space doesn't hold beside a button, so the lost part's first " · " shares a
+        no-wrap span with it. */}
+    <span class="state-notice-joined">
+      {/* Access doesn't guard a public page, so reloading it never reaches the sign-in. */}
+      {page === "public-artifact" ? (
+        <a class="state-notice-action" href="/">
+          <span data-lang="en">Sign in from the Library</span>
+          <span data-lang="pt">Entrar pela Biblioteca</span>
+        </a>
+      ) : (
+        <button type="button" class="state-notice-action" data-action="reload">
+          <span data-lang="en">Reload to sign in</span>
+          <span data-lang="pt">Recarregue para entrar</span>
+        </button>
+      )}
+      {artifact && (
+        <span class="state-notice-separator state-notices-lost" hidden>
+          &nbsp;·
+        </span>
+      )}
+    </span>
+    {artifact && (
+      <span class="state-notices-lost" hidden>
+        {" "}
+        <span class="state-notices-lost-count" />
+        <span class="state-notice-separator">&nbsp;·</span>{" "}
+        <a class="state-notice-action" data-action="go-to-lost" />
+      </span>
+    )}
+  </p>
+  {artifact ? (
+    <>
+      <p class="state-notice" data-notice="artifactUpdated" hidden>
+        <span data-lang="en">This artifact was updated</span>
+        <span data-lang="pt">Este artefato foi atualizado</span>
+        <span class="state-notice-separator">&nbsp;·</span>{" "}
+        <button type="button" class="state-notice-action" data-action="reload">
+          <span data-lang="en">Reload</span>
+          <span data-lang="pt">Recarregar</span>
+        </button>
+      </p>
+      <p class="state-notice" data-notice="attemptSwitched" hidden>
+        <span data-lang="en">Switched to your latest attempt, from another device</span>
+        <span data-lang="pt">Mudamos para sua tentativa mais recente, de outro dispositivo</span>
+      </p>
+      <p class="state-notice" data-notice="startedOver" hidden>
+        <span data-lang="en">Started over</span>
+        <span data-lang="pt">Você recomeçou</span>
+        <span class="state-notice-separator">&nbsp;·</span>{" "}
+        <button type="button" class="state-notice-action" data-action="undo-start-over">
+          <span data-lang="en">Undo</span>
+          <span data-lang="pt">Desfazer</span>
+        </button>
+      </p>
+    </>
+  ) : (
+    <p class="state-notice" data-notice="libraryUpdated" hidden>
+      <span data-lang="en">Library updated</span>
+      <span data-lang="pt">Biblioteca atualizada</span>
+      <span class="state-notice-separator">&nbsp;·</span>{" "}
+      <button type="button" class="state-notice-action" data-action="reload">
+        <span data-lang="en">Reload</span>
+        <span data-lang="pt">Recarregar</span>
+      </button>
+    </p>
+  )}
+</artifact-state-notices>
+
+<script>
+  import "./state-notices.ts";
+</script>

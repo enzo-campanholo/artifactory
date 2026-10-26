@@ -1,0 +1,16 @@
+{/*
+ * Shows the band's "couldn't start" notice when the page's module never set `data-store-started`:
+ * it threw, or it never loaded. Deferred modules run before `DOMContentLoaded`, so by then the
+ * store has started or never will. It asks about the store, not about errors, so a script the
+ * browser blocks or an extension's error never shows the notice. Classic and inline, so it still
+ * runs when that module fails to load.
+ */}
+<script is:inline>
+  addEventListener("DOMContentLoaded", () => {
+    if (document.documentElement.dataset.storeStarted !== undefined) return;
+    const notice = document.querySelector("[data-notice=startFailed]");
+    if (notice === null) return;
+    notice.querySelector("button").addEventListener("click", () => location.reload());
+    notice.hidden = false;
+  });
+</script>

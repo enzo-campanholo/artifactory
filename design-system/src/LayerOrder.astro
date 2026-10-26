@@ -1,0 +1,8 @@
+---
+// Styles from a page's content can load before tokens.css, and the first layer statement in the
+// page sets the layers' order, so each layout writes it first in its head.
+---
+
+<style is:inline>
+  @layer tokens, temml, base, components;
+</style>

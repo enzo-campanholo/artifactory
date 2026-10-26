@@ -1,0 +1,21 @@
+---
+import type { GetStaticPaths, InferGetStaticPropsType } from "astro";
+import CatalogLayout from "../CatalogLayout.astro";
+import Questions, { getHeadings } from "../questions.mdx";
+import { catalogStates, type CatalogStateName } from "../states.ts";
+
+export const getStaticPaths = (() =>
+  (Object.keys(catalogStates) as CatalogStateName[]).map((state) => ({
+    params: { state },
+    props: { state },
+  }))) satisfies GetStaticPaths;
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { state } = Astro.props;
+const { title, about } = catalogStates[state];
+---
+
+<CatalogLayout title={title} about={about} headings={getHeadings()} scene={state}>
+  <Questions />
+</CatalogLayout>

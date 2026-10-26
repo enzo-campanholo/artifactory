@@ -1,0 +1,57 @@
+{
+  "name": "@artifactory/design-system",
+  "version": "0.0.0",
+  "private": true,
+  "license": "0BSD",
+  "type": "module",
+  "exports": {
+    "./artifact-attempt": "./src/artifact-attempt.ts",
+    "./artifact-layout": "./src/ArtifactLayout.astro",
+    "./attempts-panel": "./src/attempts-panel.ts",
+    "./catalog": "./catalog/integration.ts",
+    "./component-errors": "./src/component-errors.ts",
+    "./diagram": "./src/Diagram.astro",
+    "./diagram-fonts": "./src/diagram-fonts.ts",
+    "./figure": "./src/Figure.astro",
+    "./library-layout": "./src/LibraryLayout.astro",
+    "./library-revisit": "./src/library-revisit.ts",
+    "./library-revisit-paint": "./src/library-revisit-paint.js",
+    "./library-statuses": "./src/library-statuses.ts",
+    "./not-found-layout": "./src/NotFoundLayout.astro",
+    "./note": "./src/Note.astro",
+    "./numeric-question": "./src/NumericQuestion.astro",
+    "./numeric-question-element": "./src/numeric-question-element.ts",
+    "./open-question": "./src/OpenQuestion.astro",
+    "./open-question-element": "./src/open-question-element.ts",
+    "./proof": "./src/Proof.astro",
+    "./question-element": "./src/question-element.ts",
+    "./question-markers": "./src/question-markers.ts",
+    "./ref": "./src/Ref.astro",
+    "./saved-state": "./src/saved-state.ts",
+    "./scoring": "./src/scoring.ts",
+    "./single-choice": "./src/SingleChoice.astro",
+    "./stage": "./src/Stage.astro",
+    "./stage-build": "./src/stage-build.ts",
+    "./stage-builds": "./src/stage-builds.ts",
+    "./state": "./src/state.ts",
+    "./state-notices": "./src/state-notices.ts",
+    "./statement": "./src/Statement.astro",
+    "./statements": "./src/statements.ts",
+    "./step-applier": "./src/step-applier.ts",
+    "./stepper": "./src/Stepper.astro",
+    "./theme-eye-element": "./src/theme-eye-element.ts"
+  },
+  "peerDependencies": {
+    "astro": "7.3.8"
+  },
+  "devDependencies": {
+    "astro": "7.3.8"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "5.3.0",
+    "@fontsource-variable/recursive": "5.3.0",
+    "@fontsource-variable/stix-two-text": "5.3.0",
+    "@fontsource/stix-two-math": "5.3.0",
+    "temml": "0.14.0"
+  }
+}

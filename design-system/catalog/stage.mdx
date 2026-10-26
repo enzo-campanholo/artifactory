@@ -1,0 +1,183 @@
+import Stage from "../src/Stage.astro";
+import graph from "./prim-graph.svg?raw";
+
+## Before a choice
+
+The content as written: no marks, and the prompt where each step's line will be. Without JavaScript and in print, the Stage shows only this, with no controls. It sets `beside` and its content is a drawing and one table, so on a wide screen, where the column holds both at their own widths, the table sits beside the drawing; on a phone, a tablet and paper it sits under it and shares its lower rule. Without `beside`, as most Stages are written, the table sits under the drawing everywhere. The Stages with code below keep one column.
+
+<Stage
+  build="prim"
+  choose={{ label: "Start at", options: ["A", "B", "C", "D", "E"] }}
+  prompt="Choose a vertex to start from."
+  figure={graph}
+  alt="A graph of five vertices, A to E, joined by seven edges of weights 1 to 7."
+  beside
+  caption="Prim's algorithm from the vertex chosen."
+>
+
+| Vertex | Key | Parent |
+| ------ | --: | ------ |
+| A      |   ∞ | —      |
+| B      |   ∞ | —      |
+| C      |   ∞ | —      |
+| D      |   ∞ | —      |
+| E      |   ∞ | —      |
+
+</Stage>
+
+## Mid-run
+
+Started at A and stepped to step 3, where B joins the tree. B is reversed, the current thing; the tree's vertices and edges and the keys that just went down are strong; the candidate edges and the keys and parents still provisional are dashed; and the edge that can no longer join and the rows already settled are muted.
+
+<div data-catalog-run="A" data-catalog-step="3">
+
+<Stage
+  build="prim-mid-run"
+  choose={{ label: "Start at", options: ["A", "B", "C", "D", "E"] }}
+  prompt="Choose a vertex to start from."
+  figure={graph}
+  alt="A graph of five vertices, A to E, joined by seven edges of weights 1 to 7."
+  beside
+  caption="Prim's algorithm from the vertex chosen."
+>
+
+| Vertex | Key | Parent |
+| ------ | --: | ------ |
+| A      |   ∞ | —      |
+| B      |   ∞ | —      |
+| C      |   ∞ | —      |
+| D      |   ∞ | —      |
+| E      |   ∞ | —      |
+
+</Stage>
+
+</div>
+
+## Typed input
+
+With `input`, the owner types whole numbers and presses Start. The fields open filled with the first example, 48 and 18, and the table as written is that example's result. Without JavaScript and in print, where the fields don't show, a line names that example in their place: "Work out gcd(a, b) a = 48, b = 18".
+
+<Stage
+  build="mdc"
+  input={{
+    label: "Work out gcd(a, b)",
+    fields: [
+      { name: "a", min: 1, max: 9999 },
+      { name: "b", min: 0, max: 9999 },
+    ],
+    examples: [{ a: 48, b: 18 }, { a: 18, b: 48 }, { a: 7, b: 0 }],
+  }}
+  prompt="Type two numbers and press Start."
+  caption="Euclid's algorithm, one pass at a time."
+>
+
+| Variable | Value |
+| -------- | ----: |
+| a        |     6 |
+| b        |     0 |
+
+</Stage>
+
+## Refusing a number
+
+The catalog script typed 10000 for b, out of its bounds, and pressed Start. The field is drawn dashed, the step's line says what to type instead, and the table is back as written.
+
+<div data-catalog-type="b=10000">
+
+<Stage
+  build="mdc-refused"
+  input={{
+    label: "Work out gcd(a, b)",
+    fields: [
+      { name: "a", min: 1, max: 9999 },
+      { name: "b", min: 0, max: 9999 },
+    ],
+    examples: [{ a: 48, b: 18 }],
+  }}
+  prompt="Type two numbers and press Start."
+  caption="Euclid's algorithm, one pass at a time."
+>
+
+| Variable | Value |
+| -------- | ----: |
+| a        |     6 |
+| b        |     0 |
+
+</Stage>
+
+</div>
+
+## Code, mid-run
+
+A Stage traces a function line by line on its one fenced code block, highlighted as anywhere else. The catalog script pressed Start on n = 6 and stepped to step 5, where the first pass halves n. Line 5, the line running, is reversed: a bar across the code's whole width, even where the long line 7 scrolls sideways. The `if` that just decided is strong, the `while` it tests again after this pass is dashed, and the `else` branch it didn't take is muted. The step is announced as "Step 5 of 36. Line 5. …".
+
+<div data-catalog-run="start" data-catalog-step="5">
+
+<Stage
+  build="collatz"
+  input={{
+    label: "Trace collatz(n)",
+    fields: [{ name: "n", min: 1, max: 99 }],
+    examples: [{ n: 6 }],
+  }}
+  prompt="Type a number and press Start."
+  caption="The Collatz steps of n, line by line."
+>
+
+```python
+def collatz(n):
+    steps = 0
+    while n != 1:
+        if n % 2 == 0:
+            n = n // 2  # even: halve it
+        else:
+            n = 3 * n + 1  # odd: three times n, plus one, so the run climbs before it falls again
+        steps += 1
+    return steps
+```
+
+| Variable | Value |
+| -------- | ----: |
+| n        |     1 |
+| steps    |     8 |
+
+</Stage>
+
+</div>
+
+## A table that grows
+
+A step's `body` replaces the rows of the Stage's one table, so a teste de mesa, the trace of a program written by hand, gains a row each time the loop runs. Each new row copies the last row as written, so it keeps the table's alignment and type, and the step's marks land on the rows `body` wrote. The catalog script pressed Start on n = 4 and stepped to step 6, the second pass: the row `2` is new, its f just written in bold, while n still shows 3 until line 5 runs. Going back drops the row again, and print and the page without JavaScript show the rows as written, the first example's result.
+
+<div data-catalog-run="start" data-catalog-step="6">
+
+<Stage
+  build="factorial"
+  input={{
+    label: "Trace factorial(n)",
+    fields: [{ name: "n", min: 0, max: 12 }],
+    examples: [{ n: 4 }, { n: 0 }, { n: 12 }],
+  }}
+  prompt="Type a number and press Start."
+  caption="The teste de mesa of factorial(n), a row per pass of the loop."
+>
+
+```python
+def factorial(n):
+    f = 1
+    while n > 1:
+        f = f * n
+        n = n - 1
+    return f
+```
+
+| Pass  |   n |   f |
+| ----- | --: | --: |
+| start |   4 |   1 |
+| 1     |   3 |   4 |
+| 2     |   2 |  12 |
+| 3     |   1 |  24 |
+
+</Stage>
+
+</div>

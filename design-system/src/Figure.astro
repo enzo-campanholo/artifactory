@@ -1,0 +1,42 @@
+---
+import "./figure-colours.css";
+import SvgImage from "./SvgImage.astro";
+
+/**
+ * A hand-written SVG drawing: plots, cells, apparatus, geometry, timelines, and anything else D2
+ * can't express. For boxes and arrows, write D2 and use `Diagram`.
+ *
+ * Put the `.svg` file next to the entry, import it with `?raw`, and pass it as `src`:
+ *
+ * ```mdx
+ * import celula from "./celula.svg?raw";
+ *
+ * <Figure
+ *   src={celula}
+ *   alt="Uma célula animal com núcleo, mitocôndrias e membrana."
+ *   caption="As organelas de uma célula animal, fora de escala."
+ * />
+ * ```
+ *
+ * Colour the drawing with the `fill-` and `stroke-` classes under "Colours in figures", which
+ * follow the site in light mode, dark mode and print. Shapes and text without a fill are drawn in
+ * the text colour, and text uses the face of the page's headings. The page numbers each figure by
+ * its section ("Figura 4.1"). Colours written in the file (`fill="#…"`) don't
+ * follow dark mode, so leave them out.
+ */
+interface Props {
+  /** The drawing, imported with `?raw` from an `.svg` file next to the entry. */
+  src: string;
+  /** What the drawing shows, in a sentence or two. Screen readers read it instead of the drawing. */
+  alt: string;
+  /**
+   * One short sentence under the drawing, after its number ("Figura 4.1"), saying what to look for.
+   * Leave it out when the paragraph before already says it.
+   */
+  caption?: string;
+}
+
+const { src, alt, caption } = Astro.props;
+---
+
+<SvgImage svg={src} alt={alt} caption={caption} class="figure" />

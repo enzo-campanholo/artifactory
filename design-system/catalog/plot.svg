@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180">
+  <rect x="1" y="1" width="318" height="178" class="fill-surface stroke-border" />
+  <path d="M40 30v120M100 30v120M160 30v120M220 30v120M280 30v120" class="stroke-border" />
+  <path d="M40 150Q160 150 280 40V150Z" class="fill-tint" />
+  <path d="M40 150Q160 150 280 40" fill="none" class="stroke-accent" stroke-width="2" />
+  <path d="M40 40H280" fill="none" class="stroke-muted" stroke-dasharray="4 4" />
+  <path d="M40 150H290M40 150V24" fill="none" class="stroke-text" stroke-width="1.5" />
+  <circle cx="160" cy="122" r="5" class="fill-accent stroke-surface" stroke-width="2" />
+  <circle cx="280" cy="40" r="5" class="fill-accent stroke-surface" stroke-width="2" />
+  <rect x="172" y="104" width="60" height="22" class="fill-muted stroke-tint" />
+  <text x="202" y="119" text-anchor="middle" font-size="12" class="fill-surface">v(t)</text>
+  <text x="44" y="36" font-size="12" class="fill-muted">limit</text>
+  <text x="290" y="166" text-anchor="end" font-size="12">t</text>
+  <text x="160" y="172" text-anchor="middle" font-size="12" class="fill-text">area = distance</text>
+  <circle cx="300" cy="20" r="6" class="fill-border" />
+</svg>

@@ -1,0 +1,65 @@
+@layer components {
+  :is(.figure > svg, .figure > .figure-stage > svg) {
+    color: var(--color-text);
+    font-family: var(--font-frame);
+    font-stretch: var(--font-stretch-frame);
+    font-weight: var(--font-weight-frame);
+  }
+
+  :is(.figure > svg, .figure > .figure-stage > svg):not([fill]) {
+    fill: currentColor;
+  }
+
+  /* A label takes its group's fill class, but not the `fill="none"` that draws outlines. */
+  .figure :where(:not([class*="fill-"]) > text:not([fill])) {
+    fill: currentColor;
+  }
+
+  .figure .fill-text {
+    fill: var(--color-text);
+  }
+
+  .figure .fill-muted {
+    fill: var(--color-text-muted);
+  }
+
+  .figure .fill-accent {
+    fill: var(--color-text);
+  }
+
+  .figure .fill-tint {
+    fill: var(--color-surface-subtle);
+  }
+
+  .figure .fill-surface {
+    fill: var(--color-surface);
+  }
+
+  .figure .fill-border {
+    fill: var(--color-border);
+  }
+
+  .figure .stroke-text {
+    stroke: var(--color-text);
+  }
+
+  .figure .stroke-muted {
+    stroke: var(--color-text-muted);
+  }
+
+  .figure .stroke-accent {
+    stroke: var(--color-text);
+  }
+
+  .figure .stroke-tint {
+    stroke: var(--color-surface-subtle);
+  }
+
+  .figure .stroke-surface {
+    stroke: var(--color-surface);
+  }
+
+  .figure .stroke-border {
+    stroke: var(--color-border);
+  }
+}

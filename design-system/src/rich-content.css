@@ -1,0 +1,132 @@
+@import "./math.css";
+
+@layer base {
+  .equation {
+    margin-block: var(--space-3);
+    overflow-x: auto;
+    font-size: var(--font-size-equation);
+    text-align: center;
+  }
+
+  :root {
+    --astro-code-background: var(--color-code-surface);
+    --astro-code-foreground: var(--color-code-text);
+    --astro-code-token-comment: var(--color-code-comment);
+    --astro-code-token-keyword: var(--color-code-keyword);
+    --astro-code-token-function: var(--color-code-function);
+    --astro-code-token-parameter: var(--color-code-parameter);
+    --astro-code-token-string: var(--color-code-string);
+    --astro-code-token-string-expression: var(--color-code-string);
+    --astro-code-token-constant: var(--color-code-constant);
+    --astro-code-token-punctuation: var(--color-code-punctuation);
+    --astro-code-token-link: var(--color-code-link);
+  }
+
+  pre {
+    margin-block: var(--space-4);
+    padding: var(--space-3) var(--inset);
+    border-block: var(--rule) solid var(--color-text);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-code);
+    font-variation-settings: "MONO" 1;
+    line-height: var(--line-height-body);
+    tab-size: 2;
+    counter-reset: code-line;
+
+    @media print {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  pre > code > .line::before {
+    counter-increment: code-line;
+    content: counter(code-line);
+    display: inline-block;
+    inline-size: 2.4em;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-code);
+    font-variation-settings: "MONO" 1;
+  }
+
+  pre code {
+    font-size: inherit;
+  }
+
+  :not(pre) > code {
+    padding: 0.08em 0.3em;
+    background: var(--color-surface-subtle);
+  }
+
+  .table-scroller {
+    margin-block: var(--space-4);
+    overflow-x: auto;
+
+    @media print {
+      overflow-x: visible;
+    }
+  }
+
+  table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    border-block: var(--rule) solid var(--color-text);
+    line-height: var(--line-height-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  :is(th, td) {
+    padding: var(--space-2) var(--inset);
+    border-block-start: var(--rule) solid var(--color-text);
+    vertical-align: baseline;
+  }
+
+  th {
+    font-family: var(--font-frame);
+    font-stretch: var(--font-stretch-frame);
+    font-size: var(--font-size-frame);
+    font-weight: var(--font-weight-frame-strong);
+    line-height: var(--line-height-frame);
+    text-align: start;
+    vertical-align: bottom;
+  }
+
+  /* A sideways scroller draws a rule on its right edge while more lies past it. A timeline with
+     nothing to scroll is inactive, and ending the range 1px early absorbs a scroll position left
+     fractionally short of the end. The rules are a border image, whose width can drop to 0 without
+     moving the layout, and whose corners stay square where a transparent border would mitre. A
+     table's scroller has no border of its own, so the table keeps the column's full width, and the
+     rule is drawn over the table's last 2px. The animation is written in longhands because Lightning
+     CSS, the build's minifier, folds a shorthand and `animation-timeline` into one shorthand, which
+     Chrome rejects whole. */
+  @media not (forced-colors: active) {
+    @supports (animation-timeline: scroll()) {
+      :is(pre, .equation, .figure-stage, .stepper-boards, .stepper-figure, .table-scroller) {
+        border-right: var(--stroke) solid;
+        border-image: linear-gradient(var(--color-text) 0 0) 1;
+        border-image-width: 1 0 1 1;
+        animation-name: scroller-continues;
+        animation-timing-function: linear;
+        animation-timeline: scroll(self inline);
+        animation-range: 0 calc(100% - 1px);
+      }
+
+      .table-scroller {
+        border-right-width: 0;
+      }
+    }
+  }
+
+  @keyframes scroller-continues {
+    from,
+    to {
+      border-image-width: 1 var(--stroke) 1 1;
+    }
+  }
+}

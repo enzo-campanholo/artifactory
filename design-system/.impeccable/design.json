@@ -1,0 +1,680 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-24T19:22:00.000Z",
+  "title": "Design System: artifactory design system",
+  "extensions": {
+    "colorMeta": {
+      "text": {
+        "role": "primary",
+        "displayName": "Standard Ink",
+        "cssVar": "--color-text",
+        "theme": "light",
+        "canonical": "#111",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "text-dark": {
+        "role": "primary",
+        "displayName": "Standard Ink, dark",
+        "cssVar": "--color-text",
+        "theme": "dark",
+        "canonical": "#ededed",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "text-hover": {
+        "role": "primary",
+        "displayName": "Pressed Ink",
+        "cssVar": "--color-text-hover",
+        "theme": "light",
+        "canonical": "#3a3a3a",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "text-hover-dark": {
+        "role": "primary",
+        "displayName": "Pressed Ink, dark",
+        "cssVar": "--color-text-hover",
+        "theme": "dark",
+        "canonical": "#c4c4c4",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Sheet",
+        "cssVar": "--color-surface",
+        "theme": "light",
+        "canonical": "#fff",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Sheet, dark",
+        "cssVar": "--color-surface",
+        "theme": "dark",
+        "canonical": "#121212",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "surface-subtle": {
+        "role": "neutral",
+        "displayName": "Wiped Grey",
+        "cssVar": "--color-surface-subtle",
+        "theme": "light",
+        "canonical": "#f0f0f0",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "surface-subtle-dark": {
+        "role": "neutral",
+        "displayName": "Wiped Grey, dark",
+        "cssVar": "--color-surface-subtle",
+        "theme": "dark",
+        "canonical": "#262626",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Unavailable Grey",
+        "cssVar": "--color-text-muted",
+        "theme": "light",
+        "canonical": "#5c5c5c",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "text-muted-dark": {
+        "role": "neutral",
+        "displayName": "Unavailable Grey, dark",
+        "cssVar": "--color-text-muted",
+        "theme": "dark",
+        "canonical": "#a3a3a3",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Figure Grey",
+        "cssVar": "--color-border",
+        "theme": "light",
+        "canonical": "#c8c8c8",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "border-dark": {
+        "role": "neutral",
+        "displayName": "Figure Grey, dark",
+        "cssVar": "--color-border",
+        "theme": "dark",
+        "canonical": "#474747",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "veil": {
+        "role": "neutral",
+        "displayName": "Veil",
+        "cssVar": "--color-veil",
+        "theme": "light",
+        "canonical": "rgb(17 17 17 / 45%)",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      },
+      "veil-dark": {
+        "role": "neutral",
+        "displayName": "Veil, dark",
+        "cssVar": "--color-veil",
+        "theme": "dark",
+        "canonical": "rgb(0 0 0 / 65%)",
+        "tonalRamp": [
+          "#111111",
+          "#262626",
+          "#3a3a3a",
+          "#5c5c5c",
+          "#a3a3a3",
+          "#c8c8c8",
+          "#ededed",
+          "#ffffff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "cssVar": "--font-size-heading-1",
+        "purpose": "The artifact title and the Library's page heading only; font-stretch 80%."
+      },
+      "close": {
+        "displayName": "Close",
+        "cssVar": "--font-size-close",
+        "purpose": "The end of the page's heading, on an artifact page and on the Library and the drafts page; font-stretch 80%."
+      },
+      "subject": {
+        "displayName": "Subject",
+        "cssVar": "--font-size-subject",
+        "purpose": "The subject in the masthead's ident row; Archivo 800 at font-stretch 72%."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "cssVar": "--font-size-heading-2",
+        "purpose": "Numbered h2 section openers; 1.5rem on the phone. Library titles use this size at 80%."
+      },
+      "title": {
+        "displayName": "Title",
+        "cssVar": "--font-size-heading-3",
+        "purpose": "h3, numbered as a clause."
+      },
+      "frame": {
+        "displayName": "Frame",
+        "cssVar": "--font-size-frame",
+        "purpose": "Contents rows, buttons, text actions, clause and equation numbers, option letters, a statement's, solution's or proof's run-in label; 500, numbers 600, strong 700."
+      },
+      "frame-small": {
+        "displayName": "Frame, small",
+        "cssVar": "--font-size-frame-small",
+        "purpose": "Running head, ident row, notices, history, the stepper counter, Library meta and status."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "cssVar": "--font-size-caption",
+        "purpose": "Figure and diagram captions, the answer fields' label, the model answer's heading and the right answer's label."
+      },
+      "label": {
+        "displayName": "Label",
+        "cssVar": "--font-size-label",
+        "purpose": "Uppercase heading of a ruled list (Sumário, Suas tentativas), a note's run-in label. Never a kicker."
+      },
+      "body": {
+        "displayName": "Body",
+        "cssVar": "--font-size-body",
+        "purpose": "Prose, prompts, options and the answer field within the 42.5rem measure; strong 600."
+      },
+      "code": {
+        "displayName": "Code",
+        "cssVar": "--font-size-code",
+        "purpose": "Code blocks and inline code; Recursive in mono mode."
+      },
+      "math": {
+        "displayName": "Math",
+        "cssVar": "--font-size-equation",
+        "purpose": "MathML from Temml; display equations at 1.1em."
+      }
+    },
+    "fontStretch": [
+      {
+        "name": "frame",
+        "cssVar": "--font-stretch-frame",
+        "value": "88%",
+        "purpose": "Archivo's default width: every frame text."
+      },
+      {
+        "name": "title",
+        "cssVar": "--font-stretch-title",
+        "value": "80%",
+        "purpose": "The title, the close heading, the sheet heading, Library titles."
+      },
+      {
+        "name": "subject",
+        "cssVar": "--font-stretch-subject",
+        "value": "72%",
+        "purpose": "The masthead subject only."
+      }
+    ],
+    "strokes": [
+      {
+        "name": "rule",
+        "value": "1px",
+        "purpose": "Between rows, above sections, around code, tables, figure stages and opened notes, under a question's header."
+      },
+      {
+        "name": "stroke",
+        "value": "2px",
+        "purpose": "Boxes you act on (questions, buttons, choice box, field, select), the eye's drawing, the folded contents line, focus outlines, the notice band's edge, the right edge of a sideways scroller (a code block, display equation, figure or stepper stage, or table) while more of it lies past that edge."
+      },
+      {
+        "name": "rule-heavy",
+        "value": "4px",
+        "purpose": "Under the running head, 34px to its foot and at the same place on every page (the page's top padding is 1.5rem below 64rem and 2.5rem from it), above the end of the page (an artifact's, the Library's and the drafts page's), the bar's and sheet's top edges."
+      },
+      {
+        "name": "not-saved",
+        "value": "3px dotted",
+        "purpose": "The not-saved question box; a 2px dot reads as a dash."
+      },
+      {
+        "name": "underline",
+        "value": "1.5px",
+        "purpose": "Links and text actions at rest: one unbroken rule just under the descenders."
+      },
+      {
+        "name": "underline-hover",
+        "value": "3px",
+        "purpose": "Links and text actions on hover."
+      }
+    ],
+    "signs": [
+      {
+        "name": "sign-size",
+        "cssVar": "--sign-size",
+        "value": "1.25rem",
+        "purpose": "The one height of the status signs (saving squares, \"!\", tick, cross) and of the numeric right-answer line's tick."
+      },
+      {
+        "name": "sign-tick",
+        "cssVar": "--sign-tick",
+        "value": "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m3.5 10.5 4.5 4.5 8.5-10' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='square'/%3E%3C/svg%3E\")",
+        "purpose": "The tick's mask: a question's right mark, and the numeric right-answer line."
+      }
+    ],
+    "shadows": [],
+    "overlays": [
+      {
+        "name": "veil",
+        "value": "var(--color-veil)",
+        "purpose": "Backdrop under the contents sheet."
+      }
+    ],
+    "motion": [
+      {
+        "name": "bar-slide",
+        "value": "translate 0.24s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The phone bar entering from the bottom edge as the owner scrolls up, and only after their first pointer, touch, wheel or key input, so a reload restoring the scroll position doesn't move it; the slide only under prefers-reduced-motion: no-preference."
+      },
+      {
+        "name": "step-fade",
+        "value": "opacity 0.2s, visibility 0.2s",
+        "purpose": "Stepper parts cross-fading and a new D2 board fading in; only under prefers-reduced-motion: no-preference."
+      },
+      {
+        "name": "eye",
+        "value": "x += (target - x) * (1 - exp(-dt / tau)), tau 22 to 110ms; blink every 2.5 to 7.5s; peek to lid 0.3 for 0.9s every 6 to 14s",
+        "purpose": "The eye in the running head, the one place with ambient motion and the one place the lid eases: an open eye blinks and a shut eye peeks without moving its lift, the pupil follows the last pointer or tap (a touch that scrolls or drags isn't a tap), hover widens an open eye or opens a shut one a crack and puts off any blink or peek that falls due until the next interval, and a press eases the lid and lift to the other pose while the colours change at once. No frame work while offscreen or the tab is hidden. Only under prefers-reduced-motion: no-preference; under reduce it rests, pupil centred, and changes pose at once."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "rail",
+        "value": "64rem",
+        "purpose": "From here the rail and hanging numbers appear; below, the fold, the bar and the sheet, inline numbers and edge-to-edge questions."
+      },
+      {
+        "name": "notes",
+        "value": "80rem",
+        "purpose": "From here the five-track grid centres the column and notes stand in the right column."
+      },
+      {
+        "name": "library-narrow",
+        "value": "40rem",
+        "purpose": "Below this a Library row's status drops under its meta."
+      }
+    ],
+    "cascadeLayers": "tokens, temml, base, components (written first by each layout via LayerOrder.astro)",
+    "diagrams": {
+      "tokenMap": "d2-tokens.ts maps N1, B1, B2, AA2 to text; N2, N3 to text-muted; N4, N5, B3 to border; N6, B4, B5, AA4, AA5, AB4, AB5 to surface-subtle; N7, B6 to surface.",
+      "codeLabels": "d2-tokens.ts paints code labels in text, comments in text-muted, on surface, in light and dark.",
+      "squareCorners": "InlineSvg strips every rx/ry; d2-board.ts joins shape outlines with miter.",
+      "fonts": "Archivo static TTF instances at wdth 88: regular is 500, italic 500 italic, bold and semibold 700. Mono labels are D2's own monospace."
+    }
+  },
+  "components": [
+    {
+      "name": "Filled Button",
+      "kind": "button",
+      "refersTo": "button-filled",
+      "description": "The primary control: resume, next question, Verificar, the model answer's summary.",
+      "html": "<button class=\"ds-btn\">Ir para a questão 5 <svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\"><path d=\"M3 10h13m-5-5 5 5-5 5\"/></svg></button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: var(--inset); min-block-size: var(--target); min-inline-size: var(--target); padding: 0 1.125rem; border: var(--stroke) solid var(--color-text); border-radius: 0; font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame); font-weight: var(--font-weight-frame-strong); line-height: var(--line-height-frame); cursor: pointer; background: var(--color-text); color: var(--color-surface); } .ds-btn:hover { border-color: var(--color-text-hover); background: var(--color-text-hover); } .ds-btn:focus-visible { outline: var(--stroke) solid var(--color-text); outline-offset: 3px; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Acertei / Errei and the stepper arrows.",
+      "html": "<button class=\"ds-btn-outline\">Acertei</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; gap: var(--inset); min-block-size: var(--target); min-inline-size: var(--target); padding: 0 1.125rem; border: var(--stroke) solid var(--color-text); border-radius: 0; font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame); font-weight: var(--font-weight-frame-strong); line-height: var(--line-height-frame); cursor: pointer; background: none; color: var(--color-text); } .ds-btn-outline:hover { background: var(--color-surface-subtle); } .ds-btn-outline:focus-visible { outline: var(--stroke) solid var(--color-text); outline-offset: 3px; }"
+    },
+    {
+      "name": "Button, disabled",
+      "kind": "button",
+      "refersTo": "button-filled-disabled",
+      "description": "Either button while unavailable: dashed grey border, no fill, grey text.",
+      "html": "<button class=\"ds-btn-off\" disabled>Verificar</button>",
+      "css": ".ds-btn-off { display: inline-flex; align-items: center; gap: var(--inset); min-block-size: var(--target); min-inline-size: var(--target); padding: 0 1.125rem; border: var(--stroke) solid var(--color-text); border-radius: 0; font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame); font-weight: var(--font-weight-frame-strong); line-height: var(--line-height-frame); cursor: pointer; border-style: dashed; border-color: var(--color-text-muted); background: none; color: var(--color-text-muted); cursor: default; }"
+    },
+    {
+      "name": "Text Action",
+      "kind": "button",
+      "refersTo": "text-action",
+      "description": "Recomeçar, Mostrar todas, Fechar and notice actions: underlined ink, no box, 44px high.",
+      "html": "<button class=\"ds-text\">Recomeçar</button> <button class=\"ds-text\" disabled>Recomeçar</button>",
+      "css": ".ds-text { display: inline-flex; align-items: center; min-block-size: var(--target); padding: 0; border: 0; background: none; color: var(--color-text); font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame); font-weight: var(--font-weight-frame); text-decoration: underline var(--underline); text-decoration-skip-ink: none; text-underline-position: under; text-underline-offset: 6%; cursor: pointer; } .ds-text:hover:not(:disabled) { text-decoration-thickness: var(--underline-hover); } .ds-text:focus-visible { outline: var(--stroke) solid var(--color-text); outline-offset: 2px; } .ds-text:disabled { color: var(--color-text-muted); text-decoration: none; cursor: default; }"
+    },
+    {
+      "name": "Contents Rail",
+      "kind": "nav",
+      "refersTo": "section-row",
+      "description": "Ruled contents rows with the current section reversed between its rules.",
+      "html": "<nav class=\"ds-rail\"><p class=\"ds-label\">Sumário</p><ol><li><a href=\"#\" aria-current=\"true\"><span>1</span>Definições</a></li><li><a href=\"#\"><span>2</span>Leis de Newton</a></li><li><a href=\"#\"><span>3</span>Trabalho e energia</a></li></ol></nav>",
+      "css": ".ds-rail { inline-size: 14.25rem; font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); color: var(--color-text); } .ds-label { margin: 0; padding: 0 var(--inset) var(--inset); border-block-end: var(--rule) solid var(--color-text); font-size: var(--font-size-label); font-weight: 700; letter-spacing: var(--letter-spacing-label); text-transform: uppercase; } .ds-rail ol { margin: 0; padding: 0; list-style: none; font-size: var(--font-size-frame); line-height: var(--line-height-frame); } .ds-rail a { display: grid; grid-template-columns: 2.125rem 1fr; align-items: center; min-block-size: var(--target); box-sizing: border-box; padding: 0.375rem var(--inset); border-block-end: var(--rule) solid var(--color-text); color: inherit; text-decoration: none; } .ds-rail a span { font-weight: 600; font-variant-numeric: tabular-nums; } .ds-rail a:hover { text-decoration: underline var(--underline); text-decoration-skip-ink: none; text-underline-position: under; text-underline-offset: 6%; } .ds-rail a[aria-current] { background: var(--color-text); color: var(--color-surface); font-weight: 700; } .ds-rail a:focus-visible { outline: var(--stroke) solid var(--color-text); outline-offset: -4px; }"
+    },
+    {
+      "name": "Question with single choice",
+      "kind": "card",
+      "refersTo": "question-box",
+      "description": "A ruled form: square 2px box, header over a 1px rule, square choice boxes, the chosen option set heavier.",
+      "html": "<form class=\"ds-q\"><p class=\"ds-q-head\"><span>Questão 1</span><span class=\"ds-q-hint\">Escolha uma</span></p><p class=\"ds-q-prompt\">Qual é a unidade de força no SI?</p><label><span class=\"ds-q-l\">a)</span><input type=\"radio\" name=\"o\"><span>joule</span></label><label><span class=\"ds-q-l\">b)</span><input type=\"radio\" name=\"o\" checked><span>newton</span></label><label><span class=\"ds-q-l\">c)</span><input type=\"radio\" name=\"o\"><span>watt</span></label></form>",
+      "css": ".ds-q { padding: 1rem 1.375rem 1.25rem; border: var(--stroke) solid var(--color-text); background: var(--color-surface); color: var(--color-text); font-family: var(--font-body); font-size: var(--font-size-body); line-height: var(--line-height-body); } .ds-q-head { display: flex; justify-content: space-between; margin: 0 -1.375rem 0.75rem; padding: 0 1.375rem var(--inset); border-block-end: var(--rule) solid var(--color-text); font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame-small); font-weight: 700; line-height: var(--line-height-frame); } .ds-q-hint { font-weight: 500; } .ds-q-prompt { margin: 0; } .ds-q label { display: grid; grid-template-columns: 1.5rem 1.75rem minmax(0, 1fr); align-items: baseline; align-content: center; min-block-size: var(--target); margin-inline: -0.5rem; padding: 0.25rem 0.5rem; cursor: pointer; } .ds-q label:hover { background: var(--color-surface-subtle); } .ds-q label:has(:checked) { font-weight: 600; } .ds-q-l { font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame); font-weight: 600; } .ds-q input { position: relative; top: 0.25rem; box-sizing: border-box; inline-size: 1.125rem; block-size: 1.125rem; margin: 0; padding: 3px; border: var(--stroke) solid var(--color-text); border-radius: 0; background: none; appearance: none; } .ds-q input:checked { background: var(--color-text) content-box; } .ds-q input:focus-visible { outline: var(--stroke) solid var(--color-text); outline-offset: 3px; }"
+    },
+    {
+      "name": "Open Answer Field",
+      "kind": "input",
+      "refersTo": "answer-field",
+      "description": "A square 2px box in body type with a caption label.",
+      "html": "<label class=\"ds-field\"><span>Sua resposta</span><textarea rows=\"4\"></textarea></label>",
+      "css": ".ds-field { display: grid; gap: 0.375rem; } .ds-field span { font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-caption); font-weight: 600; color: var(--color-text); } .ds-field textarea { box-sizing: border-box; inline-size: 100%; min-block-size: 7.5rem; padding: var(--inset) 0.875rem; border: var(--stroke) solid var(--color-text); border-radius: 0; background: var(--color-surface); color: var(--color-text); font-family: var(--font-body); font-size: var(--font-size-body); line-height: var(--line-height-body); resize: vertical; } .ds-field textarea:focus-visible { outline: var(--stroke) solid var(--color-text); outline-offset: 3px; }"
+    },
+    {
+      "name": "Numeric Answer Field",
+      "kind": "input",
+      "refersTo": "numeric-field",
+      "description": "The open answer's caption label over a one-line 2px square field, 2.75rem high and min(100%, 16rem) wide from 64rem, filling its row below 64rem so it ends on the box's right edge with Verificar under it, body type with tabular figures, the unit beside it on its baseline, dropping under a 16rem field it can't sit beside. Locked, the field loses its box and reads as typed beside its unit.",
+      "html": "<div class=\"ds-num\"><label for=\"ds-num-field\">Sua resposta</label><div class=\"ds-num-row\"><input id=\"ds-num-field\" type=\"text\" inputmode=\"text\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\" aria-describedby=\"ds-num-unit\" value=\"28,27\"><span id=\"ds-num-unit\">cm²</span></div></div>",
+      "css": ".ds-num { display: grid; gap: 0.375rem; color: var(--color-text); } .ds-num label { font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-caption); font-weight: 600; } .ds-num-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--inset); font-family: var(--font-body); font-size: var(--font-size-body); line-height: var(--line-height-body); } .ds-num input { box-sizing: border-box; inline-size: min(100%, 16rem); min-block-size: var(--target); margin: 0; padding: 0 0.875rem; border: var(--stroke) solid var(--color-text); border-radius: 0; background: var(--color-surface); color: var(--color-text); font: inherit; font-variant-numeric: tabular-nums; } .ds-num input:focus-visible { outline: var(--stroke) solid var(--color-text); outline-offset: 3px; } @media (width < 64rem) { .ds-num input { flex-grow: 1; } }"
+    },
+    {
+      "name": "Numeric Right Answer",
+      "kind": "custom",
+      "refersTo": "numeric-field",
+      "description": "Shown only once a wrong numeric answer is locked: under a 1px rule, the tick sign, \"Resposta certa:\" in caption 700, then the agent's value in the page's convention in body type, with its tolerance and unit. No score and no distance from the owner's value.",
+      "html": "<p class=\"ds-right\"><span class=\"ds-right-label\">Resposta certa:</span> <span class=\"ds-right-value\">28,27 ± 0,01 cm²</span></p>",
+      "css": ".ds-right { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); margin: var(--space-3) 0 0; padding-block-start: var(--inset); border-block-start: var(--rule) solid var(--color-text); color: var(--color-text); } .ds-right::before { content: \"\"; align-self: center; inline-size: var(--sign-size); block-size: var(--sign-size); background: currentColor; mask: center / contain no-repeat var(--sign-tick); } .ds-right-label { font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-caption); font-weight: 700; } .ds-right-value { font-family: var(--font-body); font-size: var(--font-size-body); font-variant-numeric: tabular-nums; white-space: nowrap; }"
+    },
+    {
+      "name": "Note Marker",
+      "kind": "chip",
+      "refersTo": "note-marker",
+      "description": "The folded marginal note below 80rem: a 1px boxed NOTA, reversed when open.",
+      "html": "<p class=\"ds-p\">A força resultante é nula em equilíbrio.<button class=\"ds-note\" aria-expanded=\"false\">Nota</button></p>",
+      "css": ".ds-p { font-family: var(--font-body); font-size: var(--font-size-body); color: var(--color-text); } .ds-note { margin-inline-start: 0.375rem; padding: 0 0.375rem; border: var(--rule) solid var(--color-text); background: none; color: var(--color-text); font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; line-height: 1.25rem; text-transform: uppercase; vertical-align: 1px; cursor: pointer; } .ds-note:hover { background: var(--color-surface-subtle); } .ds-note[aria-expanded=\"true\"] { background: var(--color-text); color: var(--color-surface); } .ds-note:focus-visible { outline: var(--stroke) solid var(--color-text); outline-offset: 3px; }"
+    },
+    {
+      "name": "State Notice",
+      "kind": "custom",
+      "refersTo": "state-notice",
+      "description": "The sticky notice band, shared by the artifact page and the Library: wiped grey, 2px ink rule below, text actions, each \" · \" even between its text and its action. A failed check of the answers this device last showed reads \"Não foi possível conferir suas respostas · Tentar de novo\" over a page that stays usable. On a public artifact's page the signed-out notice's action is a link to the Library, \"Sessão encerrada · Entrar pela Biblioteca\", since no sign-in guards that page and a reload never reaches one.",
+      "html": "<p class=\"ds-notice\">Não foi possível salvar a resposta<span class=\"ds-notice-dot\">&nbsp;·</span> <button>Tentar de novo</button></p>",
+      "css": ".ds-notice { margin: 0; padding: var(--space-1) var(--space-3); border-block-end: var(--stroke) solid var(--color-text); background: var(--color-surface-subtle); color: var(--color-text); font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame-small); font-weight: 500; line-height: 1.35; text-align: center; } .ds-notice-dot { margin-inline: var(--space-2); } .ds-notice button { min-block-size: var(--target); margin-inline: calc(-1 * var(--space-2)); padding: 0 var(--space-2); border: 0; background: none; color: inherit; font: inherit; text-decoration: underline var(--underline); text-decoration-skip-ink: none; text-underline-position: under; text-underline-offset: 6%; cursor: pointer; } .ds-notice button:hover { text-decoration-thickness: var(--underline-hover); }"
+    },
+    {
+      "name": "Library Row",
+      "kind": "custom",
+      "refersTo": "library-row",
+      "description": "A ruled Library row; the status appears only once the artifact has answers, painted with the row from the device's last load. A public artifact's meta line ends with \"Public\" after the date, in Frame strong (700) with no box, fill or grey, English on every row and never on the drafts page; it prints. Long words wrap inside the row.",
+      "html": "<ul class=\"ds-lib\"><li><a href=\"#\">Dinâmica</a><p class=\"ds-lib-meta\">Física I · 12 out 2026</p><p class=\"ds-lib-status\">In progress · 3 of 8 answered</p></li><li><a href=\"#\">Integrais de linha</a><p class=\"ds-lib-meta\">Cálculo III · 10 out 2026 · <strong>Public</strong></p></li></ul>",
+      "css": ".ds-lib { margin: 0; padding: 0; list-style: none; border-block-start: var(--rule) solid var(--color-text); font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); color: var(--color-text); } .ds-lib li { position: relative; display: grid; grid-template-columns: 1fr auto; overflow-wrap: anywhere; align-items: baseline; gap: 0.375rem var(--space-3); padding: 0.75rem var(--inset) 0.875rem; border-block-end: var(--rule) solid var(--color-text); } .ds-lib a { grid-column: 1; color: inherit; font-size: var(--font-size-heading-2); font-stretch: var(--font-stretch-title); font-weight: 700; line-height: var(--line-height-heading); text-decoration: none; } .ds-lib a::after { content: \"\"; position: absolute; inset: 0; } .ds-lib a:hover { text-decoration: underline var(--underline); text-decoration-skip-ink: none; text-underline-position: under; text-underline-offset: 6%; } .ds-lib-meta { grid-column: 1; margin: 0; font-size: var(--font-size-frame-small); font-weight: 500; } .ds-lib-meta strong { font-weight: 700; } .ds-lib-status { grid-column: 2; grid-row: 1; margin: 0; font-size: var(--font-size-frame-small); font-weight: 500; font-variant-numeric: tabular-nums; text-align: end; }"
+    },
+    {
+      "name": "Library To revisit",
+      "kind": "custom",
+      "refersTo": "library-revisit",
+      "description": "The end of the Library and the drafts page, drawn as an artifact page's end: after a 4px rule and 4rem of space, the Close heading \"To revisit\", then one group per artifact whose latest attempt marked a question wrong, in the list's order. Each group is the artifact's title as a plain heading (700, the Title size, 80% wide, in its own language) over the artifact page's revisit rows: \"Question N\" linking to the question, then its section in the artifact's language. Each list is named by its group's title. No lead-in, count or score. It paints with the rows from the statuses this device last loaded, as the statuses do, and the load corrects it in place. The subject filter narrows it with the list; nothing is drawn when there's nothing to revisit in the subject shown, and it doesn't print.",
+      "html": "<section class=\"ds-close\"><h2>To revisit</h2><h3 lang=\"pt-BR\" id=\"ds-revisit-1\">Derivadas</h3><ol class=\"ds-revisit\" aria-labelledby=\"ds-revisit-1\"><li><a href=\"#\">Question 1</a></li><li><a href=\"#\">Question 4</a><span lang=\"pt-BR\">Regra da cadeia</span></li></ol><h3 lang=\"en\" id=\"ds-revisit-2\">Eigenvalues</h3><ol class=\"ds-revisit\" aria-labelledby=\"ds-revisit-2\"><li><a href=\"#\">Question 1</a><span lang=\"en\">Characteristic polynomial</span></li></ol></section>",
+      "css": ".ds-close { margin-block-start: var(--space-6); padding-block-start: 1.125rem; border-block-start: var(--rule-heavy) solid var(--color-text); font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); color: var(--color-text); } .ds-close h2 { margin: 0 0 0.75rem; font-size: var(--font-size-close); font-stretch: var(--font-stretch-title); font-weight: 700; line-height: 1.2; } .ds-close h3 { margin: 0 0 var(--space-2); font-size: var(--font-size-heading-3); font-stretch: var(--font-stretch-title); font-weight: 700; line-height: var(--line-height-heading-3); } .ds-close ol + h3 { margin-block-start: var(--space-4); } .ds-revisit { margin: 0 0 var(--space-3); padding: 0; border-block-start: var(--rule) solid var(--color-text); list-style: none; font-size: var(--font-size-frame); font-weight: 500; line-height: var(--line-height-frame); } .ds-revisit li { position: relative; display: grid; grid-template-columns: 8.75rem 1fr; align-content: center; align-items: baseline; gap: 0 var(--space-3); box-sizing: border-box; min-block-size: var(--target); padding: 0.375rem var(--inset); border-block-end: var(--rule) solid var(--color-text); overflow-wrap: anywhere; } .ds-revisit a { color: inherit; text-decoration: underline var(--underline); text-decoration-skip-ink: none; text-underline-position: under; text-underline-offset: 6%; font-variant-numeric: tabular-nums; } .ds-revisit a::after { content: \"\"; position: absolute; inset: 0; } @media print { .ds-close { display: none; } }"
+    },
+    {
+      "name": "Table",
+      "kind": "custom",
+      "refersTo": "table",
+      "description": "A Markdown table for data with short cells: full column width, 1px ink rules above, below and between rows, text inset from both ends. The header is Archivo 700 at the frame size; cells are copy with tabular numbers, aligned on their first baseline. A column marked `---:` aligns right. A table too wide for the column scrolls sideways inside its rules, in a named group Tab reaches, with the 2px scroll-edge rule while more lies to the right.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Quantity</th><th style=\"text-align:right\">Value</th></tr></thead><tbody><tr><td>Base</td><td style=\"text-align:right\">8 cm</td></tr><tr><td>Height</td><td style=\"text-align:right\">3 cm</td></tr><tr><td>Rectangle area</td><td style=\"text-align:right\">24 cm²</td></tr></tbody></table>",
+      "css": ".ds-table { inline-size: 100%; border-collapse: collapse; border-block: var(--rule) solid var(--color-text); color: var(--color-text); font-family: var(--font-body); line-height: var(--line-height-caption); font-variant-numeric: tabular-nums; } .ds-table :is(th, td) { padding: var(--space-2) var(--inset); border-block-start: var(--rule) solid var(--color-text); vertical-align: baseline; } .ds-table th { font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame); font-weight: var(--font-weight-frame-strong); line-height: var(--line-height-frame); text-align: start; vertical-align: bottom; }"
+    },
+    {
+      "name": "Theme Eye",
+      "kind": "toggle",
+      "refersTo": "theme-eye",
+      "description": "The running head's theme toggle, centred between the back link and the size on an artifact page, and between artifactory and the link to the other list on the Library and the drafts page: a drawn eye, open while the page is light and shut while it's dark. A press shows the other theme and keeps the choice on this device; a press back to the device's theme, or a change in the device's preference, forgets it. A button with aria-pressed, named Dark theme / Tema escuro, 44px square, hidden in print.",
+      "html": "<button class=\"ds-eye\" type=\"button\" aria-pressed=\"false\"><span class=\"ds-eye-name\">Dark theme</span><svg viewBox=\"0 0 36 24\" width=\"36\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"square\" aria-hidden=\"true\"><clipPath id=\"ds-eye-white\"><path d=\"M2 14Q18 -6 34 14Q18 26 2 14Z\"/></clipPath><g clip-path=\"url(#ds-eye-white)\"><circle cx=\"18\" cy=\"12\" r=\"4\"/><circle cx=\"18\" cy=\"12\" r=\"1.5\" fill=\"currentColor\" stroke=\"none\"/></g><path d=\"M2 14Q18 -6 34 14Q18 26 2 14Z\"/><path d=\"M7.76 8.1l-1.56 -1.95M12.88 5.02l-1.3 -3.25M18 4l0 -4M23.12 5.02l1.3 -3.25M28.24 8.1l1.56 -1.95M12.24 19.22l-0.46 1.69M18 20l0 2.25M23.76 19.22l0.46 1.69\"/></svg></button>",
+      "css": ".ds-eye { display: inline-flex; align-items: center; justify-content: center; inline-size: var(--target); block-size: var(--target); padding: 0; border: 0; background: none; color: var(--color-text); cursor: pointer; } .ds-eye:focus-visible { outline: none; } .ds-eye:focus-visible svg { outline: var(--stroke) solid var(--color-text); outline-offset: 3px; } .ds-eye-name { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } @media print { .ds-eye { display: none; } }"
+    },
+    {
+      "name": "Stage",
+      "kind": "custom",
+      "refersTo": "stage",
+      "description": "The block a custom build runs in, numbered on the figures' series. Above the content: the label over a row of square options (the outline button's 2px box, the chosen one filled; native radios), or, with typed input, a row of labelled whole-number fields (the label in Archivo 700 a 0.5rem gap from a 2px ink box 2.75rem high, body type with tabular figures set right, as wide as its longest bound and a digit more; 1rem between fields) and the filled Começar / Start button; then the Stepper's counter, the step's line and the outline arrows. A number refused (not whole, out of bounds) dashes its field's box, takes the step's line and the focus, and the field's description names the reason. Steps put four marks on the drawing, the tables and the lines of its one code block: strong (settled or just changed: a line at 4, text at 600), dashed (provisional: a dashed line, or a cell or code line in a dashed box), muted (no longer available: the one grey) and reversed (the one current thing: ink fill, ground text; the running code line is a bar across the code's whole scrolling width, announced as \"Linha L.\"). A step's body rewrites the one table's rows, each a copy of the last row as written (its alignment, type and rules), marked like any row; the rows as written stay for print, hidden on screen. A Stage that opts in with beside (set sparingly, only where a step's marks and its rows must be seen together), with a drawing and only tables, keeps the tables beside the drawing on a wide screen (width >= 64rem), top rules on one line, when both fit at their own widths inside the text column (never past it); without beside, below 64rem, in print, where they don't fit and on a step whose cells come out wider, they sit under it, sharing its lower rule; code or prose in the Stage keeps one column. A drawn part named like an option chooses it on click, and on a hover device takes the wiped grey under the pointer (not in forced colours, not when reversed). In a drawing, strong and dashed act on stroke- shapes, muted and reversed on the -text, -accent and -surface colours and unclassed labels. Without JavaScript and in print it shows the content as written, no controls: the marks exist only on screen. With typed input, the controls' place then holds one line naming the first example, whose result the content is: the input's label at 700 in frame small, then each field's name and number at 500, tabular (\"Calcular mdc(a, b) a = 48, b = 18\"); a choose Stage names nothing.",
+      "html": "<figure class=\"ds-stage\"><fieldset class=\"ds-stage-choice\"><legend>Começar em</legend><label class=\"ds-stage-option\"><input type=\"radio\" name=\"ds-stage\" value=\"A\" checked><span>A</span></label><label class=\"ds-stage-option\"><input type=\"radio\" name=\"ds-stage\" value=\"B\"><span>B</span></label><label class=\"ds-stage-option\"><input type=\"radio\" name=\"ds-stage\" value=\"C\"><span>C</span></label></fieldset><p class=\"ds-stage-line\"><b>2 de 3</b> Entra B pela aresta A–B (4).</p><table class=\"ds-stage-table\"><thead><tr><th>Vértice</th><th>Chave</th><th>Pai</th></tr></thead><tbody><tr><td data-mark=\"muted\">A</td><td data-mark=\"muted\">0</td><td data-mark=\"muted\">—</td></tr><tr><td data-mark=\"reversed\">B</td><td data-mark=\"reversed\">4</td><td data-mark=\"reversed\">A</td></tr><tr><td>C</td><td data-mark=\"strong\">5</td><td data-mark=\"dashed\">B</td></tr></tbody></table><figcaption><b>Figura 1.1</b> O algoritmo de Prim a partir do vértice escolhido.</figcaption></figure>",
+      "css": ".ds-stage { margin: 0; color: var(--color-text); } .ds-stage-choice { margin: 0 0 var(--space-2); padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: var(--space-1); } .ds-stage-choice legend { inline-size: 100%; margin-block-end: var(--space-1); padding: 0; font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame-small); font-weight: 700; } .ds-stage-option { position: relative; display: inline-grid; place-items: center; box-sizing: border-box; min-inline-size: var(--target); min-block-size: var(--target); padding: 0 var(--inset); border: var(--stroke) solid var(--color-text); font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-weight: 700; } .ds-stage-option input { position: absolute; inset: 0; margin: 0; opacity: 0; } .ds-stage-option:has(:checked) { background: var(--color-text); color: var(--color-surface); } .ds-stage-line { margin: 0 0 var(--space-2); } .ds-stage-line b { font-family: var(--font-frame); font-size: var(--font-size-frame-small); margin-inline-end: 0.875rem; } .ds-stage-table { inline-size: 100%; border-collapse: collapse; border-block: var(--rule) solid var(--color-text); font-family: var(--font-body); } .ds-stage-table :is(th, td) { padding: var(--space-2) var(--inset); border-block-end: var(--rule) solid var(--color-text); text-align: start; } .ds-stage-table th { font-family: var(--font-frame); font-weight: 700; } [data-mark=\"strong\"] { font-weight: 600; } [data-mark=\"muted\"] { color: var(--color-text-muted); } [data-mark=\"dashed\"] { outline: var(--stroke) dashed var(--color-text); outline-offset: calc(-1 * var(--stroke)); } [data-mark=\"reversed\"] { background: var(--color-text); color: var(--color-surface); font-weight: 600; } .ds-stage figcaption { margin-block-start: var(--space-2); font-family: var(--font-frame); font-size: var(--font-size-caption); } @media (hover: hover) and (forced-colors: none) { .ds-stage-part:hover:not([data-mark=\"reversed\"]) { --color-surface: var(--color-surface-subtle); } }"
+    },
+    {
+      "name": "Statement",
+      "kind": "custom",
+      "refersTo": "statement-label",
+      "description": "A definition, theorem, lemma, corollary or worked example as a clause: its number in the margin in the paragraphs' series, its label run in at the start of the first line (kind 700, name 500 in parentheses, a full stop, at the frame size), a claim's body in italic and a definition or example upright. An example's solution is shown openly: a new paragraph inside the group, its label \"Solução.\" run in the same way (700, at the frame size), its equations, tables and figures keeping the page's series; an example may break across a printed page, but a label set alone stays on the page of what it opens. No box, fill or rule. A citation reads \"Teorema 2.1\" as an ordinary link.",
+      "html": "<div class=\"ds-stmt\" role=\"group\" aria-label=\"Teorema 2.1 (Valor médio)\"><p><span class=\"ds-stmt-n\" aria-hidden=\"true\">2.1</span><span class=\"ds-stmt-label\"><strong>Teorema</strong> <span class=\"ds-stmt-name\">(Valor médio)</span>.</span> Se f é contínua em [a, b] e derivável em (a, b), então f′(c) = (f(b) − f(a))/(b − a) para algum c.</p></div><p class=\"ds-p\">A prova usa o <a href=\"#\">Lema 1.5</a>.</p>",
+      "css": ".ds-stmt { margin-block: 1.375rem; font-family: var(--font-body); font-size: var(--font-size-body); line-height: var(--line-height-body); font-style: italic; color: var(--color-text); } .ds-stmt p { margin: 0; } .ds-stmt-n { display: inline-block; min-inline-size: 2.125rem; font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame); font-style: normal; font-weight: var(--font-weight-frame-number); } .ds-stmt-label { font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame); font-style: normal; font-weight: var(--font-weight-frame-strong); } .ds-stmt-name { font-weight: var(--font-weight-frame); } .ds-p { font-family: var(--font-body); font-size: var(--font-size-body); color: var(--color-text); }"
+    },
+    {
+      "name": "Visitor's Line",
+      "kind": "custom",
+      "refersTo": "visitor-line",
+      "description": "On a public artifact's page read by a visitor, the ident row's last line, under the date line: one sentence in the artifact's main language saying the answers stay on the page, in the frame's small text and plain ink, with no label, box or grey. It shows only on artifacts with questions and doesn't print. The same visitor's running head keeps the back link's place empty, so the eye and the size don't move.",
+      "html": "<div class=\"ds-ident\"><p>Cálculo</p><p>Publicado em 11 out. 2026</p><p class=\"ds-visitor-line\">Suas respostas ficam só nesta página e somem quando você sai.</p></div>",
+      "css": ".ds-ident { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--space-3); padding: 0.875rem var(--inset) 0.75rem; border-block-end: var(--rule) solid var(--color-text); font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame-small); font-weight: 500; line-height: var(--line-height-frame); } .ds-ident > p { margin: 0; } .ds-ident > .ds-visitor-line { flex-basis: 100%; margin-block-start: var(--space-2); text-wrap: pretty; } @media print { .ds-visitor-line { display: none; } }"
+    },
+    {
+      "name": "Proof",
+      "kind": "custom",
+      "refersTo": "proof-end",
+      "description": "The proof of a theorem, lemma or corollary: unnumbered and upright, its label run in (\"Demonstração\" 700, a full stop, at the frame size), or \"Demonstração do Teorema 2.1.\" with the citation linked at 500 when it doesn't follow its statement at once. The build marks a proof that follows its own statement at once, which stands 0.875rem below it; every other proof stands 1.375rem clear. Its last line, or a closing list's last item, ends with a 0.625rem square of ink at the right edge, drawn as a border so forced colours and print keep it; after a closing equation the square takes a line of its own. A label set alone, before an opening equation or list, prints on the page of what it opens.",
+      "html": "<div class=\"ds-proof\"><p><span class=\"ds-proof-label\"><strong>Demonstração</strong> <span class=\"ds-proof-of\">do <a href=\"#\">Teorema&nbsp;2.1</a></span>.</span> Seja g(x) = f(x) − k(x − a), com g(a) = g(b). Num extremo c de g, g′(c) = 0.<span class=\"ds-proof-end\"></span></p></div>",
+      "css": ".ds-proof { display: flow-root; margin-block: 1.375rem; font-family: var(--font-body); font-size: var(--font-size-body); line-height: var(--line-height-body); color: var(--color-text); } .ds-proof[data-follows-statement] { margin-block-start: 0.875rem; } .ds-proof p { margin: 0; } .ds-proof-label { font-family: var(--font-frame); font-stretch: var(--font-stretch-frame); font-size: var(--font-size-frame); font-weight: var(--font-weight-frame); } .ds-proof-label strong { font-weight: var(--font-weight-frame-strong); } .ds-proof-label a { color: inherit; text-decoration-thickness: var(--underline); } .ds-proof-end { float: inline-end; box-sizing: border-box; inline-size: 0.625rem; block-size: 0.625rem; margin-block-start: 0.55em; margin-inline-start: var(--space-3); border: 0.3125rem solid var(--color-text); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Technical Standard",
+    "overview": "A study artifact is a technical standard: an ABNT or ISO norm, set in black on white, numbered clause by clause, with rules for structure. A running head sits over a heavy rule, the subject and date sit between thin rules, every section and paragraph carries its number in the margin, notes stand beside the line they annotate, equations and figures are numbered, and each question is a ruled form. The owner sees where they stopped as a position and leaves knowing what to revisit, never a score.\n\nOne ink on one ground. A narrow grotesque (Archivo, condensed by `font-stretch`) sets the frame: masthead, headings, numbers, labels, buttons. A book face with a matching math font (STIX Two Text and STIX Two Math) sets the copy. Structure is drawn only with straight rules at three weights and square boxes; nothing is rounded, nothing casts a shadow, and the only fills are the reversed current row, the filled button and the grey of what sits in the background.\n\nThe world refuses the docs-site page (sans throughout, a contents tree marked by a coloured left border, rounded cards), the SaaS course page and the blog article (see `PRODUCT.md`).",
+    "keyCharacteristics": [
+      "Ink #111 on white, no hue; grey only for what is unavailable or in the background.",
+      "Archivo, condensed, sets the frame; STIX Two Text sets the copy; Recursive in mono mode sets code.",
+      "Rules at 1px, 2px and 4px carry all structure; corners are square.",
+      "Sections, clauses (statements among them), equations and figures are numbered by the page, in the margin or beside the formula.",
+      "State is a line form or a drawn sign, never a hue.",
+      "Every interactive cell is at least 44px; blocks stand 44px clear."
+    ],
+    "rules": [
+      {
+        "name": "The One Ink Rule",
+        "body": "Ink on paper, nothing else. No hue anywhere: not for links, state, emphasis, code or figures; the figure classes `fill-accent` and `stroke-accent` paint ink. A new colour is a token change the owner approves, never a component's choice.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Grey Rule",
+        "body": "Grey means unavailable or background, and there is one grey for unavailable (`text-muted`). Don't stack fades: a muted element is not also faded. Nothing fades while it waits: the artifact page paints in ink from its first frame, from the answers this device last showed. Code lines outside a stepper's step are not a faded region: they take the one grey, comments and line numbers included. A Stage's `muted` mark is this grey's \"unavailable\": an edge that can no longer join, a row already settled.",
+        "section": "colors"
+      },
+      {
+        "name": "The Shape, Not Hue, Rule",
+        "body": "State is a line form or a drawn sign: dashed while saving or unavailable, dotted with \"!\" when not saved, a filled square for the choice, a tick for right, a cross for wrong. A state readable only by its colour is a bug, and with one ink there is no colour to fall back on. A Stage's `dashed` mark extends the dash from controls to content: dashed means not settled, so a candidate edge or a provisional key is dashed.",
+        "section": "colors"
+      },
+      {
+        "name": "The Frame and Copy Rule",
+        "body": "Archivo sets only the frame, at 500, 600, 700 or 800, never 400, always condensed (88% by default, 80% for titles, 72% for the subject). It never sets prose, prompts, options or what the owner types; those are STIX Two Text, with math in STIX Two Math.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Number Size Rule",
+        "body": "Every number below a section (clause, equation, option letter, question, figure) is the same size, 1rem in the frame. A section number takes its heading's size and weight.",
+        "section": "typography"
+      },
+      {
+        "name": "The Even Link Rule",
+        "body": "Links and text actions are underlined at 1.5px (`--underline`) and thicken to 3px on hover. The underline is one unbroken rule just under the descenders, never broken around g, j, p, q, y or ç, 6% of the font size below them, so prose, frame text and the Library's titles keep the same clearance. Every underline follows that one rule; none sets its own position. The shipped CSS sets it once on the root; the component snippets here repeat it only so each renders on its own. A link is never bolder than the text around it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Inset Rule",
+        "body": "Text between two rules is inset `--inset` (0.625rem) from both ends: contents rows, masthead rows, history and revisit rows, the folded contents line, Library rows, code. Boxes (buttons, stepper arrows, question boxes) sit exactly on the rule's edge.",
+        "section": "layout"
+      },
+      {
+        "name": "The Text Edge Rule",
+        "body": "Every horizontal rule in the column runs from the text edge to the column's right edge. Nothing pokes into the gutter; a section's number hangs outside its rule. The one exception, used sparingly, is a Stage that opts in with `beside`, its drawing and tables side by side on a wide screen: the drawing's rules run from the text edge to its own width and the tables' from --space-4 past it to the column's right edge, their top rules on one line.",
+        "section": "layout"
+      },
+      {
+        "name": "The Clearance Rule",
+        "body": "A block (stepper, figure, diagram) stands `--block-clearance` (2.75rem) clear of what is above and below, so its controls never read as part of an equation and each caption belongs to its own drawing.",
+        "section": "layout"
+      },
+      {
+        "name": "The 44 px Cell Rule",
+        "body": "Every link, button, option, row and toggle has a hit area of at least `--target` (2.75rem).",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Sheet Rule",
+        "body": "Nothing casts a shadow. A layer above the content draws a rule on its shared edge.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Square Corner Rule",
+        "body": "No radius, anywhere. A shape that needs to stand out is a 2px square box.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Three Weights Rule",
+        "body": "Rules are 1px, 2px or 4px, always in ink. A rule's weight says its rank: 4px opens and closes the page, 2px bounds a thing you act on, 1px divides.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** take every colour, size, space and rule from `tokens.css` custom properties, and check both themes and print.",
+      "**Do** carry every state in a line form or a drawn sign (dashed, dotted with \"!\", filled square, tick, cross).",
+      "**Do** set the frame in Archivo at 500 to 800, condensed by the `--font-stretch-*` tokens, and the copy in STIX Two Text.",
+      "**Do** inset text between two rules by `--inset` (0.625rem) and set boxes flush on the rule's edge.",
+      "**Do** run every rule in the column from the text edge to the column's right edge, except a Stage that opts in with `beside` to set its drawing and tables side by side, used sparingly (the Text Edge Rule).",
+      "**Do** give every interactive cell at least `--target` (2.75rem) and a 2px ink focus outline.",
+      "**Do** let the page number sections, clauses, equations and figures; never write a number into content.",
+      "**Do** draw icons as inline SVG strokes at 2 with square caps, in `currentColor`.",
+      "**Do** write labels in both languages (`data-lang=\"en\"` and `data-lang=\"pt\"`), following the artifact's main language. `page.css` hides the half that doesn't match, so a component adds no rule of its own."
+    ],
+    "donts": [
+      "**Don't** add a hue, including purple, pink or magenta, for any reason.",
+      "**Don't** show a count or tally of right and wrong answers, or a score, anywhere: rail, history, end of the page or Library. The Library may say how many are answered.",
+      "**Don't** add shadows, gradients or a radius of any size.",
+      "**Don't** fill a container. Fill is for the filled button, the reversed current row, the chosen box, an open note marker, and the wiped grey of the notice band, inline code and hover.",
+      "**Don't** stack fades or use a second grey for unavailable.",
+      "**Don't** set prose, prompts, options or typed answers in Archivo, or set Archivo at 400.",
+      "**Don't** mark the current section with a coloured left border; reverse its row.",
+      "**Don't** use text glyphs (✓, ✗, !) or icon fonts for states.",
+      "**Don't** add label text where the controls speak for themselves.",
+      "**Don't** put a small label above a heading. The uppercase label heads a ruled list or runs into a note; it is never a kicker."
+    ]
+  }
+}

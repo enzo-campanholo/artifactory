@@ -1,0 +1,49 @@
+name: D1 export
+
+# D1 restores only the last 7 days on the free plan; these dumps cover 90.
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  export:
+    # A repository without the deploy variables has no database to export.
+    if: vars.D1_DATABASE_ID != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/deploy-config.ts
+        env:
+          ARTIFACTORY_DOMAIN: ${{ vars.ARTIFACTORY_DOMAIN }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+          ACCESS_TEAM_DOMAIN: ${{ vars.ACCESS_TEAM_DOMAIN }}
+          ACCESS_AUD: ${{ vars.ACCESS_AUD }}
+      - id: export
+        run: |
+          dump="$RUNNER_TEMP/artifactory-$(date -u +%F).sql"
+          pnpm exec wrangler d1 export artifactory --remote --output "$dump"
+          echo "dump=$dump" >> "$GITHUB_OUTPUT"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: d1-export
+          path: ${{ steps.export.outputs.dump }}
+          retention-days: 90
+          if-no-files-found: error

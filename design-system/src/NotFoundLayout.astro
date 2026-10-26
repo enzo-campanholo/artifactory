@@ -1,0 +1,29 @@
+---
+import "./tokens.css";
+import ThemeHead from "./ThemeHead.astro";
+
+/**
+ * The page for an address with nothing at it. It follows the theme this device chose and otherwise
+ * keeps the browser's own look. The platform renders it; an artifact never uses this layout.
+ */
+interface Props {
+  /** The document title. */
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <ThemeHead />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

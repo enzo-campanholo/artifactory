@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Runs a command for an agent on a local NixOS machine: `scripts/heavy pnpm check`,
+# `scripts/heavy pnpm exec vitest run tests/store/device-copy.test.ts`.
+#
+# The agents share a small memory slice that systemd-oomd watches, and it kills a whole agent when
+# that slice is under pressure. `nix develop` alone peaks at about 450 MB and ESLint at over 1 GB, so
+# this leaves the agent's scope before starting either: the command runs in a scope of its own under
+# the heavy slice, limited to 3 GB, first in line for the kernel's out-of-memory killer. It also
+# takes the queue, except for `pnpm build`, `pnpm check` and `pnpm look`, which take it themselves
+# (the queue isn't re-entrant). Where no user manager can start a scope, it runs here.
+set -euo pipefail
+
+if (( $# == 0 )) || [[ -z ${1-} ]] || [[ ${1-} == --* && ${1-} != --status ]]; then
+  echo "Usage: scripts/heavy <command> [arguments] | scripts/heavy --status [--json]" >&2
+  exit 2
+fi
+if [[ ${1-} == --status && ( $# -gt 2 || ( $# -eq 2 && ${2-} != --json ) ) ]]; then
+  echo "Usage: scripts/heavy --status [--json]" >&2
+  exit 2
+fi
+if [[ $(git rev-parse --show-toplevel 2>/dev/null) != "$(pwd -P)" ]]; then
+  echo "scripts/heavy: run from the worktree root" >&2
+  exit 2
+fi
+
+echo 1000 > /proc/self/oom_score_adj 2> /dev/null || true
+
+case "${1-} ${2-}" in
+  "pnpm build" | "pnpm check" | "pnpm look") command=(nix develop -c "$@") ;;
+  *) command=(nix develop -c node scripts/heavy-command.ts "$@") ;;
+esac
+
+if systemd-run --user --scope --quiet true 2> /dev/null; then
+  exec systemd-run --user --scope --quiet --collect --slice=artifactory-heavy.slice -p MemoryMax=3G \
+    "${command[@]}"
+fi
+exec "${command[@]}"

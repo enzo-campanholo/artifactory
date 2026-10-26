@@ -1,0 +1,194 @@
+---
+import "../src/tokens.css";
+import "../src/page.css";
+import "../src/rich-content.css";
+import ArtifactFrame from "../src/ArtifactFrame.astro";
+import LayerOrder from "../src/LayerOrder.astro";
+import StateNotices from "../src/StateNotices.astro";
+import ThemeHead from "../src/ThemeHead.astro";
+import type { Heading } from "../src/artifact-outline.ts";
+import { catalogStates, type CatalogSceneName } from "./states.ts";
+
+interface Props {
+  title: string;
+  about?: string;
+  draft?: boolean;
+  headings: Heading[];
+  scene?: CatalogSceneName;
+  // Set here rather than from the owner mark, so a catalog page shows the same form on every device.
+  viewer?: "owner" | "visitor";
+}
+
+const { title, about, draft = false, headings, scene, viewer } = Astro.props;
+const isPublic = viewer !== undefined;
+const content = await Astro.slots.render("default");
+const here = Astro.url.pathname;
+const currentPage = (href: string) => (href === here ? "page" : undefined);
+const artifactPages = [
+  { href: "/catalog/short/", label: "Short, no questions" },
+  { href: "/catalog/many-questions/", label: "Many questions" },
+  { href: "/catalog/eye/", label: "Eye" },
+  { href: "/catalog/stage/", label: "Stage" },
+  { href: "/catalog/visitor/", label: "Public, a visitor" },
+  { href: "/catalog/public-signed-out/", label: "Public, the owner signed out" },
+];
+---
+
+<!doctype html>
+<html
+  lang="en"
+  data-catalog-scene={scene}
+  data-public={isPublic ? "" : undefined}
+  data-viewer={viewer}
+>
+  <head>
+    <meta charset="utf-8" />
+    <ThemeHead />
+    <LayerOrder />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="icon" href="/favicon.svg" />
+    <title>{title} · Catalog</title>
+    <script is:inline>
+      if (new URLSearchParams(location.search).get("lang") === "pt-BR") {
+        document.documentElement.lang = "pt-BR";
+      }
+    </script>
+  </head>
+  <body>
+    {scene !== undefined && <StateNotices page={isPublic ? "public-artifact" : "artifact"} />}
+    <div class="catalog-band">
+      <nav class="catalog-nav" aria-label="Catalog">
+        <a href="/catalog/" data-catalog-page aria-current={currentPage("/catalog/")}>
+          Components
+        </a>
+        <p class="catalog-nav-group" id="catalog-question-states">
+          Question states
+        </p>
+        <ul aria-labelledby="catalog-question-states">
+          {Object.entries(catalogStates).map(([name, { title: label }]) => (
+            <li>
+              <a
+                href={`/catalog/${name}/`}
+                data-catalog-page
+                aria-current={currentPage(`/catalog/${name}/`)}
+              >
+                {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p class="catalog-nav-group" id="catalog-artifact-page">
+          Artifact page
+        </p>
+        <ul aria-labelledby="catalog-artifact-page">
+          {artifactPages.map(({ href, label }) => (
+            <li>
+              <a href={href} data-catalog-page aria-current={currentPage(href)}>
+                {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p class="catalog-nav-group" id="catalog-languages">
+          Language
+        </p>
+        <ul aria-labelledby="catalog-languages">
+          <li>
+            <a href={here} data-catalog-lang="en" aria-current="true">
+              English
+            </a>
+          </li>
+          <li>
+            <a href={`${here}?lang=pt-BR`} data-catalog-lang="pt-BR" lang="pt-BR">
+              Português
+            </a>
+          </li>
+        </ul>
+      </nav>
+      {about && <p class="catalog-about">{about}</p>}
+    </div>
+    <ArtifactFrame
+      title={title}
+      subject="Catalog"
+      published={new Date("2026-10-15")}
+      draft={draft}
+      public={isPublic}
+      headings={headings}
+      content={content}
+      lang="en"
+    />
+  </body>
+</html>
+
+<script>
+  import { catalogScenes, type CatalogSceneName } from "./states.ts";
+
+  const { lang, dataset } = document.documentElement;
+  if (lang === "pt-BR") {
+    for (const link of document.querySelectorAll<HTMLAnchorElement>("[data-catalog-page]")) {
+      link.search = "?lang=pt-BR";
+    }
+  }
+  for (const link of document.querySelectorAll<HTMLElement>("[data-catalog-lang]")) {
+    if (link.dataset.catalogLang === lang) link.setAttribute("aria-current", "true");
+    else link.removeAttribute("aria-current");
+  }
+
+  const { catalogScene } = dataset;
+  if (catalogScene !== undefined) void catalogScenes[catalogScene as CatalogSceneName].show();
+</script>
+
+<style>
+  @layer components {
+    .catalog-band {
+      max-inline-size: 77.5rem;
+      margin-inline: auto;
+      padding: var(--space-3) var(--gutter);
+      border-block-end: var(--rule) solid var(--color-text);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame);
+    }
+
+    .catalog-nav {
+      display: grid;
+      justify-items: start;
+      gap: var(--space-1);
+
+      ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-1) var(--space-3);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      a {
+        color: var(--color-text);
+
+        &[aria-current] {
+          font-weight: var(--font-weight-frame-strong);
+          text-decoration: none;
+        }
+      }
+    }
+
+    .catalog-nav-group {
+      margin: var(--space-2) 0 0;
+      font-size: var(--font-size-label);
+      font-weight: var(--font-weight-frame-strong);
+      letter-spacing: var(--letter-spacing-label);
+      text-transform: uppercase;
+    }
+
+    .catalog-about {
+      max-inline-size: var(--measure);
+      margin: var(--space-3) 0 0;
+      font-family: var(--font-body);
+      font-stretch: normal;
+      font-size: var(--font-size-body);
+    }
+  }
+</style>

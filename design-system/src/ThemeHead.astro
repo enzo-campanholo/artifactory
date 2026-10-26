@@ -1,0 +1,37 @@
+---
+import { ownerMarkKey } from "./owner-mark.ts";
+import { themeKey } from "./theme-choice.ts";
+
+interface Props {
+  public?: boolean;
+}
+
+const { public: isPublic = false } = Astro.props;
+---
+
+{/*
+ * Applies the theme this device chose before the first paint, so each layout writes it in its head
+ * ahead of the stylesheets. Nothing is hidden while it runs: a held page paints a blank frame of
+ * its own. The rules for the choice live in theme-choice.ts.
+ */}
+<script is:inline define:vars={{ themeKey }}>
+  try {
+    const theme = localStorage.getItem(themeKey);
+    if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  } catch {
+    // Storage can be blocked, and the page then follows the device.
+  }
+</script>
+{/*
+ * On a public artifact's page, decides before the first paint whether the owner or a visitor is
+ * reading, so the page paints in its final form. The owner mark is set by the kept transports.
+ */}
+{isPublic && <script is:inline define:vars={{ ownerMarkKey }}>
+  let owner = false;
+  try {
+    owner = localStorage.getItem(ownerMarkKey) !== null;
+  } catch {
+    // With storage blocked, nothing could have kept the mark, so this is a visitor's page.
+  }
+  document.documentElement.dataset.viewer = owner ? "owner" : "visitor";
+</script>}

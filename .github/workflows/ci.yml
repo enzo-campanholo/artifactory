@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    # Planning docs and agent instructions change neither the site nor the Worker.
+    paths-ignore:
+      - ".scratch/**"
+      - "docs/**"
+      - ".claude/**"
+      - "**/CLAUDE.md"
+
+# On main, one deploy at a time and never cancelled: a newer waiting push replaces an older
+# waiting one, which is safe because every run checks and deploys all of main.
+concurrency:
+  group: ${{ github.ref == 'refs/heads/main' && 'deploy' || format('check-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+  actions: read
+
+# Only an explicit `shell: bash` adds `pipefail`, without which `pnpm check | tee` never fails.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    name: ${{ github.ref == 'refs/heads/main' && vars.ARTIFACTORY_DOMAIN != '' && 'Check and deploy' || 'Check' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Restored after the install, so pnpm starts from an empty node_modules. The cache is
+      # content-addressed, so the newest saved copy is always safe to start from.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            node_modules/.cache/d2
+            node_modules/.cache/fixture-repos/d2
+          key: d2-${{ github.sha }}
+          restore-keys: d2-
+      # The check skips the tests when nothing they read changed since this commit. It must be one
+      # that passed, not the push's parent, or an artifact push after a red one would deploy the red
+      # code. With no such run, or no answer from GitHub, the tests run.
+      - id: last-passed
+        run: |
+          sha=$(gh run list --workflow ci.yml --branch "$GITHUB_REF_NAME" --status success --limit 1 --json headSha --jq '.[0].headSha // empty') || sha=""
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if [ -z "$sha" ]; then echo "No passing run on $GITHUB_REF_NAME to compare with, so the tests run."; fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+      # Keep this step's log ending with the `pnpm check: N failures` block: the artifact skill
+      # reads it with `gh run view <id> --log-failed | tail -n 60`.
+      - id: check
+        run: pnpm check ${LAST_PASSED:+--last-passed "$LAST_PASSED"} 2>&1 | tee "$RUNNER_TEMP/check.log"
+        env:
+          LAST_PASSED: ${{ steps.last-passed.outputs.sha }}
+          # On branches too, so a branch run checks the same build main deploys.
+          PUBLIC_STATE_TRANSPORT: http
+      - if: failure() && steps.check.outcome == 'failure'
+        run: node scripts/check/annotate.ts "$RUNNER_TEMP/check.log"
+      - if: github.ref == 'refs/heads/main' && vars.ARTIFACTORY_DOMAIN != ''
+        run: node scripts/deploy-config.ts
+        env:
+          ARTIFACTORY_DOMAIN: ${{ vars.ARTIFACTORY_DOMAIN }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+          ACCESS_TEAM_DOMAIN: ${{ vars.ACCESS_TEAM_DOMAIN }}
+          ACCESS_AUD: ${{ vars.ACCESS_AUD }}
+      - if: github.ref == 'refs/heads/main' && vars.ARTIFACTORY_DOMAIN != ''
+        run: pnpm exec wrangler d1 migrations apply artifactory --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      # Deploys the dist/ and dist-worker/ the check just built.
+      - if: github.ref == 'refs/heads/main' && vars.ARTIFACTORY_DOMAIN != ''
+        run: pnpm exec wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

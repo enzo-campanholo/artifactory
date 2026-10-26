@@ -1,0 +1,10 @@
+{
+  "extends": "astro/tsconfigs/strictest",
+  "include": ["artifacts/*/*.build.ts", "design-system/catalog/*.build.ts"],
+  "exclude": [],
+  "compilerOptions": {
+    "erasableSyntaxOnly": true,
+    "lib": ["ESNext"],
+    "types": []
+  }
+}

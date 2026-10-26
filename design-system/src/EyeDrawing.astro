@@ -1,0 +1,45 @@
+---
+import { drawEye, type EyePose } from "./eye-drawing.ts";
+
+interface Props {
+  pose: EyePose;
+  id: string;
+  class?: string;
+}
+
+const { pose, id, class: className } = Astro.props;
+const { outline, lashes, iris, pupil } = drawEye(pose);
+const white = `${id}-white`;
+---
+
+<svg class:list={["eye-drawing", className]} viewBox="0 0 36 24" aria-hidden="true">
+  <clipPath id={white}>
+    <path class="eye-drawing-white" d={outline}></path>
+  </clipPath>
+  <g clip-path={`url(#${white})`}>
+    <circle class="eye-drawing-iris" cx={iris.cx} cy={iris.cy} r={iris.r}></circle>
+    <circle class="eye-drawing-pupil" cx={pupil.cx} cy={pupil.cy} r={pupil.r}></circle>
+  </g>
+  <path class="eye-drawing-outline" d={outline}></path>
+  <path class="eye-drawing-lashes" d={lashes}></path>
+</svg>
+
+<style is:global>
+  @layer components {
+    .eye-drawing {
+      inline-size: 36px;
+      block-size: 24px;
+      overflow: visible;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: var(--stroke);
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+
+    .eye-drawing-pupil {
+      fill: currentColor;
+      stroke: none;
+    }
+  }
+</style>

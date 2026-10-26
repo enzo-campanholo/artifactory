@@ -1,0 +1,32 @@
+---
+import SingleChoice from "../../src/SingleChoice.astro";
+import CatalogLayout from "../CatalogLayout.astro";
+import { manyQuestions } from "../states.ts";
+
+const { title, about, sections } = manyQuestions;
+const headings = sections.map(({ slug, heading }) => ({ depth: 2, slug, text: heading }));
+---
+
+<CatalogLayout title={title} about={about} draft headings={headings} scene="many-questions">
+  <p lang="pt-BR">
+    Cada seção tem quatro questões de exemplo. A página serve para ver as questões em todos os
+    estados, o sumário com títulos longos e o histórico com dezenas de tentativas.
+  </p>
+  {sections.map(({ slug, heading, questionIds }) => (
+    <>
+      <h2 id={slug} lang="pt-BR">
+        {heading}
+      </h2>
+      <p lang="pt-BR">Um parágrafo curto antes das questões desta seção.</p>
+      {questionIds.map((id) => (
+        <SingleChoice id={id} answer={1}>
+          <p lang="pt-BR">Qual das opções é a certa nesta questão de exemplo?</p>
+          <ol lang="pt-BR">
+            <li>A certa</li>
+            <li>A errada</li>
+          </ol>
+        </SingleChoice>
+      ))}
+    </>
+  ))}
+</CatalogLayout>

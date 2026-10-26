@@ -1,0 +1,80 @@
+@layer components {
+  .state-notices {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 1;
+    display: block;
+
+    @media print {
+      display: none;
+    }
+  }
+
+  .state-notice {
+    margin: 0;
+    padding: var(--space-1) max(var(--space-3), env(safe-area-inset-right)) var(--space-1)
+      max(var(--space-3), env(safe-area-inset-left));
+    border-block-end: var(--stroke) solid var(--color-text);
+    background: var(--color-surface-subtle);
+    color: var(--color-text);
+    font-family: var(--font-frame);
+    font-stretch: var(--font-stretch-frame);
+    font-size: var(--font-size-frame-small);
+    font-weight: var(--font-weight-frame);
+    line-height: var(--line-height-frame);
+    text-align: center;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .state-notice-separator {
+    margin-inline: var(--space-2);
+  }
+
+  /* The button's label still wraps inside its box; only the break after it is ruled out. */
+  .state-notice-joined {
+    white-space: nowrap;
+
+    > .state-notice-action {
+      white-space: normal;
+    }
+  }
+
+  /* The negative margin lays the padding over the separator's margin, so the dot sits evenly
+     between the text and the action's label, and the 44 px box still clears it. */
+  .state-notice-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-block-size: var(--target);
+    min-inline-size: var(--target);
+    margin-inline: calc(-1 * var(--space-2));
+    padding: 0 var(--space-2);
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline var(--underline);
+    cursor: pointer;
+
+    @media (hover: hover) {
+      &:hover:not([aria-disabled="true"]) {
+        text-decoration-thickness: var(--underline-hover);
+      }
+    }
+
+    /* Inside the box, so the ring never covers the " · " beside the action. */
+    &:focus-visible {
+      outline-offset: calc(-1 * var(--stroke));
+    }
+
+    &[aria-disabled="true"] {
+      color: var(--color-text-muted);
+      text-decoration: none;
+      cursor: default;
+    }
+  }
+}

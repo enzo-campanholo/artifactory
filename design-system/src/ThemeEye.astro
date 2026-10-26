@@ -1,0 +1,97 @@
+---
+import Bilingual from "./Bilingual.astro";
+import EyeDrawing from "./EyeDrawing.astro";
+import { eyePoses } from "./eye-drawing.ts";
+---
+
+<theme-eye class="theme-eye">
+  <button type="button" class="theme-eye-button" aria-pressed="false">
+    <span class="theme-eye-name">
+      <Bilingual en="Dark theme" pt="Tema escuro" />
+    </span>
+    <EyeDrawing pose={eyePoses.open} id="theme-eye-drawing" class="theme-eye-drawing" />
+    <EyeDrawing
+      pose={eyePoses.shut}
+      id="theme-eye-shut-until-live"
+      class="theme-eye-shut-until-live"
+    />
+  </button>
+</theme-eye>
+
+<script>
+  import "./theme-eye-element.ts";
+</script>
+
+<style is:global>
+  @layer components {
+    .theme-eye {
+      display: flex;
+      margin-inline: auto;
+
+      @media print {
+        display: none;
+      }
+    }
+
+    .theme-eye-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: var(--target);
+      block-size: var(--target);
+      margin-block: calc((1lh - var(--target)) / 2);
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--color-text);
+      cursor: pointer;
+      touch-action: manipulation;
+
+      /* The cell overhangs the running head's line onto its 4px rule, so the ring goes round the
+       * drawing instead, clear of the rule. */
+      &:focus-visible {
+        outline: none;
+
+        .eye-drawing {
+          outline: var(--stroke) solid var(--color-text);
+          outline-offset: 3px;
+        }
+      }
+    }
+
+    .theme-eye-name {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .theme-eye-shut-until-live {
+      display: none;
+    }
+
+    :root[data-theme="dark"] .theme-eye:not([data-live]) {
+      .theme-eye-drawing {
+        display: none;
+      }
+
+      .theme-eye-shut-until-live {
+        display: block;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .theme-eye:not([data-live]) {
+        .theme-eye-drawing {
+          display: none;
+        }
+
+        .theme-eye-shut-until-live {
+          display: block;
+        }
+      }
+    }
+  }
+</style>

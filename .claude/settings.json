@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": ["astro-docs"],
+  "permissions": {
+    "allow": ["mcp__astro-docs"]
+  }
+}

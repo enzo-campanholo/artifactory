@@ -1,0 +1,25 @@
+---
+import { citationMarkup } from "./statements.ts";
+
+/**
+ * A citation of a `Statement` in the same artifact. It reads as the statement's label and number
+ * in the artifact's main language ("Teorema 2.1" / "Theorem 2.1") and links to it. The page counts
+ * the number, so a citation stays right when statements or paragraphs move. Write the article or
+ * preposition around it yourself, and never write the label or number by hand. Cite paragraphs,
+ * equations and figures by their numbers in the prose instead ("pela equação (2)").
+ *
+ * ```mdx
+ * import Ref from "@artifactory/design-system/ref";
+ *
+ * A prova usa o <Ref to="fermat" /> e a <Ref to="derivavel" />.
+ * ```
+ */
+interface Props {
+  /** The `id` of the statement it cites. */
+  to: string;
+}
+
+const { to } = Astro.props;
+---
+
+<Fragment set:html={citationMarkup(to)} />

@@ -1,0 +1,29 @@
+---
+import "./figure.css";
+import InlineSvg from "./InlineSvg.astro";
+
+interface Props {
+  svg: string;
+  alt: string;
+  caption: string | undefined;
+  class: "figure" | "diagram";
+  minScale?: number;
+}
+
+const { svg, alt, caption, class: className, minScale } = Astro.props;
+const label =
+  className === "figure" ? { en: "Figure", pt: "Figura" } : { en: "Diagram", pt: "Diagrama" };
+---
+
+<figure class={className}>
+  <div class="figure-stage">
+    <InlineSvg svg={svg} alt={alt} minScale={minScale} />
+  </div>
+  <figcaption>
+    <span class="figure-number">
+      <span data-lang="en">{label.en}</span>
+      <span data-lang="pt">{label.pt}</span>&#32;
+    </span>
+    {caption}
+  </figcaption>
+</figure>

@@ -1,0 +1,100 @@
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/stix-two-text/wght.css";
+@import "@fontsource-variable/stix-two-text/wght-italic.css";
+@import "@fontsource-variable/recursive/mono.css";
+
+@layer tokens {
+  :root {
+    color-scheme: light dark;
+
+    --color-surface: light-dark(#fff, #121212);
+    --color-surface-subtle: light-dark(#f0f0f0, #262626);
+    --color-text: light-dark(#111, #ededed);
+    --color-text-hover: light-dark(#3a3a3a, #c4c4c4);
+    --color-text-muted: light-dark(#5c5c5c, #a3a3a3);
+    --color-border: light-dark(#c8c8c8, #474747);
+    --color-veil: light-dark(rgb(17 17 17 / 45%), rgb(0 0 0 / 65%));
+
+    --color-code-surface: var(--color-surface);
+    --color-code-text: var(--color-text);
+    --color-code-comment: var(--color-text-muted);
+    --color-code-keyword: var(--color-text);
+    --color-code-function: var(--color-text);
+    --color-code-parameter: var(--color-text);
+    --color-code-string: var(--color-text);
+    --color-code-constant: var(--color-text);
+    --color-code-punctuation: var(--color-text);
+    --color-code-link: var(--color-text);
+
+    --font-frame: "Archivo Variable", Archivo, "Arial Narrow", sans-serif;
+    --font-body: "STIX Two Text Variable", "STIX Two Text", Georgia, serif;
+    --font-mono: "Recursive Variable", ui-monospace, monospace;
+    --font-math: "STIX Two Math", math;
+    --font-stretch-frame: 88%;
+    --font-stretch-title: 80%;
+    --font-stretch-subject: 72%;
+
+    --font-size-label: 0.8125rem;
+    --font-size-caption: 0.875rem;
+    --font-size-frame-small: 0.9375rem;
+    --font-size-frame: 1rem;
+    --font-size-body: clamp(1.125rem, 1.05rem + 0.3vw, 1.1875rem);
+    --font-size-code: 0.82em;
+    --font-size-equation: 1.1em;
+    --font-size-heading-3: 1.3125rem;
+    --font-size-heading-2: clamp(1.5rem, 1.35rem + 0.6vw, 1.6875rem);
+    --font-size-close: clamp(1.625rem, 1.45rem + 0.6vw, 1.875rem);
+    --font-size-subject: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+    --font-size-heading-1: clamp(2.375rem, 1.9rem + 1.9vw, 3.125rem);
+    --font-weight-body: 400;
+    --font-weight-body-strong: 600;
+    --font-weight-frame: 500;
+    --font-weight-frame-number: 600;
+    --font-weight-frame-strong: 700;
+    --font-weight-subject: 800;
+    --line-height-body: 1.6;
+    --line-height-caption: 1.4;
+    --line-height-frame: 1.3;
+    --line-height-heading-3: 1.25;
+    --line-height-heading: 1.2;
+    --line-height-display: 1.04;
+    --letter-spacing-display: -0.012em;
+    --letter-spacing-label: 0.08em;
+
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 1rem;
+    --space-4: 1.5rem;
+    --space-5: 2.5rem;
+    --space-6: 4rem;
+    --inset: 0.625rem;
+    --gutter: 1.25rem;
+    --measure: 42.5rem;
+    --hang: 3.25rem;
+    --target: 2.75rem;
+    --sign-size: 1.25rem;
+    --sign-tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m3.5 10.5 4.5 4.5 8.5-10' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='square'/%3E%3C/svg%3E");
+    --block-clearance: 2.75rem;
+
+    --rule: 1px;
+    --stroke: 2px;
+    --rule-heavy: 4px;
+    --underline: 1.5px;
+    --underline-hover: 3px;
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  @media print {
+    :root,
+    :root[data-theme] {
+      color-scheme: light;
+    }
+  }
+}

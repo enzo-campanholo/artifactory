@@ -1,0 +1,12 @@
+---
+import CatalogLayout from "../CatalogLayout.astro";
+import Short, { getHeadings } from "../short.mdx";
+---
+
+<CatalogLayout
+  title="Short, no questions"
+  about="An artifact with no questions and fewer than three sections: the masthead and the content, with no rail, contents, phone bar or close."
+  headings={getHeadings()}
+>
+  <Short />
+</CatalogLayout>

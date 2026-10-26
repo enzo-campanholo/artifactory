@@ -1,0 +1,1036 @@
+---
+import ArtifactContents from "./ArtifactContents.astro";
+import { attemptLabels } from "./attempt-labels.ts";
+import AttemptsPanel from "./AttemptsPanel.astro";
+import Bilingual from "./Bilingual.astro";
+import ThemeEye from "./ThemeEye.astro";
+import { outline, sectionsForContents, type Heading } from "./artifact-outline.ts";
+import { shortDate } from "./dates.ts";
+import { questionAnchor, questionsBlock } from "./question-markers.ts";
+import { withStatementReferences } from "./statements.ts";
+
+interface Props {
+  title: string;
+  subject: string;
+  published: Date;
+  draft: boolean;
+  public: boolean;
+  headings: Heading[];
+  content: string;
+  lang: "pt-BR" | "en";
+}
+
+const { title, subject, published, draft, public: isPublic, headings, lang } = Astro.props;
+const content = withStatementReferences(Astro.props.content);
+const sections = outline(content, headings);
+const headed = sections.flatMap(({ heading }) => (heading === undefined ? [] : [heading]));
+const questions = sections.flatMap((section) => section.questions);
+const sectionOf = new Map(
+  sections.flatMap(({ heading, questions: inSection }) =>
+    inSection.map(({ id }) => [id, heading?.html] as const),
+  ),
+);
+const hasQuestions = questions.length > 0;
+const hasContents = headed.length >= sectionsForContents;
+const hasRail = hasQuestions || hasContents;
+const Attempt = hasQuestions ? "artifact-attempt" : "div";
+
+// The lede is everything before the first section, so the folded contents can follow it.
+const firstSection = /<h2\b[^>]*\sid="/.exec(content);
+const lede = firstSection === null ? content : content.slice(0, firstSection.index);
+const body = firstSection === null ? "" : content.slice(firstSection.index);
+
+const counted = (count: number, en: [string, string], pt: [string, string]) => ({
+  en: `${String(count)} ${count === 1 ? en[0] : en[1]}`,
+  pt: `${String(count)} ${count === 1 ? pt[0] : pt[1]}`,
+});
+const sectionCount = counted(headed.length, ["section", "sections"], ["seção", "seções"]);
+const questionCount = counted(questions.length, ["question", "questions"], ["questão", "questões"]);
+const size = [
+  ...(headed.length > 0 ? [sectionCount] : []),
+  ...(hasQuestions ? [questionCount] : []),
+];
+// `published` is midnight UTC, so formatting it in any other time zone can show the day before.
+const publishedIn = (locale: string) => shortDate(published, locale, { timeZone: "UTC" });
+// Before its script runs, the page reads as it does with nothing answered.
+const firstNumber = questions[0]?.number ?? 1;
+const unansweredWhere = {
+  en: attemptLabels.en.questions(questions.length),
+  pt: attemptLabels.pt.questions(questions.length),
+};
+const unansweredResume = {
+  en: attemptLabels.en.startAt(firstNumber),
+  pt: attemptLabels.pt.startAt(firstNumber),
+};
+---
+
+<artifact-frame class="artifact">
+  <header class="artifact-masthead">
+    <div class="artifact-running-head">
+      <a class="control-button artifact-skip" href="#artifact-text">
+        <Bilingual en="Skip to the text" pt="Pular para o texto" />
+        <svg class="icon" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M10 4v12m-5-5 5 5 5-5"></path>
+        </svg>
+      </a>
+      <p class="artifact-back-line">
+        <a class="artifact-back" href={draft ? "/drafts/" : "/"}>
+          <svg class="icon" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M16 10H4m5-5-5 5 5 5"></path>
+          </svg>
+          {draft ? (
+            <Bilingual en="Drafts" pt="Rascunhos" />
+          ) : (
+            <Bilingual en="Library" pt="Biblioteca" />
+          )}
+        </a>
+      </p>
+      <ThemeEye />
+      {size.length > 0 && (
+        <p class="artifact-size">
+          <Bilingual
+            en={size.map(({ en }) => en).join(" · ")}
+            pt={size.map(({ pt }) => pt).join(" · ")}
+          />
+        </p>
+      )}
+    </div>
+    <div class="artifact-ident">
+      <p class="artifact-subject">{subject}</p>
+      <p class="artifact-published">
+        {draft ? (
+          <>
+            <strong class="artifact-status">
+              <Bilingual en="Draft" pt="Rascunho" />
+            </strong>
+            &nbsp;· <Bilingual en="created" pt="criado em" />
+          </>
+        ) : (
+          <Bilingual en="Published" pt="Publicado em" />
+        )}{" "}
+        <time datetime={published.toISOString().slice(0, 10)}>
+          <Bilingual en={publishedIn("en")} pt={publishedIn("pt-BR")} />
+        </time>
+      </p>
+      {isPublic && hasQuestions && (
+        <p class="artifact-visitor-line">
+          <Bilingual
+            en="Your answers stay on this page and are gone when you leave."
+            pt="Suas respostas ficam só nesta página e somem quando você sai."
+          />
+        </p>
+      )}
+    </div>
+    <h1 class="artifact-title">{title}</h1>
+  </header>
+
+  {hasRail && (
+    <Attempt class="artifact-rail">
+      {hasContents && (
+        <nav class="artifact-contents" aria-label={lang === "pt-BR" ? "Sumário" : "Contents"}>
+          <p class="artifact-label">
+            <Bilingual en="Contents" pt="Sumário" />
+          </p>
+          <ArtifactContents sections={headed} />
+        </nav>
+      )}
+      {hasQuestions && (
+        <div class="artifact-resume">
+          <p class="artifact-where" data-part="where">
+            <Bilingual {...unansweredWhere} />
+          </p>
+          <button type="button" class="control-button" data-action="resume">
+            <span data-part="resume-label">
+              <Bilingual {...unansweredResume} />
+            </span>
+            <svg class="icon" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M4 10h12m-5-5 5 5-5 5"></path>
+            </svg>
+          </button>
+          <button type="button" class="control-text" data-action="start-over" disabled>
+            <Bilingual en="Start over" pt="Recomeçar" />
+          </button>
+        </div>
+      )}
+    </Attempt>
+  )}
+
+  <main class="artifact-main" id="artifact-text">
+    <Fragment set:html={lede} />
+    {hasContents && (
+      <nav class="artifact-fold" aria-labelledby="artifact-fold-label">
+        <button
+          type="button"
+          class="artifact-fold-toggle"
+          data-action="toggle-contents"
+          aria-expanded="false"
+        >
+          <span id="artifact-fold-label">
+            <Bilingual en={`Contents · ${sectionCount.en}`} pt={`Sumário · ${sectionCount.pt}`} />
+          </span>
+          <span class="artifact-fold-action" data-when="closed" aria-hidden="true">
+            <Bilingual en="Open" pt="Abrir" />
+          </span>
+          <span class="artifact-fold-action" data-when="open" aria-hidden="true">
+            <Bilingual en="Close" pt="Fechar" />
+          </span>
+        </button>
+        <div class="artifact-fold-list" hidden>
+          <ArtifactContents sections={headed} />
+        </div>
+      </nav>
+    )}
+    {hasQuestions && (
+      <artifact-attempt class="artifact-fold-where">
+        <p>
+          <span data-part="where">
+            <Bilingual {...unansweredWhere} />
+          </span>
+          <button type="button" class="control-text" data-action="resume">
+            <span data-part="resume-label">
+              <Bilingual {...unansweredResume} />
+            </span>
+          </button>
+        </p>
+      </artifact-attempt>
+    )}
+    <Fragment set:html={body} />
+    {hasQuestions && (
+      <section class="page-close">
+        <artifact-attempt class="artifact-close-attempt">
+          <h2 class="page-close-heading">
+            <Bilingual en="To revisit" pt="Para revisar" />
+          </h2>
+          <p data-part="none-wrong">
+            <Bilingual
+              en="No question to revisit in this attempt."
+              pt="Nenhuma questão para revisar nesta tentativa."
+            />
+          </p>
+          <div data-part="wrong" hidden>
+            <p>
+              <Bilingual
+                en="Questions you got wrong in this attempt:"
+                pt="Questões que você errou nesta tentativa:"
+              />
+            </p>
+            <ol class="revisit-list">
+              {questions.map(({ id, number }) => (
+                <li data-wrong-for={id} hidden>
+                  <a href={`#${questionAnchor(id)}`}>
+                    <Bilingual en={`Question ${String(number)}`} pt={`Questão ${String(number)}`} />
+                  </a>
+                  <span set:html={sectionOf.get(id) ?? ""} />
+                </li>
+              ))}
+            </ol>
+          </div>
+          <button type="button" class="control-text" data-action="start-over" disabled>
+            <Bilingual en="Start over" pt="Recomeçar" />
+          </button>
+        </artifact-attempt>
+        <AttemptsPanel />
+      </section>
+    )}
+  </main>
+
+  {hasRail && (
+    <Attempt class="artifact-bar">
+      {hasContents && (
+        <button
+          type="button"
+          class="control-text artifact-bar-contents"
+          data-action="open-contents"
+          aria-haspopup="dialog"
+        >
+          <span data-part="contents">
+            <Bilingual en="Contents" pt="Sumário" />
+          </span>
+        </button>
+      )}
+      {hasQuestions && (
+        <button type="button" class="control-button" data-action="next-question">
+          <span data-part="next-label">
+            {(["en", "pt"] as const).map((language) => (
+              <span data-lang={language}>
+                <span class="artifact-visually-hidden">{attemptLabels[language].next}</span>{" "}
+                {attemptLabels[language].question(firstNumber)}
+              </span>
+            ))}
+          </span>
+          <svg class="icon" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M4 10h12m-5-5 5 5-5 5"></path>
+          </svg>
+        </button>
+      )}
+    </Attempt>
+  )}
+
+  {hasContents && (
+    <dialog class="artifact-sheet" aria-labelledby="artifact-contents-heading">
+      <Attempt class="artifact-sheet-body">
+        <div class="artifact-sheet-header">
+          <h2 class="artifact-sheet-heading" id="artifact-contents-heading">
+            <Bilingual en="Contents" pt="Sumário" />
+          </h2>
+          <button type="button" class="control-text" data-action="close-contents">
+            <Bilingual en="Close" pt="Fechar" />
+          </button>
+        </div>
+        <ArtifactContents sections={headed} />
+        {hasQuestions && (
+          <div class="artifact-resume">
+            <p class="artifact-where" data-part="where">
+              <Bilingual {...unansweredWhere} />
+            </p>
+            <div class="artifact-sheet-actions">
+              <button type="button" class="control-text" data-action="start-over" disabled>
+                <Bilingual en="Start over" pt="Recomeçar" />
+              </button>
+              <button type="button" class="control-button" data-action="resume">
+                <span data-part="resume-label">
+                  <Bilingual {...unansweredResume} />
+                </span>
+                <svg class="icon" viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M4 10h12m-5-5 5 5-5 5"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+      </Attempt>
+    </dialog>
+  )}
+</artifact-frame>
+
+<Fragment
+  set:html={questionsBlock(
+    questions.map((question) => ({ ...question, section: sectionOf.get(question.id) })),
+  )}
+/>
+
+<script>
+  import "./artifact-attempt.ts";
+  import "./artifact-frame.ts";
+</script>
+
+<style is:global>
+  @layer components {
+    :root:has(.artifact) {
+      --artifact-bar-size: calc(
+        var(--target) + 2 * var(--inset) + var(--rule-heavy) + env(safe-area-inset-bottom)
+      );
+
+      scroll-padding-block: calc(var(--artifact-notices-size, 0px) + var(--space-3))
+        calc(var(--artifact-bar-size) + var(--space-3));
+    }
+
+    :root:has(.artifact-sheet[open]) {
+      overflow: hidden;
+    }
+
+    .artifact {
+      --artifact-rail: 14.25rem;
+      --artifact-gap: 5.5rem;
+
+      display: grid;
+      grid-template-columns: minmax(0, var(--measure));
+      justify-content: center;
+      align-items: start;
+      padding-block: var(--space-4) calc(var(--artifact-bar-size) + var(--space-6));
+      padding-inline: max(var(--gutter), env(safe-area-inset-left))
+        max(var(--gutter), env(safe-area-inset-right));
+    }
+
+    .artifact-masthead {
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-weight: var(--font-weight-frame);
+    }
+
+    .artifact-skip {
+      position: absolute;
+      inset: auto 0 0;
+      min-block-size: max(var(--target), 100%);
+      padding-inline: var(--inset);
+      text-decoration: none;
+
+      /* Clipped alone, the hidden band would still lie under the back link's arrow. */
+      &:not(:focus) {
+        inline-size: 1px;
+        block-size: 1px;
+        min-inline-size: 0;
+        min-block-size: 0;
+        padding: 0;
+        border: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+
+    .artifact-running-head,
+    .artifact-label {
+      box-sizing: border-box;
+      min-block-size: 2.125rem;
+      margin: 0;
+      padding: 0 var(--inset) var(--inset);
+    }
+
+    .artifact-running-head {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0 var(--space-3);
+      border-block-end: var(--rule-heavy) solid var(--color-text);
+      font-size: var(--font-size-frame-small);
+      line-height: var(--line-height-frame);
+
+      > p {
+        margin: 0;
+      }
+    }
+
+    .artifact-back-line {
+      display: flex;
+      align-items: center;
+    }
+
+    .artifact-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      min-block-size: var(--target);
+      margin-block: calc((1lh - var(--target)) / 2);
+
+      > svg {
+        inline-size: 1rem;
+        block-size: 1rem;
+      }
+
+      @media print {
+        display: none;
+      }
+    }
+
+    .artifact-size {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .artifact-ident {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0 var(--space-3);
+      padding: 0.875rem var(--inset) 0.75rem;
+      border-block-end: var(--rule) solid var(--color-text);
+      font-size: var(--font-size-frame-small);
+      line-height: var(--line-height-frame);
+
+      > p {
+        margin: 0;
+      }
+
+      time {
+        font-variant-numeric: tabular-nums;
+      }
+    }
+
+    .artifact-status {
+      font-weight: var(--font-weight-frame-strong);
+    }
+
+    /* A public page holds both forms, and the head script's viewer picks one before the first paint. */
+    :root[data-viewer="visitor"] .artifact-back {
+      visibility: hidden;
+    }
+
+    .artifact-ident > .artifact-visitor-line {
+      display: none;
+      flex-basis: 100%;
+      margin-block-start: var(--space-2);
+      text-wrap: pretty;
+    }
+
+    @media screen {
+      :root[data-viewer="visitor"] .artifact-ident > .artifact-visitor-line {
+        display: block;
+      }
+    }
+
+    .artifact-subject {
+      font-size: var(--font-size-subject);
+      font-stretch: var(--font-stretch-subject);
+      font-weight: var(--font-weight-subject);
+    }
+
+    .artifact-title {
+      margin: 1.125rem 0 0.75rem;
+      font-size: var(--font-size-heading-1);
+      font-stretch: var(--font-stretch-title);
+      line-height: var(--line-height-display);
+      letter-spacing: var(--letter-spacing-display);
+    }
+
+    .artifact-label {
+      display: flex;
+      align-items: center;
+      border-block-end: var(--rule) solid var(--color-text);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-label);
+      font-weight: var(--font-weight-frame-strong);
+      letter-spacing: var(--letter-spacing-label);
+      line-height: var(--line-height-body);
+      text-transform: uppercase;
+    }
+
+    .icon {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: square;
+    }
+
+    .artifact-rail {
+      display: none;
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-weight: var(--font-weight-frame);
+      line-height: var(--line-height-frame);
+    }
+
+    .artifact-sections {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame);
+      line-height: var(--line-height-frame);
+    }
+
+    .artifact-section-link {
+      display: grid;
+      grid-template-columns: 2.125rem minmax(0, 1fr);
+      align-items: center;
+      box-sizing: border-box;
+      min-block-size: var(--target);
+      padding: 0.375rem var(--inset);
+      border-block-end: var(--rule) solid var(--color-text);
+      text-decoration: none;
+      hyphens: auto;
+
+      @media (hover: hover) {
+        &:hover > .artifact-section-title {
+          text-decoration: underline var(--underline);
+        }
+      }
+
+      &[aria-current] {
+        background: var(--color-text);
+        color: var(--color-surface);
+        font-weight: var(--font-weight-frame-strong);
+      }
+
+      &:focus-visible {
+        outline-offset: -4px;
+      }
+
+      &[aria-current]:focus-visible {
+        outline-color: var(--color-surface);
+      }
+
+      @media (forced-colors: active) {
+        &[aria-current] {
+          background: CanvasText;
+          color: Canvas;
+          forced-color-adjust: none;
+        }
+
+        &[aria-current]:focus-visible {
+          outline-color: Canvas;
+        }
+      }
+    }
+
+    .artifact-section-title {
+      :is(strong, b) {
+        font-weight: var(--font-weight-frame-strong);
+      }
+
+      [aria-current] > & code {
+        background: none;
+      }
+    }
+
+    .artifact-section-number {
+      font-weight: var(--font-weight-frame-number);
+      font-variant-numeric: tabular-nums;
+
+      [aria-current] > & {
+        font-weight: var(--font-weight-frame-strong);
+      }
+    }
+
+    .artifact-resume {
+      display: grid;
+      justify-items: start;
+    }
+
+    .artifact-where {
+      margin: var(--space-4) 0 var(--inset);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame);
+      line-height: var(--line-height-frame);
+    }
+
+    .artifact-resume > [data-action="start-over"] {
+      margin-block-start: 0.375rem;
+    }
+
+    .artifact-fold {
+      margin-block: var(--space-4) 0;
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+
+      .artifact-sections {
+        border-block-end: var(--rule) solid var(--color-text);
+      }
+
+      .artifact-sections > li:last-child > .artifact-section-link {
+        border-block-end: 0;
+      }
+    }
+
+    .artifact-fold-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      box-sizing: border-box;
+      inline-size: 100%;
+      min-block-size: var(--target);
+      padding: 0 var(--inset);
+      border: 0;
+      border-block: var(--stroke) solid var(--color-text);
+      background: none;
+      color: var(--color-text);
+      font: inherit;
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame-strong);
+      text-align: start;
+      cursor: pointer;
+
+      &[aria-expanded="true"] {
+        border-block-end-width: var(--rule);
+      }
+
+      @media (hover: hover) {
+        &:hover .artifact-fold-action {
+          text-decoration-thickness: var(--underline-hover);
+        }
+      }
+    }
+
+    .artifact-fold-action {
+      font-weight: var(--font-weight-frame);
+      text-decoration: underline var(--underline);
+
+      [aria-expanded="true"] > &[data-when="closed"],
+      [aria-expanded="false"] > &[data-when="open"] {
+        display: none;
+      }
+    }
+
+    .artifact-fold-where > p {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0 0.5em;
+      margin: var(--space-1) 0 0;
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame);
+      line-height: var(--line-height-frame);
+
+      > .control-text {
+        font-size: inherit;
+      }
+    }
+
+    .artifact-main {
+      min-inline-size: 0;
+      counter-reset: artifact-section artifact-question artifact-equation;
+
+      > :first-child {
+        margin-block-start: 0;
+      }
+
+      > :is(p, ul, ol) {
+        margin-block: 0.875rem 0;
+      }
+
+      > h2 {
+        position: relative;
+        margin-block: var(--block-clearance) 0.75rem;
+        padding-block-start: 0.875rem;
+        border-block-start: var(--rule) solid var(--color-text);
+        counter-increment: artifact-section;
+        counter-reset: artifact-clause artifact-figure artifact-diagram;
+        break-after: avoid;
+      }
+
+      > h3 {
+        margin-block: 1.75rem 0.5rem;
+        break-after: avoid;
+      }
+
+      /* `statementsAndProofs` in `statements.ts` counts these same elements for the citations. */
+      > h2 ~ :is(p, h3, [data-statement-id]) {
+        counter-increment: artifact-clause;
+      }
+
+      > h2::before {
+        content: counter(artifact-section);
+      }
+
+      > h2 ~ :is(p, h3)::before,
+      > h2 ~ [data-statement-id] > :first-child::before {
+        content: counter(artifact-section) "." counter(artifact-clause);
+        font-size: var(--font-size-frame);
+        font-style: normal;
+        font-weight: var(--font-weight-frame-number);
+        line-height: 1;
+      }
+
+      /* A statement's label already says its number to screen readers. */
+      > h2 ~ [data-statement-id] > :first-child::before {
+        content: counter(artifact-section) "." counter(artifact-clause) / "";
+      }
+
+      > :is(h2, h2 ~ p, h2 ~ h3)::before,
+      > h2 ~ [data-statement-id] > :first-child::before {
+        display: inline-block;
+        min-inline-size: 2.125rem;
+        font-family: var(--font-frame);
+        font-stretch: var(--font-stretch-frame);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      > p {
+        position: relative;
+      }
+
+      > .equation,
+      > :is(.statement, .proof) > .equation {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: baseline;
+        column-gap: var(--space-3);
+        margin-block: 0.875rem 1.125rem;
+        counter-increment: artifact-equation;
+
+        > math {
+          grid-column: 2;
+        }
+
+        &::after {
+          content: "(" counter(artifact-equation) ")";
+          grid-column: 3;
+          justify-self: end;
+          font-family: var(--font-frame);
+          font-stretch: var(--font-stretch-frame);
+          font-size: var(--font-size-frame);
+          font-weight: var(--font-weight-frame);
+          font-variant-numeric: tabular-nums;
+        }
+      }
+
+      figure.figure {
+        counter-increment: artifact-figure;
+      }
+
+      figure.diagram {
+        counter-increment: artifact-diagram;
+      }
+
+      figure.figure .figure-number::after {
+        content: counter(artifact-section) "." counter(artifact-figure);
+      }
+
+      figure.diagram .figure-number::after {
+        content: counter(artifact-section) "." counter(artifact-diagram);
+      }
+
+      > figure.figure:not(h2 ~ *) .figure-number::after,
+      > :not(h2 ~ *) figure.figure .figure-number::after {
+        content: counter(artifact-figure);
+      }
+
+      > figure.diagram:not(h2 ~ *) .figure-number::after,
+      > :not(h2 ~ *) figure.diagram .figure-number::after {
+        content: counter(artifact-diagram);
+      }
+
+      .question {
+        counter-increment: artifact-question;
+      }
+
+      .question-number::after {
+        content: " " counter(artifact-question);
+      }
+    }
+
+    .artifact-close-attempt {
+      display: grid;
+      justify-items: start;
+
+      > p,
+      > div > p {
+        margin: 0 0 var(--space-2);
+      }
+
+      > div {
+        justify-self: stretch;
+      }
+    }
+
+    .artifact-bar {
+      position: fixed;
+      inset-inline: 0;
+      inset-block-end: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--inset) max(var(--gutter), env(safe-area-inset-right))
+        calc(var(--inset) + env(safe-area-inset-bottom))
+        max(var(--gutter), env(safe-area-inset-left));
+      border-block-start: var(--rule-heavy) solid var(--color-text);
+      background: var(--color-surface);
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      translate: 0 100%;
+
+      &[data-shown] {
+        translate: none;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        transition: translate 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      @media print {
+        display: none;
+      }
+
+      > [data-action="next-question"] {
+        flex: none;
+        margin-inline-start: auto;
+        white-space: nowrap;
+      }
+    }
+
+    /* On the narrowest phones the position gives way to Next question; the sheet it opens shows it whole. */
+    .artifact-bar-contents {
+      display: block;
+      min-inline-size: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: var(--target);
+      font-size: var(--font-size-frame-small);
+      font-weight: var(--font-weight-frame-strong);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .artifact-sheet {
+      box-sizing: border-box;
+      inline-size: 100%;
+      max-inline-size: 100%;
+      max-block-size: min(85dvh, 44rem);
+      margin: auto 0 0;
+      padding: 0;
+      border: 0;
+      border-block-start: var(--rule-heavy) solid var(--color-text);
+      background: var(--color-surface);
+      color: var(--color-text);
+      overscroll-behavior: contain;
+
+      &::backdrop {
+        background: var(--color-veil);
+      }
+
+      &:focus-visible {
+        outline-offset: calc(-2 * var(--stroke));
+      }
+
+      .artifact-sections {
+        border-block-start: var(--rule) solid var(--color-text);
+      }
+    }
+
+    .artifact-sheet-body {
+      display: block;
+      max-inline-size: var(--measure);
+      margin-inline: auto;
+      padding: 0.875rem max(var(--gutter), env(safe-area-inset-right))
+        calc(1.875rem + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+    }
+
+    .artifact-sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-block-end: 0.375rem;
+    }
+
+    .artifact-sheet-heading {
+      margin: 0;
+      font-size: 1.25rem;
+      font-stretch: var(--font-stretch-title);
+      font-weight: var(--font-weight-subject);
+    }
+
+    .artifact-sheet-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-2) var(--space-3);
+      justify-self: stretch;
+
+      > [data-action="resume"] {
+        margin-inline-start: auto;
+      }
+    }
+
+    .artifact-visually-hidden {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    @media (width < 64rem) {
+      .artifact-main {
+        > h2 {
+          font-size: 1.5rem;
+        }
+
+        /* Astro writes a component's script after its first use, so it can stand between two questions. */
+        > :is(.question + .question, .question + script + .question) {
+          margin-block-start: -1.625rem;
+          border-block-start: 0;
+        }
+
+        > :is(.question + h2, .question + script + h2) {
+          margin-block-start: 1.625rem;
+          padding-block-start: 0;
+          border-block-start: 0;
+        }
+      }
+    }
+
+    @media (width >= 64rem) {
+      .artifact {
+        padding-block: var(--space-5) var(--space-6);
+      }
+
+      .artifact:has(> .artifact-rail) {
+        --artifact-rail: 12rem;
+
+        grid-template-columns: var(--artifact-rail) var(--artifact-gap) minmax(0, var(--measure));
+
+        > .artifact-masthead,
+        > .artifact-main {
+          grid-column: 3;
+        }
+      }
+
+      .artifact-rail {
+        position: sticky;
+        inset-block-start: calc(var(--artifact-notices-size, 0px) + var(--space-5));
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        display: flex;
+        flex-direction: column;
+        max-block-size: calc(100dvh - var(--artifact-notices-size, 0px) - 2 * var(--space-5));
+
+        > .artifact-contents {
+          display: flex;
+          flex-direction: column;
+          min-block-size: 0;
+        }
+
+        .artifact-sections {
+          min-block-size: 0;
+          overflow-y: auto;
+          scrollbar-width: thin;
+        }
+
+        > .artifact-resume > [data-action="resume"] {
+          inline-size: 100%;
+        }
+      }
+
+      .artifact-fold,
+      .artifact-fold-where,
+      .artifact-bar,
+      .artifact-sheet {
+        display: none;
+      }
+
+      .artifact-main > :is(h2, h2 ~ p, h2 ~ h3)::before,
+      .artifact-main > h2 ~ [data-statement-id] > :first-child::before {
+        position: relative;
+        inset-inline-start: calc(-1 * var(--hang));
+        inline-size: 0;
+        min-inline-size: 0;
+      }
+    }
+
+    @media (width >= 80rem) {
+      .artifact,
+      .artifact:has(> .artifact-rail) {
+        --artifact-rail: clamp(12.5rem, 15.8vw, 14.25rem);
+        --artifact-gap: clamp(5rem, 6.1vw, 5.5rem);
+
+        grid-template-columns:
+          var(--artifact-rail) var(--artifact-gap) minmax(0, var(--measure))
+          var(--artifact-gap) var(--artifact-rail);
+
+        > .artifact-masthead,
+        > .artifact-main {
+          grid-column: 3;
+        }
+      }
+    }
+
+    @media print {
+      .artifact {
+        display: block;
+        padding: 0;
+      }
+
+      .artifact-rail,
+      .artifact-fold,
+      .artifact-fold-where,
+      .artifact-sheet {
+        display: none;
+      }
+    }
+  }
+</style>

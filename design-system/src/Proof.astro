@@ -1,0 +1,106 @@
+---
+import "./statement-blocks.css";
+import { proofParts, withRunInLabel } from "./statements.ts";
+
+/**
+ * The proof of a theorem, lemma or corollary written as a `Statement`. It is unnumbered: it opens
+ * with a run-in "Demonstração." / "Proof." and its last line ends with a small square, so the owner
+ * sees where the argument stops. Write it right after the statement it proves. A proof anywhere
+ * else opens with what it proves, linked ("Demonstração do Teorema 2.1."), so write it elsewhere
+ * only when the subject proves the result later. A definition has no proof.
+ *
+ * Write it at the top level of a section, like its statement: nested in a list or a question, a
+ * proof never counts as following its statement, so it always opens by naming it, and its equations
+ * go unnumbered. Its content is ordinary Markdown (paragraphs, math, lists), with a blank line after
+ * the opening tag and before the closing one. Don't write "Demonstração", "Proof" or an end mark in
+ * the text: the page writes them.
+ *
+ * ```mdx
+ * import Proof from "@artifactory/design-system/proof";
+ * import Statement from "@artifactory/design-system/statement";
+ *
+ * <Statement kind="lemma" id="fermat">
+ *
+ * Se $f$ tem um extremo em $c \in (a, b)$ e é derivável em $c$, então $f'(c) = 0$.
+ *
+ * </Statement>
+ *
+ * <Proof of="fermat">
+ *
+ * Num máximo em $c$, o quociente $\frac{f(c + h) - f(c)}{h}$ é $\le 0$ para $h > 0$ e $\ge 0$ para
+ * $h < 0$, então o limite, $f'(c)$, é $0$.
+ *
+ * </Proof>
+ * ```
+ */
+interface Props {
+  /** The `id` of the theorem, lemma or corollary it proves. */
+  of: string;
+}
+
+const { of } = Astro.props;
+const content = (await Astro.slots.render("default")).trim();
+const { attributes, label, end } = proofParts(of);
+const opened = withRunInLabel(content, label);
+const labelAlone = opened.startsWith(`<p>${label}</p>`);
+// A closing list's last item carries the square on its last line. A closing equation's number holds
+// the right edge, so the square takes a line of its own.
+const lastLine = /(?:<\/(?:p|li|ul|ol)>\s*)+$/.exec(opened);
+const body =
+  lastLine === null
+    ? `${opened}<p class="proof-end-line">${end}</p>`
+    : `${opened.slice(0, lastLine.index)}${end}${lastLine[0]}`;
+---
+
+<div class="proof" {...attributes} data-label-alone={labelAlone ? "" : undefined}>
+  <Fragment set:html={body} />
+</div>
+
+<style is:global>
+  @layer components {
+    .proof {
+      display: flow-root;
+
+      &[data-follows-statement] {
+        margin-block-start: 0.875rem;
+      }
+
+      > .proof-end-line {
+        margin-block-start: 0;
+      }
+
+      @media print {
+        &[data-label-alone] > p:first-child {
+          break-after: avoid;
+        }
+      }
+    }
+
+    .proof-label {
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame);
+      font-weight: var(--font-weight-frame);
+      line-height: var(--line-height-frame);
+    }
+
+    .proof-kind {
+      font-weight: var(--font-weight-frame-strong);
+    }
+
+    /* A square of ink drawn as a border, which forced colours and print keep. */
+    .proof-end {
+      float: inline-end;
+      box-sizing: border-box;
+      inline-size: 0.625rem;
+      block-size: 0.625rem;
+      margin-block-start: 0.55em;
+      margin-inline-start: var(--space-3);
+      border: 0.3125rem solid var(--color-text);
+
+      .proof-end-line > & {
+        margin-block-start: 0;
+      }
+    }
+  }
+</style>

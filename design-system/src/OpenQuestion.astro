@@ -1,0 +1,117 @@
+---
+import { componentError } from "./component-errors.ts";
+import Question from "./Question.astro";
+import { splitAtRule } from "./split-at-rule.ts";
+
+/**
+ * A self-checked question: the owner answers in their own words, reveals the model answer, and
+ * marks their answer right or wrong themselves. The model answer opens once something is written,
+ * and opening it fixes what was written; the mark saves the answer and locks the question. Use it for explanations, derivations and proofs, where there's no single
+ * answer the artifact could check. When the answer is one of a few options, use `SingleChoice`;
+ * when it's a single computed number, use `NumericQuestion`.
+ *
+ * Write the question, a blank line, `---`, another blank line, then the model answer. Without the
+ * blank line above it, `---` turns the question into a heading. Both can hold math, code and lists:
+ *
+ * ```mdx
+ * import OpenQuestion from "@artifactory/design-system/open-question";
+ *
+ * <OpenQuestion id="por-que-pi-r2">
+ *
+ * Por que a área do círculo é $\pi r^2$?
+ *
+ * ---
+ *
+ * Some os anéis de raio $\rho$ e largura $\mathrm{d}\rho$: $\int_0^r 2 \pi \rho \, \mathrm{d}\rho = \pi r^2$.
+ *
+ * </OpenQuestion>
+ * ```
+ */
+interface Props {
+  /**
+   * The question's ID: readable kebab-case, unique within the artifact and never reused, even
+   * after the question is removed. The owner's answers belong to it, and `#q-<id>` links to it.
+   */
+  id: string;
+}
+
+const { id } = Astro.props;
+const parts = splitAtRule(await Astro.slots.render("default"));
+const prompt = parts?.before ?? "";
+const modelAnswer = parts?.after ?? "";
+if (prompt === "" || modelAnswer === "") {
+  throw componentError(
+    "OpenQuestion",
+    "write the question, then `---` between blank lines, then the model answer",
+  );
+}
+---
+
+<Question id={id} kind="open-question" prompt={prompt} modelAnswer={modelAnswer}>
+  <label class="open-question-answer">
+    <span class="open-question-label">
+      <span data-lang="en">Your answer</span>
+      <span data-lang="pt">Sua resposta</span>
+    </span>
+    <textarea rows="4" required></textarea>
+  </label>
+</Question>
+
+<script>
+  import "./open-question-element.ts";
+</script>
+
+<style is:global>
+  @layer components {
+    .open-question-answer {
+      display: grid;
+      gap: 0.375rem;
+      margin-block-start: 0.75rem;
+
+      textarea {
+        box-sizing: border-box;
+        inline-size: 100%;
+        min-block-size: 7.5rem;
+        padding: var(--inset) 0.875rem;
+        border: var(--stroke) solid var(--color-text);
+        border-radius: 0;
+        background: var(--color-surface);
+        color: var(--color-text);
+        font: inherit;
+        font-family: var(--font-body);
+        font-size: var(--font-size-body);
+        font-weight: var(--font-weight-body);
+        line-height: var(--line-height-body);
+        resize: vertical;
+        field-sizing: content;
+
+        @media print {
+          resize: none;
+        }
+
+        &[readonly] {
+          min-block-size: 0;
+          padding: 0;
+          border: 0;
+          resize: none;
+
+          @media (forced-colors: active) {
+            &:disabled {
+              forced-color-adjust: none;
+              color: CanvasText;
+              background: Canvas;
+            }
+          }
+        }
+      }
+    }
+
+    .open-question-label {
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-caption);
+      font-weight: var(--font-weight-frame-number);
+      line-height: var(--line-height-frame);
+    }
+  }
+</style>

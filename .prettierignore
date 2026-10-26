@@ -1,0 +1,5 @@
+*.md
+artifacts/
+.scratch/
+pnpm-lock.yaml
+.claude/

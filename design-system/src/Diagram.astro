@@ -1,0 +1,59 @@
+---
+import SvgImage from "./SvgImage.astro";
+import { drawInStandard, smallestLabelSize } from "./d2-board.ts";
+
+/**
+ * A diagram written in D2 and drawn at build time: systems, processes, flows, hierarchies and
+ * relationships between named parts. For a drawing D2 can't express, such as a plot, a cell or a
+ * timeline, write an SVG and use `Figure`.
+ *
+ * Put the `.d2` file next to the entry, import it, and pass it as `src`:
+ *
+ * ```mdx
+ * import fluxo from "./fluxo.d2";
+ *
+ * <Diagram
+ *   src={fluxo}
+ *   alt="O sangue sai do coração pelas artérias e volta pelas veias."
+ *   caption="A circulação sistêmica: do coração ao corpo e de volta."
+ * />
+ * ```
+ *
+ * D2 draws in its own theme colours, and each becomes a design system colour, so diagrams follow
+ * the site in light mode, dark mode and print. "Colours in diagrams" lists which token each one
+ * becomes, to explain how a diagram looks: a D2 file can't choose them. Code labels are ink, with
+ * grey comments.
+ *
+ * D2 also draws in the design system's style: labels are Archivo, condensed like the page's
+ * headings, and rectangles, squares and containers are drawn with square corners whatever
+ * `style.border-radius` says, so leave that out. Code labels, `sql_table` and `class` members and
+ * `style.font: mono` are set in D2's own monospace. The page numbers each diagram by its section
+ * ("Diagrama 4.1").
+ *
+ * The check fails a file that asks for what the design system doesn't draw: colours written in
+ * the file (`style.fill`, `style.stroke` or `style.font-color` as `"#…"` or a colour name),
+ * `style.shadow`, `style.fill-pattern`, `style.animated`, `style.opacity` below 1, `sketch`, a legend
+ * (`vars.d2-legend`), and a `link`, `tooltip` or `icon`, or a link in a markdown label. Say it in
+ * the prose instead.
+ *
+ * The layout engine is ELK; a file may choose `dagre` or `tala` with
+ * `vars: { d2-config: { layout-engine: dagre } }`.
+ */
+interface Props {
+  /** The diagram, imported from a `.d2` file next to the entry. */
+  src: string;
+  /** What the diagram shows, in a sentence or two. Screen readers read it instead of the drawing. */
+  alt: string;
+  /**
+   * One short sentence under the diagram, after its number ("Diagrama 4.1"), saying what to look
+   * for. Leave it out when the paragraph before already says it.
+   */
+  caption?: string;
+}
+
+const { src, alt, caption } = Astro.props;
+const svg = drawInStandard(src);
+const minScale = Math.min(1, Math.max(1 / 2, 8 / smallestLabelSize(svg)));
+---
+
+<SvgImage svg={svg} alt={alt} caption={caption} class="diagram" minScale={minScale} />

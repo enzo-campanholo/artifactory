@@ -1,0 +1,106 @@
+---
+import { createHash } from "node:crypto";
+import "./tokens.css";
+import "./page.css";
+import "./rich-content.css";
+import ArtifactFrame from "./ArtifactFrame.astro";
+import LayerOrder from "./LayerOrder.astro";
+import StartFailed from "./StartFailed.astro";
+import StateNotices from "./StateNotices.astro";
+import ThemeHead from "./ThemeHead.astro";
+
+/**
+ * The page every artifact renders in. The platform wraps each artifact with it, so an artifact never
+ * imports or chooses a layout.
+ */
+interface Props {
+  /** The artifact ID from the frontmatter. The owner's answers on this page belong to it. */
+  id: string;
+  /** The artifact's title, shown as the page heading and the document title. */
+  title: string;
+  /** The artifact's main language, set as the page's `lang`. Every label the layout adds follows it. */
+  lang: "pt-BR" | "en";
+  /** The artifact's subject, shown in the masthead before the published date. */
+  subject: string;
+  /** The published date from the frontmatter, which is midnight UTC on that day. */
+  published: Date;
+  /** A draft's masthead links back to the drafts page instead of the Library, and says Draft on its date line. */
+  draft: boolean;
+  /**
+   * A public artifact's page serves both the owner and visitors. A visitor's form has no back link,
+   * says the answers stay on the page, and runs on throwaway state.
+   */
+  public: boolean;
+  /**
+   * The headings `render()` returns for the entry. With three or more h2 sections, they're listed
+   * as the page's contents, with each question's mark under its section.
+   */
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { id, title, lang, subject, published, draft, public: isPublic, headings } = Astro.props;
+const content = await Astro.slots.render("default");
+const contentHash = createHash("sha256")
+  .update(JSON.stringify([lang, title, content]))
+  .digest("hex")
+  .slice(0, 16);
+---
+
+<!doctype html>
+<html
+  lang={lang}
+  data-artifact-id={id}
+  data-content-hash={contentHash}
+  data-public={isPublic ? "" : undefined}
+>
+  <head>
+    <meta charset="utf-8" />
+    <ThemeHead public={isPublic} />
+    <StartFailed />
+    <LayerOrder />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="icon" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <StateNotices page={isPublic ? "public-artifact" : "artifact"} />
+    <ArtifactFrame
+      title={title}
+      subject={subject}
+      published={published}
+      draft={draft}
+      public={isPublic}
+      headings={headings}
+      content={content}
+      lang={lang}
+    />
+  </body>
+</html>
+
+<script>
+  import { questionsInDocument } from "./question-markers.ts";
+  import {
+    httpTransport,
+    keptAttempts,
+    keptTransport,
+    memoryTransport,
+    startStore,
+  } from "./state.ts";
+
+  const { artifactId, contentHash, viewer } = document.documentElement.dataset;
+  if (artifactId === undefined || contentHash === undefined) {
+    throw new Error("The artifact layout wrote no data-artifact-id or data-content-hash");
+  }
+  // A visitor's answers stay on the page: the state API would refuse them, and they aren't the owner's.
+  const http = import.meta.env.PUBLIC_STATE_TRANSPORT === "http" && viewer !== "visitor";
+  startStore({
+    artifactId,
+    contentHash,
+    questions: questionsInDocument(),
+    transport: http
+      ? keptTransport(httpTransport())
+      : memoryTransport({ contentHash, attempts: [] }),
+    startFrom: http ? keptAttempts(artifactId) : [],
+  });
+  document.documentElement.dataset.storeStarted = "";
+</script>

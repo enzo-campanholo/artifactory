@@ -1,0 +1,43 @@
+import NumericQuestion from "../src/NumericQuestion.astro";
+import OpenQuestion from "../src/OpenQuestion.astro";
+import SingleChoice from "../src/SingleChoice.astro";
+import { numericKey, questionIds } from "./states.ts";
+
+## The formula
+
+<SingleChoice id={questionIds.singleChoice} answer={2}>
+
+Which expression gives the area of a circle of radius $r$?
+
+1. $2 \pi r$
+2. $\pi r^2$
+3. $\frac{4}{3} \pi r^3$
+
+</SingleChoice>
+
+<NumericQuestion
+  id={questionIds.numeric}
+  answer={numericKey.value}
+  tolerance={numericKey.tolerance}
+  unit="cm²"
+>
+
+What is the area of a circle of radius $3\,\mathrm{cm}$, to two decimal places?
+
+</NumericQuestion>
+
+## Where it comes from
+
+<OpenQuestion id={questionIds.openQuestion}>
+
+Why is the area of a circle $\pi r^2$?
+
+---
+
+Cut the disc into thin rings. The ring at radius $\rho$ has length $2 \pi \rho$ and width $\mathrm{d}\rho$, so the area adds up to $\int_0^r 2 \pi \rho \, \mathrm{d}\rho = \pi r^2$.
+
+</OpenQuestion>
+
+## What to remember
+
+The area grows with the square of the radius: double the radius and the area is four times as large.

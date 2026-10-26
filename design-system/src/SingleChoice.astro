@@ -1,0 +1,253 @@
+---
+import Question from "./Question.astro";
+import { questionAnchor } from "./question-markers.ts";
+import { singleChoiceParts } from "./single-choice.ts";
+
+/**
+ * An auto-checked question with one right option among several. The owner picks an option and
+ * presses Check, and the question locks and shows right or wrong once the answer is saved. A
+ * wrong answer also ticks the right option. The page letters the options a), b), c), so don't
+ * letter them yourself. Use it when exactly one option is right and the options can be read side
+ * by side. For a computed number, use `NumericQuestion`, since options would let the owner work
+ * backwards from them.
+ *
+ * Write the question first, then the options as one numbered list at the end. Options can hold
+ * inline math and code, one paragraph each:
+ *
+ * ```mdx
+ * import SingleChoice from "@artifactory/design-system/single-choice";
+ *
+ * <SingleChoice id="derivada-de-x2" answer={2}>
+ *
+ * Qual é a derivada de $x^2$?
+ *
+ * 1. $x$
+ * 2. $2x$
+ * 3. $x^2 / 2$
+ *
+ * </SingleChoice>
+ * ```
+ */
+interface Props {
+  /**
+   * The question's ID: readable kebab-case, unique within the artifact and never reused, even
+   * after the question is removed. The owner's answers belong to it, and `#q-<id>` links to it.
+   */
+  id: string;
+  /** The number of the right option in the list, counting from 1. */
+  answer: number;
+}
+
+const { id, answer } = Astro.props;
+const { prompt, options } = singleChoiceParts(await Astro.slots.render("default"), answer);
+// Chromium drops MathML from a name taken from a <label>, but keeps it through aria-labelledby.
+const optionId = (index: number) => `${questionAnchor(id)}--option-${String(index + 1)}`;
+---
+
+<Question id={id} kind="single-choice" answerKey={answer} prompt={prompt}>
+  <ol class="single-choice-options">
+    {options.map((option, index) => (
+      <li>
+        <label>
+          <span class="single-choice-letter" aria-hidden="true"></span>
+          <input
+            type="radio"
+            name={`q-${id}`}
+            value={index + 1}
+            aria-labelledby={optionId(index)}
+            required
+          />
+          <span id={optionId(index)} set:html={option} />
+        </label>
+      </li>
+    ))}
+  </ol>
+</Question>
+
+<script>
+  import { QuestionElement } from "./question-element.ts";
+  import type { Json } from "./scoring.ts";
+
+  const labels = {
+    en: { chooseFirst: "Choose an option first.", rightAnswer: "Right answer" },
+    pt: { chooseFirst: "Escolha uma opção primeiro.", rightAnswer: "Resposta certa" },
+  };
+
+  class SingleChoice extends QuestionElement {
+    static observedAttributes = ["data-status", "data-mark"];
+
+    constructor() {
+      super();
+      // The browser's own message follows the browser's language, not the page's.
+      this.addEventListener(
+        "invalid",
+        (event) => {
+          if (event.target instanceof HTMLInputElement)
+            event.target.setCustomValidity(this.inPageLanguage(labels).chooseFirst);
+        },
+        { capture: true },
+      );
+      this.addEventListener("input", () => {
+        for (const option of this.querySelectorAll("input")) option.setCustomValidity("");
+      });
+    }
+
+    attributeChangedCallback() {
+      this.#showRightAnswer();
+    }
+
+    // Only once a wrong answer is locked, so nothing singles out the right option before.
+    #showRightAnswer() {
+      const shown = this.wrongAnswerLocked;
+      const descriptionId = `${this.id}--right-answer`;
+      this.querySelector(`#${descriptionId}`)?.remove();
+      for (const option of this.querySelectorAll("li")) {
+        const radio = option.querySelector("input");
+        const right = shown && radio?.value === this.dataset.questionKey;
+        option.toggleAttribute("data-right-answer", right);
+        if (!right) {
+          radio?.removeAttribute("aria-describedby");
+          continue;
+        }
+        radio?.setAttribute("aria-describedby", descriptionId);
+        const description = document.createElement("span");
+        description.id = descriptionId;
+        description.hidden = true;
+        description.textContent = this.inPageLanguage(labels).rightAnswer;
+        option.append(description);
+      }
+    }
+
+    readResponse(): Json | undefined {
+      const chosen = this.querySelector<HTMLInputElement>("input:checked");
+      return chosen === null ? undefined : Number(chosen.value);
+    }
+
+    showResponse(response: Json): void {
+      for (const option of this.querySelectorAll("input")) {
+        option.checked = option.value === JSON.stringify(response);
+      }
+    }
+  }
+
+  customElements.define("artifact-single-choice", SingleChoice);
+</script>
+
+<style is:global>
+  @layer components {
+    .single-choice-options {
+      margin: 0.625rem 0 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: single-choice-option;
+
+      > li {
+        counter-increment: single-choice-option;
+      }
+
+      label {
+        display: grid;
+        grid-template-columns: 1.5rem 1.75rem minmax(0, 1fr);
+        align-content: center;
+        align-items: baseline;
+        box-sizing: border-box;
+        min-block-size: var(--target);
+        margin-inline: calc(-1 * var(--space-2));
+        padding: var(--space-1) var(--space-2);
+        cursor: pointer;
+
+        @media (hover: hover) {
+          &:hover {
+            background: var(--color-surface-subtle);
+          }
+
+          &:has(:disabled):hover {
+            background: none;
+          }
+        }
+
+        &:has(:checked) {
+          font-weight: var(--font-weight-body-strong);
+
+          /* STIX Two Math has one weight, so a chosen formula is set in the browser's bold of it. */
+          math {
+            font-weight: var(--font-weight-frame-strong);
+          }
+        }
+
+        &:has(:disabled) {
+          cursor: default;
+        }
+      }
+
+      /* The box stands on the first line's baseline, as the letter does, and drops to its centre. */
+      input {
+        position: relative;
+        top: 0.25rem;
+        box-sizing: border-box;
+        inline-size: 1.125rem;
+        block-size: 1.125rem;
+        margin: 0;
+        padding: 3px;
+        border: var(--stroke) solid var(--color-text);
+        border-radius: 0;
+        background: none;
+        appearance: none;
+        cursor: inherit;
+        print-color-adjust: exact;
+
+        &:checked {
+          background: var(--color-text) content-box;
+        }
+
+        &::before {
+          content: none;
+        }
+
+        @media (forced-colors: active) {
+          forced-color-adjust: none;
+          border-color: CanvasText;
+
+          &:checked {
+            background: CanvasText content-box;
+          }
+        }
+      }
+    }
+
+    .single-choice-letter::before {
+      content: counter(single-choice-option, lower-alpha) ")";
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame);
+      font-weight: var(--font-weight-frame-number);
+    }
+
+    .question:is([data-status="saved"], [data-status="answered-elsewhere"])[data-mark="wrong"]
+      .single-choice-options {
+      input:checked {
+        background: none;
+      }
+
+      :is(input:checked, [data-right-answer] input)::before {
+        content: "";
+        position: absolute;
+        inset: -5px;
+        background: var(--color-text);
+        mask: center / contain no-repeat;
+
+        @media (forced-colors: active) {
+          background: CanvasText;
+        }
+      }
+
+      input:checked::before {
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m2 2 20 20M22 2 2 22' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E");
+      }
+
+      [data-right-answer] input::before {
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m7.5 12.5 3 3 6-7' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
+      }
+    }
+  }
+</style>

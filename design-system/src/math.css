@@ -1,0 +1,29 @@
+@import "temml/dist/Temml-Local.css" layer(temml);
+
+/* Fontsource's stylesheet limits this font to a Latin unicode-range, which leaves out the math
+   alphabets and operators the font has. */
+@font-face {
+  font-family: "STIX Two Math";
+  src: url("@fontsource/stix-two-math/files/stix-two-math-latin-400-normal.woff2") format("woff2");
+  font-display: swap;
+}
+
+@layer base {
+  math {
+    font-family: var(--font-math);
+  }
+
+  /* An inline fraction is taller than the line, and would push its line apart from the others. */
+  :is(p, li, label > span) > math {
+    margin-block: -0.2em;
+
+    &:has(mfrac) {
+      margin-block: -0.35em;
+    }
+  }
+
+  /* Temml's stylesheet gives primes, script letters and some fractions fonts of their own. */
+  math * {
+    font-family: inherit;
+  }
+}
