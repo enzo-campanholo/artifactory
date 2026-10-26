@@ -1,4 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#7c3aed"/>
-  <text x="32" y="32" dy="0.35em" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="32" font-weight="600" fill="#ffffff">A</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -13 48 48">
+  <rect x="-6" y="-13" width="48" height="48" fill="#fff"/>
+  <clipPath id="white"><path d="M2 14Q18 -6 34 14Q18 26 2 14Z"/></clipPath>
+  <g fill="none" stroke="#111" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
+    <g clip-path="url(#white)">
+      <circle cx="18" cy="12" r="4"/>
+      <circle cx="18" cy="12" r="1.5" fill="#111" stroke="none"/>
+    </g>
+    <path d="M2 14Q18 -6 34 14Q18 26 2 14Z"/>
+    <path d="M7.76 8.1l-1.56 -1.95M12.88 5.02l-1.3 -3.25M18 4l0 -4M23.12 5.02l1.3 -3.25M28.24 8.1l1.56 -1.95M12.24 19.22l-0.46 1.69M18 20l0 2.25M23.76 19.22l0.46 1.69"/>
+  </g>
 </svg>
