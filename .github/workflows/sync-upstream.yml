@@ -1,0 +1,42 @@
+name: Sync upstream
+
+# A private copy holds its own artifacts and takes everything else from the upstream repo. This
+# merges upstream's main in and pushes, which runs CI and deploys. The push uses a token rather than
+# GITHUB_TOKEN, which can't update workflow files and whose pushes start no workflows.
+on:
+  schedule:
+    - cron: "41 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  sync:
+    if: vars.UPSTREAM_REPOSITORY != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
+      - run: |
+          git remote add upstream "https://github.com/$UPSTREAM_REPOSITORY.git"
+          git fetch upstream main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git merge --no-edit upstream/main
+          if ! git diff --quiet upstream/main HEAD -- . ':!artifacts'; then
+            echo "::error::This copy differs from upstream outside artifacts/. Make those changes upstream, then rerun."
+            git diff --stat upstream/main HEAD -- . ':!artifacts'
+            exit 1
+          fi
+          git push origin HEAD:main
+        env:
+          UPSTREAM_REPOSITORY: ${{ vars.UPSTREAM_REPOSITORY }}

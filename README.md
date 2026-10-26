@@ -33,22 +33,36 @@ To start an artifact by hand, `pnpm new <slug> --subject "<Subject>" --lang <pt-
 
 ## Deploying your own
 
-The site runs on Cloudflare's free plans, deployed by GitHub Actions.
+Your artifacts live in a private copy of this repo, which takes everything outside `artifacts/` from here. The site runs on Cloudflare's free plans, deployed by GitHub Actions from that copy.
 
-1. Create a D1 database named `artifactory` (`pnpm exec wrangler login`, then `pnpm exec wrangler d1 create artifactory`) and note its ID.
-2. Add your domain to Cloudflare. In Zero Trust (the free plan asks for a payment method but doesn't charge), choose a team name: your team domain is `https://<team>.cloudflareaccess.com`. Create a self-hosted Access application covering the hostname you'll serve the site on, with a policy that lets only you in, and note its audience (AUD) tag.
-3. Create an API token from the "Edit Cloudflare Workers" template, with Account › D1 › Edit added.
-4. In the GitHub repository's Actions settings, add the secret `CLOUDFLARE_API_TOKEN` and these variables:
+1. Create an empty private repository on GitHub, then fill it from this one:
 
-   | Variable                | Value                                          |
-   | ----------------------- | ---------------------------------------------- |
-   | `CLOUDFLARE_ACCOUNT_ID` | your Cloudflare account ID                     |
+   ```bash
+   git clone --origin upstream https://github.com/enzo-campanholo/artifactory.git
+   cd artifactory
+   git remote set-url --push upstream no-push
+   git remote add origin https://github.com/<you>/<your-repo>.git
+   git push -u origin main
+   ```
+
+2. Create a D1 database named `artifactory` (`pnpm exec wrangler login`, then `pnpm exec wrangler d1 create artifactory`) and note its ID.
+3. Add your domain to Cloudflare. In Zero Trust (the free plan asks for a payment method but doesn't charge), choose a team name: your team domain is `https://<team>.cloudflareaccess.com`. Create a self-hosted Access application covering the hostname you'll serve the site on, with a policy that lets only you in, and note its audience (AUD) tag.
+4. Create a Cloudflare API token from the "Edit Cloudflare Workers" template, with Account › D1 › Edit added.
+5. Create a fine-grained GitHub token for your repository alone, with Contents and Workflows set to read and write.
+6. In your repository's Actions settings, add the secrets `CLOUDFLARE_API_TOKEN` and `UPSTREAM_SYNC_TOKEN` (the GitHub token), and these variables:
+
+   | Variable                | Value                                           |
+   | ----------------------- | ----------------------------------------------- |
+   | `CLOUDFLARE_ACCOUNT_ID` | your Cloudflare account ID                      |
    | `ARTIFACTORY_DOMAIN`    | the hostname, such as `artifactory.example.com` |
-   | `D1_DATABASE_ID`        | the D1 database ID                             |
-   | `ACCESS_TEAM_DOMAIN`    | `https://<team>.cloudflareaccess.com`          |
-   | `ACCESS_AUD`            | the Access application's AUD tag               |
+   | `D1_DATABASE_ID`        | the D1 database ID                              |
+   | `ACCESS_TEAM_DOMAIN`    | `https://<team>.cloudflareaccess.com`           |
+   | `ACCESS_AUD`            | the Access application's AUD tag                |
+   | `UPSTREAM_REPOSITORY`   | `enzo-campanholo/artifactory`                   |
 
-5. Push to `main`. Until `ARTIFACTORY_DOMAIN` is set, CI only checks. Once it is, CI fills these values into `wrangler.jsonc` (`scripts/deploy-config.ts`), applies the D1 migrations in `migrations/` and runs `wrangler deploy`.
+7. Push to `main`. Until `ARTIFACTORY_DOMAIN` is set, CI only checks. Once it is, CI fills these values into `wrangler.jsonc` (`scripts/deploy-config.ts`), applies the D1 migrations in `migrations/` and runs `wrangler deploy`.
+
+Every day, the Sync upstream workflow merges this repo's `main` into your copy and pushes it, which deploys. It stops instead when your copy differs from this repo outside `artifacts/`: make platform changes here, or in your own public fork, never in the copy.
 
 A weekly workflow exports D1 and keeps each dump for 90 days, since the free plan restores only the last 7.
 
