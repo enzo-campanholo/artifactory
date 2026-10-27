@@ -75,3 +75,7 @@ Screenshots, kept under `/tmp` and not committed:
 
 - `/tmp/handcheck-08/out/`: `1c-owner-head.png`, `1c-owner-answered.png`, `1e-owner-after-reload.png`, `2a-visitor-head.png`, `2a-visitor-answered.png`, `2b-visitor-after-reload.png`, and `results.json`, which has every request and assertion.
 - `/tmp/handcheck-08/out-paint/`: `3a-first-paint-visitor-frame1.jpg` and `3b-first-paint-owner-frame1.jpg` (the first painted frames; `frame0` is the blank page before navigation), the later frames, `*-final.png`, the traces and `results.json`.
+
+### 2026-10-27: no live link in the README (decided)
+
+Owner, T3 thread, 2026-10-27, settling the Unresolved in [the sample artifact decision](#2026-10-26-the-first-share-is-a-new-sample-artifact-approved): upstream's `README.md` does not link the live sample, so the owner's domain stays out of the repo. The README will show screenshots of the sample instead, later. **Deferred:** those screenshots, not part of this ticket.
