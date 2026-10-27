@@ -31,8 +31,9 @@ Tests exist so agents can rewrite code freely while behaviour holds. A test that
 - No smoke tests: "renders", "is defined", "exports X", or "doesn't throw" with nothing else asserted. The type checker and the build already catch those.
 - The only test doubles are the in-memory transport and fixtures: fixture repos, a fixture question manifest, a local D1, a local stand-in for Cloudflare's Access API, and a local stand-in for the deployed site as a visitor meets it. Our own modules are never mocked.
 - A bug fix adds a test only if no existing test could have caught it, and extending the nearest existing test comes first.
-- Name a test after the behaviour, in `GLOSSARY.md` vocabulary ("a retried answer that returns your own answer counts as saved"), never after the bug or the ticket.
+- Name a test after the behaviour ("a retried answer that returns your own answer counts as saved"), never after the bug or the ticket.
 - When a behaviour is removed, delete its tests.
+- Keep Vitest on the single worker `vitest.config.ts` sets.
 
 ### The four seams
 
@@ -81,15 +82,17 @@ The browser acceptance above runs only with `ARTIFACTORY_BROWSER_ACCEPTANCE=1`: 
 
 ### Verifying browser behaviour
 
-To review a platform or design system change in a real browser, build first, then run `node scripts/verify-browser.ts <artifact-slug> [--dist <built-directory>]` (`--help` lists its cases). It serves the built output and never builds, so the build must include `/catalog/eye/` and an artifact of your own, made with `pnpm new`, that has questions and a table that overflows at 393 px. It writes `.look/<slug>/browser/results.json` and a contact sheet. Exit 0 means every required assertion passed, 2 a bad argument or missing build, and 1 a failed, unavailable or unsupported case. Its output hashes identify the files it inspected, not the commit that built them, and its captures still need a person to judge them.
+To review a platform or design system change in a real browser, build first, then run `node scripts/verify-browser.ts <artifact-slug> [--dist <built-directory>]`. It serves the built output and never builds, so the build must include `/catalog/eye/` and an artifact of your own, made with `pnpm new`, that has questions and a table that overflows at 393 px. It writes `.look/<slug>/browser/results.json` and a contact sheet. Exit 0 means every required assertion passed, 2 a bad argument or missing build, and 1 a failed, unavailable or unsupported case. Its output hashes identify the files it inspected, not the commit that built them, and its captures still need a person to judge them.
 
 ## Code
 
-- Name things with `GLOSSARY.md` vocabulary: attempt, latest attempt, stopping point, throwaway state.
+- Astro 7 is newer than your training: check the `astro-docs` MCP server before using any Astro API.
+- A change to the artifact workflow or to what `pnpm check` reports updates the `artifact` skill in the same commit.
+- Name things, tests included, with `GLOSSARY.md` vocabulary, as [domain.md](docs/agents/domain.md#use-the-glossarys-vocabulary) says: attempt, latest attempt, stopping point, throwaway state.
 - Validate untrusted input once, at the boundary: request bodies, frontmatter through the collection schema, command arguments. Past the boundary, trust the types and add no checks for states they rule out.
 - Handle errors where something can be done about them: the transports, the Worker's request handling, the check's reporter. Don't wrap internal calls in a `try` that logs and rethrows, or that swallows.
 - No speculative generality: no option, parameter or abstraction for a caller that doesn't exist yet.
-- Don't add a dependency for what a few lines or the web platform already do.
+- Add a dependency only for what a few lines or the web platform can't do.
 
 ## Enforced by tooling
 

@@ -147,7 +147,6 @@ The owner studies alone with it, on a phone or a laptop.
 - **Tables are for data, lists for sentences.** Use a Markdown table when the owner compares short cells down a column: values, symbols, terms. Mark a column of numbers `---:` to align it right. When a row's cells are sentences, write a list instead: on the phone, three columns of sentences wrap to two or three words a line.
 - **Ask questions that test understanding.** Ask about why and how, not about the artifact's own wording. In a `SingleChoice`, make every wrong option a mistake someone could really make. In an `OpenQuestion`, write a model answer that shows the reasoning, not just the result.
 - **Ask for a number when the owner should compute it.** When the answer is a value the owner works out (a force, a probability, a root), use a `NumericQuestion` rather than a `SingleChoice`, whose options would let them work backwards. Ask one number per question: a vector's components or a quadratic's two roots are separate questions. Give a `tolerance` (or `relativeTolerance`) that matches the precision the computation really has, such as `0.01` for an answer rounded to two decimal places; without one the check is exact, which suits only exact answers such as `"3/4"`.
-- **Write plainly.** Short paragraphs, defined terms, concrete examples.
 
 ## Writing rules
 

@@ -1,6 +1,6 @@
 # Custom builds
 
-The rules for a `Stage`'s `<build>.build.ts`, after the [Custom builds](SKILL.md#custom-builds) section's first three. `COMPONENTS.md`'s Stage entry is the component's whole reference.
+The rules for a `Stage`'s `<build>.build.ts`, after the [Custom builds](SKILL.md#custom-builds) section's first three.
 
 - **Imports:** only `@artifactory/design-system/stage-build`. Failure: "`x` isn't `@artifactory/design-system/stage-build`, the only module a build may import", at the import.
 - **Types:** builds are strict TypeScript with the ES library only, so no DOM or Node: `document`, `window`, `fetch`, `localStorage`, `process` and `console` fail as `TS…` at the name ("Cannot find name 'document'"). A build turns a choice into data and touches nothing else.

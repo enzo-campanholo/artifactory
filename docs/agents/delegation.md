@@ -1,7 +1,5 @@
 # Delegation and handoffs
 
-How a coordinator briefs delegated agents, and how a fresh agent takes over interrupted work.
-
 ## Briefs
 
 A delegated brief names the ticket, the branch or worktree, the files the child owns, the [decision comments](issue-tracker.md#decisions) that bound the work, and the `scripts/heavy` rules from `CLAUDE.md`. Carry those pointers and accepted findings into a replacement brief. Recorded authorization covers its stated scope after interruption or compaction; ask only for a still-unresolved decision that blocks the next action.
@@ -10,7 +8,7 @@ A review brief also says who receives the review, who decides on each finding, a
 
 ## Ownership
 
-Only the session that started a delegated agent can check, message or stop it (in T3 Code, the thread that called it). Keep each returned ID or link exactly as returned. An error saying it belongs to another session means exactly that: the agent isn't lost, so don't retry it. Start new work only for what a child left unfinished, never a duplicate of a task still running.
+Only the session that started a delegated agent can check, message or stop it (in T3 Code, the thread that called it). Keep each returned ID or link exactly as returned. An error saying it belongs to another session means exactly that: the agent is still running, so leave it to that session. Start new work only for what a child left unfinished, never a duplicate of a task still running.
 
 ## Capacity
 

@@ -20,11 +20,11 @@ Issues and specs for this repo live as markdown files in `.scratch/`. They belon
 
 Keep approvals, open decisions and deferrals in the existing spec or ticket's dated `## Comments`. Cite the owner message with its thread/date/item, or the source ticket comment, and state the affected scope. Later briefs and [handoffs](delegation.md#handoffs) link that comment; append a superseding decision when the owner changes it, preserving history.
 
-- **Approved:** the authorized scope and its source. Continue within it after compaction or handoff without requesting the same approval again.
+- **Approved:** the authorized scope and its source.
 - **Unresolved:** the decision-maker and the action their answer actually blocks. An optional design question does not become a dependency of approved work; missing information remains unknown.
 - **Deferred:** the owner's decision and the scope left undone. Keep it deferred until that decision changes, including an accepted review or device-check deferral.
 
-These categories describe decisions within comments; ticket statuses still use `triage-labels.md`. Use `Blocked by:` for actual prerequisites. Record completion evidence separately from authorization, and resolve only after the ticket's required checks/review or their explicit owner deferral.
+These categories describe decisions within comments; ticket statuses still use `triage-labels.md`. Use `Blocked by:` for actual prerequisites. Record completion evidence separately from authorization.
 
 The sections from here on map this tracker for the [mattpocock-skills](https://github.com/mattpocock/skills) plugin (`/to-tickets`, `/triage`, `/wayfinder`); skip them without it.
 
