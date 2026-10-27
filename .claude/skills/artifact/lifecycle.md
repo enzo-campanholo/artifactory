@@ -14,7 +14,7 @@ Each ends with the shared steps under [Finishing](SKILL.md#finishing).
 
 ## Rename
 
-1. `pnpm rename <old-slug> <new-slug>`. It moves the folder, records the old slug as a former slug in `formerSlugs` and rewrites links to it in other artifacts, then prints what it did. It refuses a new slug that breaks [Slugs](SKILL.md#slugs). Renaming back to a former slug is fine: `pnpm rename` takes it off the list. `formerSlugs` is `pnpm rename`'s alone, and the build turns each former slug into a permanent redirect, so there's no `_redirects` file to edit. A public artifact's former slugs stay open while it's public, so a link the owner sent before the rename still works.
+1. `pnpm rename <old-slug> <new-slug>`. It moves the folder, records the old slug as a former slug in `formerSlugs` and rewrites links to it in other artifacts, then prints what it did. It refuses a new slug that breaks [Slugs](rules.md#slugs). Renaming back to a former slug is fine: `pnpm rename` takes it off the list. `formerSlugs` is `pnpm rename`'s alone, and the build turns each former slug into a permanent redirect, so there's no `_redirects` file to edit. A public artifact's former slugs stay open while it's public, so a link the owner sent before the rename still works.
 2. Finish: check, publish, watch CI, reply with the new URL.
 
 ## Delete

@@ -1,6 +1,6 @@
 # Statements
 
-How a `Statement`, its `Proof` and a `Ref` behave on the page, and what each of their failures means. They fail under [Components](SKILL.md#components), as `statement-id`, `statement-section`, `statement-solution`, `citation-target` and `proof-target`.
+How a `Statement`, its `Proof` and a `Ref` behave on the page, and what each of their failures means. They fail under [Components](rules.md#components), as `statement-id`, `statement-section`, `statement-solution`, `citation-target` and `proof-target`.
 
 - **Statements stand at a section's top level.** A statement's number is the next clause number, in the paragraphs' series, and the margin numbers only a section's own paragraphs, `###`s and statements, so a statement anywhere else would have no number to cite. "the statement `x` has no section number" (`statement-section`) means it comes before the first `##` heading, or sits inside a list, a question or another component. Move it to the top level of a section.
 - **Statement IDs:** readable lowercase kebab-case (`valor-medio`), unique among the artifact's statements, written as a plain string, `id="…"`. A question may use the same ID. A statement's ID holds no answers, so renaming it only means updating its citations. Failures read "the statement ID `x` is already used at line N …" or "… isn't lowercase kebab-case".
