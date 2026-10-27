@@ -28,3 +28,10 @@ Since the repo split (commit `3b63b1b`, see `CLAUDE.md`'s "Two repos"), the upst
 **Approved** (owner, T3 orchestrator thread, 2026-10-26: "let's get through them", and the landing choice "Branch, you push"): agents build tickets 06 and 07 on branch `public-access` in a checkout of the upstream repo, reviewed and committed there. The owner merges and pushes upstream `main`, then runs Sync upstream in the private copy. That sync's deploy is the first live run of the Access steps, so it stays the owner's.
 
 Here: the probe reads artifacts from the checkout, and upstream has none. Show its pass and fail output against fixture artifacts and a local stand-in.
+
+### 2026-10-26: from ticket 06
+
+- Read the custom domain with `readDeployedSite(root)` from `scripts/wrangler-config.ts`: it returns `{ domain, accessAud }` from `wrangler.jsonc` and throws when CI hasn't filled in the placeholders, so the probe and `pnpm public-access` read the domain the same way. Run by hand in a checkout, `wrangler.jsonc` holds the placeholders, so the probe needs the domain some other way there (for example `ARTIFACTORY_DOMAIN`, as `scripts/deploy-config.ts` takes it); decide that here.
+- CI: put the Probe step after "Open public paths" in `.github/workflows/ci.yml`, with the same `if:` gate.
+- The `artifact` skill's Watch CI step 4 lists the red Close and Open steps: add Probe there. `CODING_STANDARDS.md`'s "Not tested automatically" names `scripts/public-access.ts` under Access routing: add the probe as the check on every deploy.
+- `tests/check/access-api-stand-in.ts` shows a local HTTP stand-in driven by a seam 1 test, if the probe is tested the same way.

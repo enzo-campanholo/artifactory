@@ -26,3 +26,19 @@ Since the repo split (commit `3b63b1b`, see `CLAUDE.md`'s "Two repos"), the upst
 **Approved** (owner, T3 orchestrator thread, 2026-10-26: "let's get through them", and the landing choice "Branch, you push"): agents build tickets 06 and 07 on branch `public-access` in a checkout of the upstream repo, reviewed and committed there. The owner merges and pushes upstream `main`, then runs Sync upstream in the private copy. That sync's deploy is the first live run of the Access steps, so it stays the owner's.
 
 Here: nothing upstream is public, so show `close` and `open` against fixtures (recorded API responses or a local stand-in) with their own manifests.
+
+### 2026-10-26: handoff
+
+Owner: the implementation sub-agent the coordinator's T3 thread started; no delegated agents.
+Where: `/home/isolino/.t3/projects/artifactory-oss`, branch `public-access`, behaviour in `e2c3c37` (this comment is the commit after it). Not pushed.
+Done: `scripts/public-access.ts` (`pnpm public-access close|open`), the Close and Open steps in `.github/workflows/ci.yml`, the `artifact` skill, `README.md` and `CODING_STANDARDS.md`, all in `e2c3c37`. Shown by `tests/check/public-access.test.ts` (10 tests, seam 1) against a local stand-in for Cloudflare's Access API (`tests/check/access-api-stand-in.ts`), with fixture manifests: create, close keeping only what stays public, replace repairing hand edits, delete when empty (app and Bypass), open with nothing public, close with no app, missing protected app, Cookie Path Attribute on, a refused `/api/` path in both modes, the placeholder domain, and the exact Removed/Added lines. Four mutations of the script (close adding, no `/api/` refusal, no Cookie Path check, Bypass left behind) each turned exactly one test red. The full plain `pnpm check` runs on the final HEAD after this comment; its result is in the sub-agent's final message to the coordinator.
+Partial: none. Findings: none yet; the coordinator's code review is next, so the ticket stays `claimed` and its boxes unticked.
+Decisions: [where this work happens (approved)](#2026-10-26-where-this-work-happens-approved). Made here, which the spec didn't settle:
+- The Bypass is a reusable policy named like the app ("artifactory public artifacts", include Everyone), linked to the app by ID at precedence 1, because that is the form Cloudflare's API reference documents for an app's `policies`. Inline policy bodies aren't documented there. `open` creates it when missing; deleting the app deletes it too. Every PUT sends `policies` explicitly, since the reference doesn't say what an omitted field does.
+- Tests at seam 1 with an Access API stand-in, which `CODING_STANDARDS.md` now lists as a test double. The spec's "Not tested automatically" stays true for what the live account opens, and that's what the standards now say.
+- `CLOUDFLARE_API_BASE_URL` (the variable wrangler reads for the same thing) points the script at the stand-in. Unset in CI.
+- `wrangler.jsonc` is read through TypeScript's JSONC reader in `scripts/wrangler-config.ts`, which also holds the placeholders `scripts/deploy-config.ts` fills in. The script refuses a `wrangler.jsonc` still holding them.
+- `/api` itself is refused as well as anything under `/api/`. Two apps with the fixed name fail the run. The app is created with `app_launcher_visible: false`.
+- Unconfirmed until the owner's first live run (08): the list endpoints' `name`/`exact`/`aud` filters (the script filters again itself), and that deleting the reusable policy right after its app is accepted.
+- Flag for the owner: ADR 0005's last sentence ("until then, nothing is open") goes stale once this lands; the spec says no ADR change, so it's untouched.
+Running: none after the check. Next: the coordinator's code review of `5cccc90..HEAD`.
