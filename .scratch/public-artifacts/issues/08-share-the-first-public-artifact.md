@@ -23,3 +23,7 @@ Since the repo split (commit `3b63b1b`, see `CLAUDE.md`'s "Two repos"), the upst
 **Approved** (owner, T3 orchestrator thread, 2026-10-26: "let's get through them", and the landing choice "Branch, you push"): agents build tickets 06 and 07 on branch `public-access` in a checkout of the upstream repo, reviewed and committed there. The owner merges and pushes upstream `main`, then runs Sync upstream in the private copy. That sync's deploy is the first live run of the Access steps, so it stays the owner's.
 
 Here: everything in this ticket runs in the private copy (Make public, the hand check on `pnpm dev:worker`, the push and `pnpm probe`), and its record goes on this ticket in the upstream checkout. Once the artifact is public, naming it here is fine.
+
+### 2026-10-26: from ticket 06
+
+The first live run of `pnpm public-access` settles what the Access API stand-in couldn't: whether the list endpoints honour `name`, `exact` and `aud`, whether an app in the list carries its `policies`, and whether the reusable Bypass deletes right after its app. Read the Close and Open steps' logs on that run, and record here what differed. Ticket 06's [fix-round handoff](06-keep-the-public-access-app-in-step-in-ci.md#2026-10-26-handoff-fix-round) holds the full list.
