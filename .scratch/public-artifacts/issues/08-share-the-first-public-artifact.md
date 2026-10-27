@@ -1,6 +1,6 @@
 # 08: Share the first public artifact
 
-Status: ready-for-human
+Status: resolved
 Blocked by: [07: Probe from outside what is open](07-probe-from-outside-what-is-open.md)
 
 **What to build:** the first real public share, end to end. The owner names a published artifact; an agent makes it public through the `artifact` skill's Make public workflow; the owner pushes `main` and watches the deploy; then the owner opens the link in a private window and on a signed-in phone and runs `pnpm probe`. This settles what the research left unconfirmed.
@@ -107,3 +107,12 @@ Owner, T3 thread, 2026-10-27: rename the sample to test a public artifact's form
 
 - **`noindex` on the 301s:** the probe got `/rsa-by-hand` and `/rsa-by-hand/` each as 301 to `/rsa-from-scratch/` with `noindex`, and `/rsa-from-scratch` as 307 to `/rsa-from-scratch/` with `noindex`. "All 27 paths answered as expected." Both questions of the third checklist item are settled as the probe and spec expect, so neither changes.
 - **Ticket 06's API questions, the "app present" path:** `close` found the existing app ("The public Access app opens 4 destinations.") and `open` added `/rsa-from-scratch` and `/rsa-from-scratch/` to it ("opens 6 destinations"). So the list filters and the `policies` in the list behave as the script needs. Still unexercised: deleting the reusable policy after its app, which happens only when no artifact is public, and any reach of a destination's `*` beyond what the probe checks.
+
+### 2026-10-27: closed
+
+Every checklist item is met, recorded in [the first live run](#2026-10-27-the-first-live-run), [the phone check](#2026-10-27-the-phone-check-passes) and [the 301s, after renaming the sample](#2026-10-27-the-301s-after-renaming-the-sample). The probe and spec needed no correction. The ticket changed no platform code, so it had no code review.
+
+- **Approved:** owner, T3 thread, 2026-10-27: agents pushed upstream `main` and ran Sync upstream this time, in place of the owner, as this ticket's body assigned. The owner reviewed the visitor's page on a `pnpm dev:worker` preview first, and approved each push.
+- **Commits:** `0aae629` and `bae7789` (the sample), `0602bc0` (the hand check), `f7c9a1f` (the rename to `rsa-from-scratch`), and the `.scratch/` records `7d7f6dd`, `41e964f`, `fcdcd59` and `ea7b862`. Private copy CI runs 40504985287 and 40510858345, both green.
+- **Decided:** no live link in the README ([decision](#2026-10-27-no-live-link-in-the-readme-decided)). **Deferred:** README screenshots of the sample.
+- **Left undone, filed as [09](09-watch-the-public-access-app-deleted-and-its-wildcard.md) with the owner's approval (T3 thread, 2026-10-27):** ticket 06's two Access API behaviours that no live run has exercised.

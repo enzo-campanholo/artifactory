@@ -1,8 +1,8 @@
 # Public artifacts
 
-Status: ready-for-agent
+Status: resolved
 
-[ADR 0005](../../docs/adr/0005-cloudflare-workers-d1-access.md) records the Bypass and the open `/_astro/` files, and `GLOSSARY.md` (**Public artifact**, **Visitor**, **Throwaway state**) the vocabulary. Tickets 01–05 have landed: the frontmatter mark, `noindex`, the visitor's page, the Library mark and the Access token, stored as the GitHub secret `CLOUDFLARE_ACCESS_API_TOKEN`. What remains is [06](issues/06-keep-the-public-access-app-in-step-in-ci.md), [07](issues/07-probe-from-outside-what-is-open.md) and [08](issues/08-share-the-first-public-artifact.md).
+[ADR 0005](../../docs/adr/0005-cloudflare-workers-d1-access.md) records the Bypass and the open `/_astro/` files, and `GLOSSARY.md` (**Public artifact**, **Visitor**, **Throwaway state**) the vocabulary. Tickets 01–05 have landed: the frontmatter mark, `noindex`, the visitor's page, the Library mark and the Access token, stored as the GitHub secret `CLOUDFLARE_ACCESS_API_TOKEN`. Tickets [06](issues/06-keep-the-public-access-app-in-step-in-ci.md), [07](issues/07-probe-from-outside-what-is-open.md) and [08](issues/08-share-the-first-public-artifact.md) landed too: the sample artifact `rsa-from-scratch` went public on 2026-10-27 and the probe passed from outside. [09](issues/09-watch-the-public-access-app-deleted-and-its-wildcard.md) holds the two Access API behaviours the live runs haven't exercised yet.
 
 ## Problem Statement
 
