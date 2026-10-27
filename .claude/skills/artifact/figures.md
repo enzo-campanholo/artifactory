@@ -1,6 +1,6 @@
 # Figure pitfalls
 
-Generic pitfalls of hand-written SVG figures. `COMPONENTS.md` lists the colour classes and the stepper's `data-step` grammar. When a figure mistake recurs, add a line here.
+Generic pitfalls of hand-written SVG figures. When a figure mistake recurs, add a line here.
 
 - **Root:** `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 W H">`, with a `viewBox` and no `width` or `height`. The figure is drawn at most `W` CSS pixels wide and shrinks to fit narrower screens, down to two thirds of `W`; narrower than that, it scrolls sideways. Without a `viewBox` the build fails, unless the root has a numeric `width` and `height` to make one from.
 - **Size for a phone.** A 393 px screen leaves about 350 px for the figure, so a `viewBox` wider than that shrinks everything, text included, and one wider than about 530 scrolls sideways. Keep `W` near 320–480 and `font-size` at 12 or more, and check the 393 px screenshot from `pnpm look`.
