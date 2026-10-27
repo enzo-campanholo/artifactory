@@ -20,8 +20,7 @@ interface WranglerConfig {
   vars?: { ACCESS_AUD?: unknown };
 }
 
-// The custom domain and the protected Access app's AUD, once scripts/deploy-config.ts has filled
-// them in. TypeScript's reader takes wrangler.jsonc's comments and trailing commas.
+// TypeScript's reader takes wrangler.jsonc's comments and trailing commas.
 export function readDeployedSite(root: string): DeployedSite {
   const { config, error } = ts.parseConfigFileTextToJson(
     "wrangler.jsonc",

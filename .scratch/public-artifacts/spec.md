@@ -28,8 +28,8 @@ A public artifact keeps its one URL. The owner, signed in, sees the page exactly
 10. As the owner, I want a public artifact's former slugs to redirect for visitors too, so that a link I sent before a rename still works.
 11. As the owner, I want a former slug to go back behind the sign-in when its artifact goes private, so that no old link stays open.
 12. As the owner, I want anyone who had the link to meet the sign-in page once the artifact is private, so that making it private really closes it.
-13. As the owner, I want a page going private to close before the new build is deployed, so that it's never open for a moment longer than I asked.
-14. As the owner, I want a page going public to open only after the new build is deployed, so that a visitor never gets a page built without the visitor's form.
+13. As the owner, I want an artifact going private to close before the new build is deployed, so that it's never open for a moment longer than I asked.
+14. As the owner, I want an artifact going public to open only after the new build is deployed, so that a visitor never gets a page built without the visitor's form.
 15. As the owner, I want any failure in the deploy to leave pages locked rather than open, so that a broken run never shares more than I chose.
 16. As the owner, I want rerunning CI to repair any difference between the Access app and the frontmatter, so that drift never needs a dashboard fix.
 17. As the owner, I want the Access app for public artifacts deleted when nothing is public, so that the shared assets go back behind my sign-in too.
@@ -139,10 +139,11 @@ A public artifact keeps its one URL. The owner, signed in, sees the page exactly
   - `ACCESS_AUD` from `wrangler.jsonc`, to find the protected app;
   - `CLOUDFLARE_ACCOUNT_ID`;
   - its own secret, `CLOUDFLARE_ACCESS_API_TOKEN`, scoped to "Access: Apps and Policies: Edit" on the account and kept apart from the deploy token.
-- **The public app.** A self-hosted Access app found by a fixed name, proposed as "artifactory public artifacts". It has one Bypass policy whose include is Everyone. The script creates the app with its policy when it's missing and the list isn't empty, replaces its whole destination list otherwise, and deletes it when the list is empty.
+- **The public app.** A self-hosted Access app found by a fixed name, proposed as "artifactory public artifacts". It has one Bypass policy whose include is Everyone. The script creates the app with its policy when it's missing and the list isn't empty, replaces its whole destination list otherwise, and deletes it when the list is empty. Both modes make the policy a bypass for everyone again when it has been edited, and a policy another Access app uses isn't deleted: the run fails and says so.
 - **`close`**, before the deploy: the app keeps only the destinations that are open now *and* in the new manifest. Whatever goes private closes first. When the new manifest is empty, the app is deleted. When the app doesn't exist, there's nothing to close.
-- **`open`**, after the deploy: before changing anything, it finds the protected app by its AUD and fails if the app is missing or its Cookie Path Attribute is on. Then it sets the public app to exactly the new manifest.
-- **What it refuses.** It refuses any path under `/api/`. `api` is a reserved slug, so this can only catch a platform bug, but it's the one path that must never open.
+- **`open`**, after the deploy: before changing anything, it finds the protected app by its AUD and fails if the app is missing, its Cookie Path Attribute is on, or it uses the Bypass policy. Then it sets the public app to exactly the new manifest.
+- **What it refuses.** It refuses any path that could reach `/api` or anything under `/api/`, wildcards included. `api` is a reserved slug, so this can only catch a platform bug, but it's the one path that must never open.
+- **Failing locked.** `open` refuses before changing anything. `close` first takes away everything that isn't wanted, refused paths included, then fails; when it can't tell what's wanted (no manifest, or `wrangler.jsonc` still holding its placeholders), it deletes the public app, then fails.
 - **Repair.** Every run replaces the whole list, so rerunning CI repairs any drift, hand edits included.
 - It prints the destinations it removed and added.
 
@@ -193,7 +194,7 @@ On `main`, after the check passes, in this order:
     - A red Close step means nothing was deployed.
     - A red Open or Probe step means the new version is live but some public pages may still be behind the sign-in.
     - Rerun once with `gh run rerun <id>`, then tell the owner.
-- **`CODING_STANDARDS.md`:** the seams' owned lists gain the items in Testing Decisions. "Not tested automatically" names the public Access script and the probe under Access routing, with the probe as the check on every deploy.
+- **`CODING_STANDARDS.md`:** the seams' owned lists gain the items in Testing Decisions. "Not tested automatically" names what the public Access script opens on the live account, and the probe, under Access routing, with the probe as the check on every deploy.
 - **`DESIGN.md`**, with `.impeccable/design.json` following:
   - Navigation: a visitor's running head has no back link.
   - The visitor's line, its voice and its place.
@@ -224,6 +225,7 @@ It never asserts the public paths module, the head script's source or call order
     - the public paths manifest is exactly `/_astro/*`, `/favicon.svg`, the slug pair and the former-slug pair;
     - `dist/_headers` sends `X-Robots-Tag: noindex` on `/*`.
   - **The empty Library fixture:** the manifest is empty.
+  - **The public Access script** (`public-access.test.ts`), run against a local stand-in for Cloudflare's Access API, a test double `CODING_STANDARDS.md` allows, with fixture manifests: the account the stand-in holds afterwards and the script's exit code and printed lines.
   - Prior art: "redirects every former slug straight to the current slug" in `valid-artifacts.test.ts`, "writes every artifact's questions … into the question manifest" in `library-and-question-manifest.test.ts`, and the theme choice's tests in `tests/store/theme-choice.test.ts`.
 - **Seam 3, the store over happy-dom** (`tests/store`). The kept transports are driven around the in-memory transport, as the device copy's tests do:
   - a load, a save, an "already answered" save and a Library load each leave the owner mark;
@@ -236,7 +238,7 @@ It never asserts the public paths module, the head script's source or call order
 
 **Not tested automatically:**
 
-- **The public Access script and the probe.** They're Access routing and the CI workflow, which `CODING_STANDARDS.md` already leaves out. The probe is their check on every deploy.
+- **What the public Access script opens on the live account, and the probe.** They're Access routing and the CI workflow, which `CODING_STANDARDS.md` already leaves out. The probe is their check on every deploy.
 - **The look of the visitor's form, the line and the Library mark.** Impeccable checks them in the catalog, in both languages, both themes, print, and at a narrow and a wide width.
 
 **Checked by hand before the first artifact goes public:**

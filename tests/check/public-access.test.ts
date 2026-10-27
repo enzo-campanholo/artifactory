@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   standInAccountId,
@@ -12,6 +12,7 @@ import { createFixtureRepo, succeeds, type CommandRun, type FixtureRepo } from "
 
 const domain = "estudos.example.org";
 const protectedAud = "protected-app-aud";
+const publicAppName = "artifactory public artifacts";
 
 const protectedApp: AccessApp = {
   id: "protected-app-id",
@@ -55,9 +56,12 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
     api.account.policies = [{ id: "owner-only", name: "Owner", decision: "allow", include: [] }];
   });
 
-  async function publicAccess(mode: string, manifest: string[]): Promise<CommandRun> {
-    await mkdir(join(repo.root, "dist-worker"), { recursive: true });
-    await writeFile(join(repo.root, "dist-worker/public-paths.json"), JSON.stringify(manifest));
+  async function publicAccess(mode: string, manifest: string[] | undefined): Promise<CommandRun> {
+    const manifestFile = join(repo.root, "dist-worker/public-paths.json");
+    await mkdir(dirname(manifestFile), { recursive: true });
+    await (manifest === undefined
+      ? rm(manifestFile, { force: true })
+      : writeFile(manifestFile, JSON.stringify(manifest)));
     return repo.run("env", [
       `CLOUDFLARE_API_BASE_URL=${api.url}`,
       `CLOUDFLARE_ACCOUNT_ID=${standInAccountId}`,
@@ -69,7 +73,13 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
   }
 
   function publicApp(): AccessApp | undefined {
-    return api.account.apps.find(({ name }) => name === "artifactory public artifacts");
+    return api.account.apps.find(({ name }) => name === publicAppName);
+  }
+
+  function protectedAppInAccount(): AccessApp {
+    const app = api.account.apps.find(({ aud }) => aud === protectedAud);
+    if (app === undefined) throw new Error("the protected app is gone");
+    return app;
   }
 
   function bypassPolicies() {
@@ -172,7 +182,31 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
     );
   });
 
-  it("deletes the public app and its Bypass once nothing is public, leaving the owner's app", async () => {
+  it("open and close repair a Bypass edited by hand into anything but a bypass for everyone", async () => {
+    await succeeds(publicAccess("open", limitesOpen));
+    const editByHand = () => {
+      const policy = api.account.policies.find(({ name }) => name === publicAppName);
+      if (policy === undefined) throw new Error("open created no Bypass");
+      policy.decision = "allow";
+      policy.include = [{ email: { email: "someone@example.org" } }];
+    };
+
+    for (const mode of ["open", "close"]) {
+      editByHand();
+
+      const run = await publicAccess(mode, limitesOpen);
+
+      expect(run.exitCode).toBe(0);
+      expect(api.account.policies.filter(({ name }) => name === publicAppName)).toEqual([
+        expect.objectContaining({ decision: "bypass", include: [{ everyone: {} }] }),
+      ]);
+      expect(publicApp()?.policies?.map(({ id }) => id)).toEqual(
+        bypassPolicies().map(({ id }) => id),
+      );
+    }
+  });
+
+  it("deletes the public app and its Bypass once nothing is public, leaving the protected app", async () => {
     await succeeds(publicAccess("open", ["/_astro/*", "/favicon.svg", "/limites", "/limites/"]));
 
     const run = await publicAccess("close", []);
@@ -186,7 +220,41 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
         "Removed estudos.example.org/favicon.svg",
         "Removed estudos.example.org/limites",
         "Removed estudos.example.org/limites/",
-        "Deleted the public Access app, since nothing is public.",
+        "Deleted the public Access app, so nothing is open.",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("deletes the public app but keeps a Bypass another app uses, failing to say so", async () => {
+    await succeeds(publicAccess("open", ["/_astro/*", "/favicon.svg", "/limites", "/limites/"]));
+    const [bypass] = bypassPolicies();
+    if (bypass === undefined) throw new Error("open created no Bypass");
+    const notes: AccessApp = {
+      id: "notes-app-id",
+      aud: "notes-app-aud",
+      name: "notes",
+      type: "self_hosted",
+      domain: "notes.example.org",
+      policies: [{ id: bypass.id, precedence: 1 }],
+    };
+    api.account.apps.push(notes);
+
+    const run = await publicAccess("close", []);
+
+    expect(run.exitCode).toBe(1);
+    expect(run.output).toContain(
+      'pnpm public-access: the Access app "notes" uses the "artifactory public artifacts" policy too, so it wasn\'t deleted; take the policy off it, then rerun',
+    );
+    expect(api.account.apps).toEqual([protectedApp, notes]);
+    expect(bypassPolicies()).toEqual([bypass]);
+    expect(run.stdout).toBe(
+      [
+        "Removed estudos.example.org/_astro/*",
+        "Removed estudos.example.org/favicon.svg",
+        "Removed estudos.example.org/limites",
+        "Removed estudos.example.org/limites/",
+        "Deleted the public Access app, so nothing is open.",
         "",
       ].join("\n"),
     );
@@ -198,7 +266,7 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
     expect(run.exitCode).toBe(0);
     expect(api.account.apps).toEqual([protectedApp]);
     expect(bypassPolicies()).toEqual([]);
-    expect(run.stdout).toBe("Nothing is public, and there's no public Access app.\n");
+    expect(run.stdout).toBe("Nothing is open, and there's no public Access app.\n");
   });
 
   it("close with no public app has nothing to close and opens nothing", async () => {
@@ -225,9 +293,7 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
 
   it("open refuses to open anything while the protected app's Cookie Path Attribute is on", async () => {
     await succeeds(publicAccess("open", ["/_astro/*", "/favicon.svg", "/limites", "/limites/"]));
-    const owners = api.account.apps.find(({ aud }) => aud === protectedAud);
-    if (owners === undefined) throw new Error("the protected app is gone");
-    owners.path_cookie_attribute = true;
+    protectedAppInAccount().path_cookie_attribute = true;
 
     const run = await publicAccess("open", limitesOpen);
 
@@ -243,32 +309,124 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
     ]);
   });
 
-  it("refuses a manifest that would open the state API, in either mode, before changing anything", async () => {
+  it("open refuses to open anything while the protected app links the Bypass", async () => {
+    await succeeds(publicAccess("open", ["/_astro/*", "/favicon.svg", "/limites", "/limites/"]));
+    const [bypass] = bypassPolicies();
+    if (bypass === undefined) throw new Error("open created no Bypass");
+    protectedAppInAccount().policies?.push({ id: bypass.id, precedence: 2 });
+
+    const run = await publicAccess("open", limitesOpen);
+
+    expect(run.exitCode).toBe(1);
+    expect(run.output).toContain(
+      'pnpm public-access: the Access app "artifactory" uses the "artifactory public artifacts" policy, so anyone can open the whole site; take the policy off it, then rerun. Nothing was opened',
+    );
+    expect(publicApp()?.destinations?.map(({ uri }) => uri)).toEqual([
+      "estudos.example.org/_astro/*",
+      "estudos.example.org/favicon.svg",
+      "estudos.example.org/limites",
+      "estudos.example.org/limites/",
+    ]);
+  });
+
+  it("open refuses a manifest that could open the state API, wildcards included, before changing anything", async () => {
     await succeeds(publicAccess("open", limitesOpen));
     const before = structuredClone(api.account);
-    const manifest = ["/_astro/*", "/api/library", "/favicon.svg", "/limites", "/limites/"];
 
-    const runs = [await publicAccess("close", manifest), await publicAccess("open", manifest)];
+    const run = await publicAccess("open", [
+      "/",
+      "/*/library",
+      "/_astro/*",
+      "/a*",
+      "/api",
+      "/api/library",
+      "/apis",
+      "/apis/",
+      "/favicon.svg",
+      "/limites",
+    ]);
 
-    for (const run of runs) {
-      expect(run.exitCode).toBe(1);
-      expect(run.output).toContain(
-        "pnpm public-access: dist-worker/public-paths.json lists /api/library, and the state API never opens",
-      );
-    }
+    expect(run.exitCode).toBe(1);
+    expect(run.output).toContain(
+      "pnpm public-access: dist-worker/public-paths.json lists /, /*/library, /a*, /api, /api/library, which could open the state API",
+    );
     expect(api.account).toEqual(before);
   });
 
-  it("refuses to run before CI has filled in the custom domain", async () => {
+  it("close takes away what is no longer public before refusing a manifest that could open the state API", async () => {
+    await succeeds(publicAccess("open", limitesOpen));
+
+    const run = await publicAccess("close", [
+      "/_astro/*",
+      "/api/library",
+      "/favicon.svg",
+      "/limites",
+      "/limites/",
+    ]);
+
+    expect(run.exitCode).toBe(1);
+    expect(run.output).toContain(
+      "pnpm public-access: dist-worker/public-paths.json lists /api/library, which could open the state API",
+    );
+    expect(publicApp()?.destinations?.map(({ uri }) => uri)).toEqual([
+      "estudos.example.org/_astro/*",
+      "estudos.example.org/favicon.svg",
+      "estudos.example.org/limites",
+      "estudos.example.org/limites/",
+    ]);
+    expect(run.stdout).toBe(
+      [
+        "Removed estudos.example.org/limite",
+        "Removed estudos.example.org/limite/",
+        "The public Access app opens 4 destinations.",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("close with no manifest closes everything, then fails", async () => {
+    await succeeds(publicAccess("open", ["/_astro/*", "/favicon.svg", "/limites", "/limites/"]));
+
+    const run = await publicAccess("close", undefined);
+
+    expect(run.exitCode).toBe(1);
+    expect(run.output).toContain(
+      "pnpm public-access: there's no dist-worker/public-paths.json: build first",
+    );
+    expect(api.account.apps).toEqual([protectedApp]);
+    expect(bypassPolicies()).toEqual([]);
+    expect(run.stdout).toBe(
+      [
+        "Removed estudos.example.org/_astro/*",
+        "Removed estudos.example.org/favicon.svg",
+        "Removed estudos.example.org/limites",
+        "Removed estudos.example.org/limites/",
+        "Deleted the public Access app, so nothing is open.",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("refuses to run before CI has filled in the custom domain, close closing everything first", async () => {
+    await succeeds(publicAccess("open", limitesOpen));
+    const before = structuredClone(api.account);
     await succeeds(repo.run("git", ["stash", "push", "--quiet", "--", "wrangler.jsonc"]));
     try {
-      const run = await publicAccess("open", limitesOpen);
+      const placeholders =
+        "pnpm public-access: wrangler.jsonc still has its placeholders: run scripts/deploy-config.ts first";
 
-      expect(run.exitCode).toBe(1);
-      expect(run.output).toContain(
-        "pnpm public-access: wrangler.jsonc still has its placeholders: run scripts/deploy-config.ts first",
-      );
+      const opened = await publicAccess("open", limitesOpen);
+
+      expect(opened.exitCode).toBe(1);
+      expect(opened.output).toContain(placeholders);
+      expect(api.account).toEqual(before);
+
+      const closed = await publicAccess("close", limitesOpen);
+
+      expect(closed.exitCode).toBe(1);
+      expect(closed.output).toContain(placeholders);
       expect(api.account.apps).toEqual([protectedApp]);
+      expect(bypassPolicies()).toEqual([]);
     } finally {
       await succeeds(repo.run("git", ["stash", "pop", "--quiet"]));
     }

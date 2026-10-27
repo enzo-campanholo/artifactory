@@ -1,20 +1,24 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { publicPathsFile } from "../src/public-paths.ts";
-import { readDeployedSite } from "./wrangler-config.ts";
+import { readDeployedSite, type DeployedSite } from "./wrangler-config.ts";
 
 // Keeps the public Access app's Bypass in step with the build's public paths
-// (.scratch/public-artifacts/spec.md, "The public Access script"). `close` runs before the deploy
-// and only takes destinations away; `open` runs after it and sets exactly the new manifest. Every
-// change goes in an order that never opens more than the manifest asks, so a failure leaves pages
-// locked.
+// (.scratch/public-artifacts/spec.md, "The public Access script"). Every change goes in an order
+// that never opens more than the manifest asks, so a failure leaves artifacts locked.
 
 const root = process.cwd();
 const publicAppName = "artifactory public artifacts";
+const bypass = { name: publicAppName, decision: "bypass", include: [{ everyone: {} }] };
 
 function fail(message: string): never {
   console.error(`pnpm public-access: ${message}`);
   process.exit(1);
+}
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 interface Envelope<T> {
@@ -29,11 +33,14 @@ interface AccessApp {
   name: string;
   path_cookie_attribute?: boolean;
   destinations?: { type: string; uri?: string }[];
+  policies?: { id: string }[];
 }
 
 interface AccessPolicy {
   id: string;
   name: string;
+  decision: string;
+  include: unknown[];
 }
 
 const [mode, ...extra] = process.argv.slice(2);
@@ -48,35 +55,35 @@ if (accountId === "" || token === "") {
 // The variable wrangler reads for the API's address too; the tests point it at a stand-in.
 const apiBase = process.env.CLOUDFLARE_API_BASE_URL ?? "https://api.cloudflare.com/client/v4";
 
-const site = (() => {
-  try {
-    return readDeployedSite(root);
-  } catch (error) {
-    fail(error instanceof Error ? error.message : String(error));
-  }
-})();
-const manifest = await readManifest();
-const refused = manifest.filter((path) => path === "/api" || path.startsWith("/api/"));
-if (refused.length > 0) {
-  fail(`${publicPathsFile} lists ${refused.join(", ")}, and the state API never opens`);
-}
-const wanted = manifest.map((path) => `${site.domain}${path}`);
+const { site, manifest } = await readInputs().catch(async (error: unknown) => {
+  // Without the manifest and the domain, `close` can't tell what stays public, so it keeps
+  // nothing open.
+  if (mode === "close") await setPublicApp(await findPublicApp(), []);
+  fail(messageOf(error));
+});
+const refused = manifest.filter(couldOpenStateApi);
+const refusal = `${publicPathsFile} lists ${refused.join(", ")}, which could open the state API`;
+const wanted = manifest
+  .filter((path) => !refused.includes(path))
+  .map((path) => `${site.domain}${path}`);
 
 const publicApp = await findPublicApp();
 if (mode === "close") {
   if (publicApp === undefined) {
     console.log("There's no public Access app, so nothing is open to close.");
   } else {
-    const open = destinationsOf(publicApp);
-    await setDestinations(
+    const openNow = destinationsOf(publicApp);
+    await setPublicApp(
       publicApp,
-      open.filter((destination) => wanted.includes(destination)),
+      openNow.filter((destination) => wanted.includes(destination)),
     );
   }
+  if (refused.length > 0) fail(refusal);
 } else {
-  const protectedApp = (
-    await call<AccessApp[]>("GET", `apps?aud=${encodeURIComponent(site.accessAud)}&per_page=1000`)
-  ).find(({ aud }) => aud === site.accessAud);
+  if (refused.length > 0) fail(refusal);
+  const protectedApp = (await list<AccessApp>("apps", { aud: site.accessAud })).find(
+    ({ aud }) => aud === site.accessAud,
+  );
   if (protectedApp === undefined) {
     fail(`no Access app has the AUD wrangler.jsonc's ACCESS_AUD gives, so nothing was opened`);
   }
@@ -85,21 +92,56 @@ if (mode === "close") {
       `the Access app "${protectedApp.name}" has its Cookie Path Attribute on, so the owner's answers on a public page wouldn't save; turn it off, then rerun. Nothing was opened`,
     );
   }
-  await setDestinations(publicApp, wanted);
+  const policy = await findBypass();
+  if (policy !== undefined && protectedApp.policies?.some(({ id }) => id === policy.id) === true) {
+    fail(
+      `the Access app "${protectedApp.name}" uses the "${publicAppName}" policy, so anyone can open the whole site; take the policy off it, then rerun. Nothing was opened`,
+    );
+  }
+  await setPublicApp(publicApp, wanted);
 }
 
-async function readManifest(): Promise<string[]> {
-  const text = await readFile(join(root, publicPathsFile), "utf8").catch(() =>
-    fail(`there's no ${publicPathsFile}: build first`),
-  );
-  const paths = JSON.parse(text) as unknown;
+async function readInputs(): Promise<{ site: DeployedSite; manifest: string[] }> {
+  const site = readDeployedSite(root);
+  const text = await readFile(join(root, publicPathsFile), "utf8").catch(() => {
+    throw new Error(`there's no ${publicPathsFile}: build first`);
+  });
+  const paths = (() => {
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      return undefined;
+    }
+  })();
   if (
     !Array.isArray(paths) ||
     !paths.every((path): path is string => typeof path === "string" && path.startsWith("/"))
   ) {
-    fail(`${publicPathsFile} isn't a list of paths`);
+    throw new Error(`${publicPathsFile} isn't a list of paths`);
   }
-  return paths;
+  return { site, manifest: paths };
+}
+
+// A destination may cover the paths under it as well as itself, and `*` in it matches any run of
+// characters, so this refuses every path that could reach `/api` or anything under `/api/`.
+function couldOpenStateApi(path: string): boolean {
+  const covered = [path, path.endsWith("/") ? `${path}*` : `${path}/*`];
+  return covered.some(
+    (pattern) => couldMatch(pattern, "/api", false) || couldMatch(pattern, "/api/", true),
+  );
+}
+
+function couldMatch(pattern: string, path: string, asPrefix: boolean): boolean {
+  if (path === "") return asPrefix || /^\**$/.test(pattern);
+  if (pattern === "") return false;
+  if (pattern.startsWith("*")) {
+    return (
+      couldMatch(pattern.slice(1), path, asPrefix) || couldMatch(pattern, path.slice(1), asPrefix)
+    );
+  }
+  return (
+    path.startsWith(pattern.charAt(0)) && couldMatch(pattern.slice(1), path.slice(1), asPrefix)
+  );
 }
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -108,9 +150,7 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: body === undefined ? null : JSON.stringify(body),
   }).catch((error: unknown) =>
-    fail(
-      `${method} ${path} didn't reach Cloudflare: ${error instanceof Error ? error.message : String(error)}`,
-    ),
+    fail(`${method} ${path} didn't reach Cloudflare: ${messageOf(error)}`),
   );
   const envelope = (await response.json().catch(() => undefined)) as Envelope<T> | undefined;
   if (!response.ok || envelope?.success !== true) {
@@ -122,13 +162,15 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return envelope.result;
 }
 
+async function list<T>(collection: string, filters: Record<string, string> = {}): Promise<T[]> {
+  const query = new URLSearchParams({ ...filters, per_page: "1000" });
+  return call<T[]>("GET", `${collection}?${query.toString()}`);
+}
+
 async function findPublicApp(): Promise<AccessApp | undefined> {
-  const apps = (
-    await call<AccessApp[]>(
-      "GET",
-      `apps?name=${encodeURIComponent(publicAppName)}&exact=true&per_page=1000`,
-    )
-  ).filter(({ name }) => name === publicAppName);
+  const apps = (await list<AccessApp>("apps", { name: publicAppName, exact: "true" })).filter(
+    ({ name }) => name === publicAppName,
+  );
   if (apps.length > 1) {
     fail(`${String(apps.length)} Access apps are named "${publicAppName}": delete all but one`);
   }
@@ -144,33 +186,43 @@ function destinationsOf(app: AccessApp): string[] {
 // The Bypass is a reusable policy found by the app's name, linked by ID, since that's the form the
 // API reference documents for an app's `policies`:
 // https://developers.cloudflare.com/api/resources/zero_trust/subresources/access/subresources/applications/methods/create/
-async function bypassPolicy(): Promise<AccessPolicy | undefined> {
-  return (await call<AccessPolicy[]>("GET", "policies?per_page=1000")).find(
-    ({ name }) => name === publicAppName,
-  );
+async function findBypass(): Promise<AccessPolicy | undefined> {
+  return (await list<AccessPolicy>("policies")).find(({ name }) => name === publicAppName);
 }
 
-async function setDestinations(app: AccessApp | undefined, destinations: string[]): Promise<void> {
-  if (destinations.length === 0) {
-    if (app !== undefined) await call("DELETE", `apps/${app.id}`);
-    const policy = await bypassPolicy();
-    if (policy !== undefined) await call("DELETE", `policies/${policy.id}`);
-    printChanges(app, destinations);
-    console.log(
-      app === undefined
-        ? "Nothing is public, and there's no public Access app."
-        : "Deleted the public Access app, since nothing is public.",
+async function deleteBypass(): Promise<void> {
+  const policy = await findBypass();
+  if (policy === undefined) return;
+  const users = (await list<AccessApp>("apps")).filter((app) =>
+    app.policies?.some(({ id }) => id === policy.id),
+  );
+  if (users.length > 0) {
+    fail(
+      `the Access app ${users.map(({ name }) => `"${name}"`).join(", ")} uses the "${publicAppName}" policy too, so it wasn't deleted; take the policy off it, then rerun`,
     );
-    return;
   }
+  await call("DELETE", `policies/${policy.id}`);
+}
 
-  const policy =
-    (await bypassPolicy()) ??
-    (await call<AccessPolicy>("POST", "policies", {
-      name: publicAppName,
-      decision: "bypass",
-      include: [{ everyone: {} }],
-    }));
+// Creates, replaces or, with no destinations, deletes the public app and its Bypass.
+async function setPublicApp(app: AccessApp | undefined, destinations: string[]): Promise<void> {
+  const policy = destinations.length === 0 ? undefined : await putPublicApp(app, destinations);
+  if (policy === undefined && app !== undefined) await call("DELETE", `apps/${app.id}`);
+  printChanges(app, destinations);
+  if (policy === undefined) {
+    await deleteBypass();
+  } else if (
+    policy.decision !== bypass.decision ||
+    !isDeepStrictEqual(policy.include, bypass.include)
+  ) {
+    // Repaired only now, so it opens nothing beyond `destinations`.
+    await call("PUT", `policies/${policy.id}`, bypass);
+    console.log(`Made the "${publicAppName}" policy a bypass for everyone again.`);
+  }
+}
+
+async function putPublicApp(app: AccessApp | undefined, destinations: string[]) {
+  const policy = (await findBypass()) ?? (await call<AccessPolicy>("POST", "policies", bypass));
   const body = {
     name: publicAppName,
     type: "self_hosted",
@@ -179,25 +231,30 @@ async function setDestinations(app: AccessApp | undefined, destinations: string[
     policies: [{ id: policy.id, precedence: 1 }],
     app_launcher_visible: false,
   };
-  if (app === undefined) {
-    await call("POST", "apps", body);
-    printChanges(app, destinations);
-    console.log(
-      `Created the public Access app, opening ${String(destinations.length)} destinations.`,
-    );
-  } else {
-    await call("PUT", `apps/${app.id}`, body);
-    printChanges(app, destinations);
-    console.log(`The public Access app opens ${String(destinations.length)} destinations.`);
-  }
+  await (app === undefined ? call("POST", "apps", body) : call("PUT", `apps/${app.id}`, body));
+  return policy;
 }
 
 function printChanges(app: AccessApp | undefined, destinations: string[]): void {
-  const open = app === undefined ? [] : destinationsOf(app);
-  for (const destination of open.filter((uri) => !destinations.includes(uri))) {
+  const before = app === undefined ? [] : destinationsOf(app);
+  for (const destination of before.filter((uri) => !destinations.includes(uri))) {
     console.log(`Removed ${destination}`);
   }
-  for (const destination of destinations.filter((uri) => !open.includes(uri))) {
+  for (const destination of destinations.filter((uri) => !before.includes(uri))) {
     console.log(`Added ${destination}`);
+  }
+  const count = String(destinations.length);
+  if (destinations.length > 0) {
+    console.log(
+      app === undefined
+        ? `Created the public Access app, opening ${count} destinations.`
+        : `The public Access app opens ${count} destinations.`,
+    );
+  } else {
+    console.log(
+      app === undefined
+        ? "Nothing is open, and there's no public Access app."
+        : "Deleted the public Access app, so nothing is open.",
+    );
   }
 }

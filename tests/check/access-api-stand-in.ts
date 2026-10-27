@@ -111,6 +111,14 @@ function answer(account: AccessAccount, request: IncomingMessage, body: unknown)
       account.policies.push(policy);
       return { status: 201, result: policy };
     }
+    case "PUT policies/:id": {
+      const index = account.policies.findIndex((policy) => policy.id === id);
+      const existing = account.policies[index];
+      if (existing === undefined) return { status: 404 };
+      const policy = { ...(body as AccessPolicy), id: existing.id };
+      account.policies[index] = policy;
+      return { status: 200, result: policy };
+    }
     case "DELETE policies/:id": {
       if (account.apps.some((app) => app.policies?.some((link) => link.id === id))) {
         return { status: 400 };
