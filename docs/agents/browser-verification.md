@@ -1,0 +1,5 @@
+# Verifying browser behaviour
+
+To review a platform or design system change in a real browser, build first, then run `node scripts/verify-browser.ts <artifact-slug> [--dist <built-directory>]`. It serves the built output and never builds, so the build must include `/catalog/eye/` and an artifact of your own, made with `pnpm new`, that has questions and a table that overflows at 393 px. It writes `.look/<slug>/browser/results.json` and a contact sheet. Exit 0 means every required assertion passed, 2 a bad argument or missing build, and 1 a failed, unavailable or unsupported case. Its output hashes identify the files it inspected, not the commit that built them, and its captures still need a person to judge them.
+
+The automated browser acceptance, the last item [`tests/check`](test-seams.md#1-testscheck) owns, runs only with `ARTIFACTORY_BROWSER_ACCEPTANCE=1`: `ARTIFACTORY_BROWSER_ACCEPTANCE=1 pnpm exec vitest run tests/check/browser-verification.test.ts`. Real screen readers and physical devices stay outside it.

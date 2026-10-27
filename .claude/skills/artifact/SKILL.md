@@ -43,26 +43,9 @@ Each workflow ends with the shared steps under [Finishing](#finishing). An artif
 1. Set `draft: false`, and set `published` to today's date in São Paulo, the owner's day (`TZ=America/Sao_Paulo date +%F`), not the session's UTC date. The artifact then appears at the top of the Library.
 2. Finish: check, publish, watch CI, reply.
 
-### Make public
+### Make public or private, rename, delete
 
-1. Set `public: true` in the frontmatter. If the artifact is a draft, publish it in the same change, as in [Publish a draft](#publish-a-draft).
-2. Finish: check, publish, watch CI, reply. The reply gives the URL and says that anyone with the link can open it once CI is green, that search engines don't list it, and that the Library marks it "Public"; if it was a draft, say you published it.
-
-### Make private
-
-1. Remove the `public` line.
-2. Finish: check, publish, watch CI, reply. The reply says that anyone with the link now meets the owner's sign-in.
-
-### Rename
-
-1. `pnpm rename <old-slug> <new-slug>`. It moves the folder, records the old slug as a former slug in `formerSlugs` and rewrites links to it in other artifacts, then prints what it did. It refuses a new slug that breaks [Slugs](#slugs). Renaming back to a former slug is fine: `pnpm rename` takes it off the list. `formerSlugs` is `pnpm rename`'s alone, and the build turns each former slug into a permanent redirect, so there's no `_redirects` file to edit. A public artifact's former slugs stay open while it's public, so a link the owner sent before the rename still works.
-2. Finish: check, publish, watch CI, reply with the new URL.
-
-### Delete
-
-1. `git rm -r artifacts/<slug>/`.
-2. Run `pnpm check`. Every link to the deleted artifact fails as `link` ("leads to no page"). Reword each of those passages so it reads well without the link, and check again.
-3. Finish: publish, watch CI, and reply that the artifact is gone. The owner's answers stay stored, and restoring the folder from git brings them back.
+Before starting one, read [lifecycle.md](lifecycle.md): each has its own steps and reply.
 
 ## Finishing
 
@@ -72,12 +55,7 @@ For every new or changed diagram, figure and `Stage` (its build included), run `
 
 Look also writes `.look/<slug>/results.json` and a `contact-sheet.html` that helps find shots; judge the original PNGs. `captured-awaiting-visual-review` means a person still has to look, never a visual pass. Failed assertions, unavailable Chromium and unsupported capabilities aren't passes either.
 
-A `Stage` (kind `stage-choose`, or `stage-input` for typed input) is shot as written, then at every step of its first option, or of its first example, which Look runs by pressing Start on the fields as written:
-
-- Only the first option or example is shot; `pnpm check` runs the others. Put the one worth looking at first in `choose.options` or `input.examples`.
-- Under the Stage, Look prints what it ran and its count of steps (`first option A, 5 steps`, `first example a = 48, b = 18, 5 steps`), or the refusal it got.
-- Compare each step's shot with the step's line as well as the `alt`. A Stage without `figure` has no `alt`: Look prints its caption instead, so compare its shots with the caption and the step's line.
-- Look asserts the current step and advancement after each action; a stuck control fails rather than producing repeated shots labelled as different steps.
+Before judging a `Stage`'s shots, read [stage.md](stage.md#look): which run Look shoots, what it prints, and what each step's shot is compared with.
 
 If the build fails, `pnpm look` says so: run `pnpm check` to see why. If Chrome can't be downloaded or started (possible in a cloud session), note it for the reply and go on to the check.
 
@@ -94,9 +72,7 @@ last_passed=$(
 pnpm check ${last_passed:+--last-passed "$last_passed"}
 ```
 
-With no SHA, this runs the full gate. On another branch, or for platform work, run plain `pnpm check`.
-
-`--last-passed` skips only Vitest, and only when every changed or untracked file is under `artifacts/`, `.scratch/` or `docs/`, or nothing changed. A platform file or an untracked root file runs the tests; an unavailable comparison SHA runs them too. The log gives the reason. Ordinary `pnpm check` always runs Vitest.
+With no SHA, this runs the full gate. On another branch, or for platform work, run plain `pnpm check`. [ci.md](ci.md#skipping-vitest) says which changes still run the tests.
 
 The gate can take 20 minutes or more when other jobs share the machine, so run it in the background and wait for it to finish, rather than under a foreground timeout that kills it. It ends with a `pnpm check: N failures` block that repeats every failure:
 
@@ -121,12 +97,7 @@ To see the page while writing, `pnpm dev` serves it at `http://localhost:4321/<s
 1. Find the run for your commit: `gh run list --commit "$(git rev-parse HEAD)"` (it can take a few seconds to appear).
 2. `gh run watch <id> --exit-status`. A publish run skips the platform tests and takes about a minute; its log says `pnpm check: skipped Vitest: …`. It takes about six when platform files changed since the last green run. If the run ends cancelled, a newer push replaced it while it waited. That run checks your commit too, so watch it instead: `gh run list --branch main --limit 1`.
 3. If it goes red, fixing it comes before anything else. Read the failures with `gh run view <id> --log-failed | tail -n 60`: the tail holds the same `pnpm check: N failures` block. Fix, check, push and watch again. A red check leaves the previous version live.
-4. On `main`, the steps after the check deploy the site, set what's open, then probe from outside what is. Their failures aren't check failures, so their log has no failures block:
-   - **Close public paths** red: nothing was deployed, and an artifact going private may still be open.
-   - **Open public paths** red: the new version is live, but an artifact going public may still be behind the sign-in.
-   - **Probe** red: the new version is live, but a path is open or closed that shouldn't be, such as an artifact going public still behind the sign-in or one going private still open.
-
-   Rerun once with `gh run rerun <id>` and watch it. If the step is red again, tell the owner what its log says. For Close or Open, give its last lines (`gh run view <id> --log-failed | tail -n 20`): a missing token, a Cookie Path Attribute that's on, or another Access app using the public artifacts' policy is theirs to fix in GitHub's or Cloudflare's settings. For the Probe, give its `OFF` lines (`gh run view <id> --log-failed | grep ' OFF '`): each names a path, what it should answer and what it answered.
+4. On `main`, the steps after the check deploy the site, set what's open, then probe from outside what is. Their failures aren't check failures, so their log has no failures block. If one goes red, follow [ci.md](ci.md#deploy-steps).
 
 ### Reply
 
@@ -140,7 +111,7 @@ The owner studies alone with it, on a phone or a laptop.
 - **Open with the point.** The first paragraph says what the artifact covers and why it matters. Then build from what the owner already knows towards what's new, one idea per `##` section.
 - **Name the sections.** The `##` headings are the page's contents: with three or more, the page lists them beside the text on a laptop and in a folded contents line on the phone. Write each as the short name of what the section covers (`## Função e área`), not a sentence, a question or a label such as `## Parte 2`.
 - **Write paragraphs that can be cited.** The page numbers every section, `###` subsection, paragraph and statement after the first `##` in the margin (1, 1.1, 1.2), display equations on their own series ((1), (2)), and figures and diagrams by section (Figura 4.1). Never number them yourself, and keep each paragraph to one point so its number means something. Refer to them by those numbers: "pela equação (2)", "na Figura 3.1".
-- **State definitions and results as statements.** Write each definition, theorem, lemma or corollary the source names as a `Statement`, at the top level of a section, never as bold text or a heading. Its number is the next clause number, in the paragraphs' series. Cite it anywhere in the artifact with `<Ref to="…" />`, which reads "Teorema 2.1" and links to it; write the article yourself ("pelo <Ref to="valor-medio" />"). Write the proof the source gives a theorem, lemma or corollary as a `<Proof of="…">` right after the statement: it and its paragraphs take no number, and the page opens it with "Demonstração." and ends it with a square. Keep it at the section's top level too: nested in a list or a question, a proof never counts as following its statement, so it always opens by naming it, and its equations go unnumbered. A proof the source gives later opens "Demonstração do Teorema 2.1." on its own, so keep it where the source puts it. Work each problem the source solves as a `<Statement kind="example">`: the problem, `---` between blank lines, then the solution, which the page shows openly after "Solução.". An example teaches and a question tests, so when the owner should work a problem out themselves, ask it as an `OpenQuestion` or `NumericQuestion` instead, typically right after an example of the same kind. Explanations stay in paragraphs, and asides in a `Note`.
+- **State definitions and results as statements.** Write each definition, theorem, lemma or corollary the source names as a `Statement` (never as bold text or a heading), the proof the source gives as a `Proof` right after it, and each problem the source solves as a `<Statement kind="example">` with its solution. An example teaches and a question tests, so when the owner should work a problem out themselves, ask it as an `OpenQuestion` or `NumericQuestion` instead, typically right after an example of the same kind. Explanations stay in paragraphs. Before writing a `Statement`, `Proof` or `Ref`, read [statements.md](statements.md).
 - **Put asides in a `Note`.** A remark that would interrupt the sentence goes in a `Note` at the end of its paragraph, which the page sets in the margin. What the owner must read stays in the paragraph.
 - **Show, then ask.** Explain an idea, show it with a worked example, a diagram or a stepper, then ask a question about it while it's fresh. Spread questions through the artifact, after the idea they test. The page numbers the questions in order and letters the options, so don't number or letter them yourself.
 - **Pick the form that fits.** Math for formulas, a code block for code, a `Diagram` for structure and flow, a `Figure` for plots and shapes, a `Stepper` when the order is the point, a `Stage` when the steps depend on what the owner chooses (see [Custom builds](#custom-builds)). `COMPONENTS.md` says when to use each.
@@ -150,7 +121,7 @@ The owner studies alone with it, on a phone or a laptop.
 
 ## Writing rules
 
-A `pnpm check` failure names one of these sections. Each one holds every rule of its kind.
+A `pnpm check` failure names one of these sections. Each one holds every rule of its kind, or points to the sibling file that does.
 
 ### Frontmatter
 
@@ -163,7 +134,7 @@ A `pnpm check` failure names one of these sections. Each one holds every rule of
 - `lang`: the main language, `pt-BR` or `en`.
 - `published`: the published date, unquoted (`2026-10-15`), the São Paulo date of the day it first appeared. Only publishing a draft changes it.
 - `draft`: `true` keeps the artifact out of the Library.
-- `public`: `true` opens the artifact to anyone with its link, and `false`, the default, keeps it behind the owner's sign-in. Set or remove it only as in [Make public](#make-public) and [Make private](#make-private). A draft can't be public: `frontmatter` fails at the `public` line ("`public` can't be true on a draft"). Remove `public`, unless the owner asked for this artifact to be public: then follow [Make public](#make-public).
+- `public`: `true` opens the artifact to anyone with its link, and `false`, the default, keeps it behind the owner's sign-in. Set or remove it only as in [Make public](lifecycle.md#make-public) and [Make private](lifecycle.md#make-private). A draft can't be public: `frontmatter` fails at the `public` line ("`public` can't be true on a draft"). Remove `public`, unless the owner asked for this artifact to be public: then follow [Make public](lifecycle.md#make-public).
 - One Access app opens at most 50 paths: two for each public artifact and for each of its former slugs, plus two shared by all. When the public artifacts need more, `public` fails at every public artifact. Never choose which to make private: list the public artifacts to the owner by slug and title, and wait.
 - `formerSlugs`: written only by `pnpm rename`.
 
@@ -226,14 +197,13 @@ Rule `code-language`.
 
 ### Diagrams and figures
 
-Rule `d2`, and `TS2322` for a missing `alt` (see [Components](#components)). `COMPONENTS.md` has the import forms, props, colour classes and the stepper's `data-step` grammar. Before writing a `.d2` file, read [d2.md](d2.md); before writing an `.svg`, read [figures.md](figures.md).
+Rule `d2`, and `TS2322` for a missing `alt` (see [Components](#components)). `COMPONENTS.md` has the import forms, props, colour classes and the stepper's `data-step` grammar. Before writing a `.d2` file or fixing a `d2` failure, read [d2.md](d2.md); before writing an `.svg`, read [figures.md](figures.md).
 
 - **Real `alt`:** say what the drawing shows and what it means, in the main language. The check requires `alt` but accepts `alt=""`, which leaves screen readers with nothing: always write a real description.
 - **Colours and style come from the design system.** Write no colours in a `.d2` file, and none of the styles [d2.md](d2.md) lists under "The design system's style". In an `.svg`, colour only with the `fill-` and `stroke-` classes.
 - **One file, one place:** show each `.d2` file at most once per page, because a second rendering repeats its SVG IDs. Use a second file instead.
 - **Captions:** give a `Diagram` or `Figure` a `caption` saying what to look for, unless the paragraph before already says it. The page writes its number before the caption.
 - **Steppers:** give a stepper `captions` unless the prose around it explains each step. A `.d2?steps` file with fewer than two boards fails; `COMPONENTS.md` says how boards count.
-- **Failures:** "D2 can't compile this diagram: …" at the `.d2` line; "A stepper needs at least two boards …"; "`a` has a link, but diagrams draw no links, tooltips or icons …" and "`a` sets `style.shadow`, but diagrams cast no shadows …" (one for each style in d2.md's "The design system's style") at the line that asks for it. D2 reports syntax errors before others, so a fixed file can fail again with new errors.
 
 ### Components
 
@@ -242,11 +212,7 @@ Rules `TS…` (type errors), `question-id`, `statement-id`, `statement-section`,
 - **Type errors** name the prop: `Property 'alt' is missing …` means a required prop is missing, and `Type 'string' is not assignable to type 'number'` means a number was written as a string (`answer={2}`, not `answer="2"`). `NumericQuestion` is the exception: its `answer` is a string (`answer="9.81"`), so it keeps fractions and large numbers exact, while its `tolerance` and `relativeTolerance` are numbers (`tolerance={0.01}`).
 - **Question IDs:** readable lowercase kebab-case (`ciclo-de-krebs-atp`), unique within the artifact. Write `id` as a plain string, `id="…"`, so failures point at the right line. The same ID in two different artifacts is fine. Failures read "the question ID `x` is already used at line N …" or "… isn't lowercase kebab-case".
 - **The question ID rule** for revisions: keep a question's ID when earlier answers would still be valid answers to the revised question (fixing a typo, clarifying the wording, correcting the answer key). Correcting a `NumericQuestion`'s `answer`, `tolerance` or `relativeTolerance` keeps its ID too: past answers are marked again against the corrected key. Give it a new ID when it asks something different, or when changed options would make an old choice mean something else. Never reuse a removed question's ID for a different question: its old answers come back with it.
-- **Statement IDs:** readable lowercase kebab-case (`valor-medio`), unique among the artifact's statements, written as a plain string, `id="…"`. A question may use the same ID. A statement's ID holds no answers, so renaming it only means updating its citations. Failures read "the statement ID `x` is already used at line N …" or "… isn't lowercase kebab-case".
-- **Statements stand at a section's top level:** the margin numbers only a section's own paragraphs, `###`s and statements, so a statement anywhere else would have no number to cite. "the statement `x` has no section number" (`statement-section`) means it comes before the first `##` heading, or sits inside a list, a question or another component. Move it to the top level of a section.
-- **Only examples have solutions:** "the example `x` has no solution" (`statement-solution`) means it lacks a `---` between blank lines with the solution after it: write both. A `---` right under a line of text turns that line into a heading, so keep the blank line above it. "the `theorem` `x` has a `---`, but only an example has a solution" means a definition, theorem, lemma or corollary holds one: make it `kind="example"` when it works a problem, or move what follows the `---` after the statement, as a `<Proof of="x">` when it proves a theorem, lemma or corollary and as a paragraph otherwise. "… has a `---` with nothing after it" means the `---` is stray: remove it.
-- **Citations:** "the citation `x` names no statement in this artifact" (`citation-target`) means no `Statement` has the `id` that `Ref`'s `to` names. Correct `to`, or reword the passage when the statement is gone.
-- **Proofs prove claims:** a `Proof`'s `of` names the `id` of a theorem, lemma or corollary. "the proof of `x` names no statement in this artifact" (`proof-target`) means no `Statement` has that `id`: correct `of`. "… names a statement of kind `definition`" (or `example`) means it proves something that takes no proof: point `of` at the result it proves, or make the text a paragraph (for an example, its solution after `---`).
+- **Statements, proofs and citations:** [statements.md](statements.md) holds their rules and what each of their failures means.
 - A component's own rule, such as a `SingleChoice` without a numbered list, fails as `build` (see [Build failures](#build-failures)).
 
 ### Custom builds

@@ -1,6 +1,6 @@
 # Custom builds
 
-The rules for a `Stage`'s `<build>.build.ts`, after the [Custom builds](SKILL.md#custom-builds) section's first three.
+The rules for a `Stage`'s `<build>.build.ts`, after the [Custom builds](SKILL.md#custom-builds) section's first three, then what [Look](SKILL.md#look) shoots of a Stage.
 
 - **Imports:** only `@artifactory/design-system/stage-build`. Failure: "`x` isn't `@artifactory/design-system/stage-build`, the only module a build may import", at the import.
 - **Types:** builds are strict TypeScript with the ES library only, so no DOM or Node: `document`, `window`, `fetch`, `localStorage`, `process` and `console` fail as `TS…` at the name ("Cannot find name 'document'"). A build turns a choice into data and touches nothing else.
@@ -15,3 +15,12 @@ The rules for a `Stage`'s `<build>.build.ts`, after the [Custom builds](SKILL.md
 - **Runs:** after the build passes, the check runs `steps` on every option or example against the built page. Each failure names the option or example (`a = 48, b = 18`), the step and what's wrong, at the build file, and the page refuses the same runs: "with `B`, `steps` throws: …" (at the line that threw), "returns no steps", "returns more than 200 steps", "returns something that isn't a list of steps", "step 1 has a `say` that isn't text", "step 1 marks `A` in `parts` with `negrito`, which isn't a mark" (a cast can get past the types; the check still catches it), "step 3 has an empty `say`", "step 1 marks the part `D` `dashed`, which changes nothing in it: `dashed` acts on shapes with a `stroke-` class", "step 2 marks the part `C`, which the drawing doesn't have", "marks the row `B`, which starts no table row", "changes a cell in the column `Peso`, which heads no table", "names the row `A`, which starts more than one table row" (make each row's first cell and each header unique among the Stage's tables), and "`steps` didn't return within 5 seconds" (a loop that never ends).
 - A Stage's own rules fail as `build`, under [Build failures](SKILL.md#build-failures): "Stage: there is no `x.build.ts` beside the entry", "give it `choose`, with a label and its options, or `input`, with its fields and examples", "give it only one of `choose` and `input`", "give `input` at least one example", "example 2 has `c`, which no field has", "example 2 has no `b`", "example 2 gives `a` 4.5, which isn't a whole number", "example 3 gives `b` 10000, outside 0 to 9999", "give `alt` with `figure`", "set `beside` only with `figure`".
 - Builds aren't linted or formatted, and `CODING_STANDARDS.md` doesn't apply to them, but keep them short and plain: the next agent reads one to learn the job.
+
+## Look
+
+A `Stage` (kind `stage-choose`, or `stage-input` for typed input) is shot as written, then at every step of its first option, or of its first example, which Look runs by pressing Start on the fields as written:
+
+- Only the first option or example is shot; `pnpm check` runs the others. Put the one worth looking at first in `choose.options` or `input.examples`.
+- Under the Stage, Look prints what it ran and its count of steps (`first option A, 5 steps`, `first example a = 48, b = 18, 5 steps`), or the refusal it got.
+- Compare each step's shot with the step's line as well as the `alt`. A Stage without `figure` has no `alt`: Look prints its caption instead, so compare its shots with the caption and the step's line.
+- Look asserts the current step and advancement after each action; a stuck control fails rather than producing repeated shots labelled as different steps.
