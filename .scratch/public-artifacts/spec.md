@@ -2,7 +2,7 @@
 
 Status: resolved
 
-[ADR 0005](../../docs/adr/0005-cloudflare-workers-d1-access.md) records the Bypass and the open `/_astro/` files, and `GLOSSARY.md` (**Public artifact**, **Visitor**, **Throwaway state**) the vocabulary. Tickets 01–05 have landed: the frontmatter mark, `noindex`, the visitor's page, the Library mark and the Access token, stored as the GitHub secret `CLOUDFLARE_ACCESS_API_TOKEN`. Tickets [06](issues/06-keep-the-public-access-app-in-step-in-ci.md), [07](issues/07-probe-from-outside-what-is-open.md) and [08](issues/08-share-the-first-public-artifact.md) landed too: the sample artifact `rsa-from-scratch` went public on 2026-10-27 and the probe passed from outside. [09](issues/09-watch-the-public-access-app-deleted-and-its-wildcard.md) holds the two Access API behaviours the live runs haven't exercised yet.
+[ADR 0005](../../docs/adr/0005-cloudflare-workers-d1-access.md) records the Bypass and the open `/_astro/` files, and `GLOSSARY.md` (**Public artifact**, **Visitor**, **Throwaway state**) the vocabulary. Tickets 01–05 have landed: the frontmatter mark, `noindex`, the visitor's page, the Library mark and the Access token, stored as the GitHub secret `CLOUDFLARE_ACCESS_API_TOKEN`. Tickets 06, 07 and 08 landed too: the sample artifact `rsa-from-scratch` went public on 2026-10-27 and the probe passed from outside. 09 settled the `*` wildcard's reach and left the policy deletion unexercised, by the owner's choice. The tickets were deleted once resolved; they're in git history.
 
 ## Problem Statement
 
@@ -163,14 +163,14 @@ On `main`, after the check passes, in this order:
 
 ### The probe
 
-- **A `pnpm probe` command**, run by CI after opening and by the owner by hand. It reads the checkout's frontmatter through the public paths module and the custom domain from `wrangler.jsonc`, or from `ARTIFACTORY_DOMAIN` while `wrangler.jsonc` holds its placeholders, as in a checkout ([decided on ticket 07](issues/07-probe-from-outside-what-is-open.md#2026-10-26-where-the-probe-gets-the-domain-approved)). It sends unauthenticated requests with no cookies and follows no redirects.
+- **A `pnpm probe` command**, run by CI after opening and by the owner by hand. It reads the checkout's frontmatter through the public paths module and the custom domain from `wrangler.jsonc`, or from `ARTIFACTORY_DOMAIN` while `wrangler.jsonc` holds its placeholders, as in a checkout (decided on ticket 07). It sends unauthenticated requests with no cookies and follows no redirects.
 - **Must be open:**
   - each public artifact's `/<slug>/` answers 200;
   - `/<slug>` answers the assets layer's trailing-slash redirect, 307 to `/<slug>/`;
   - each former slug, with and without its slash, answers 301 to `/<slug>/`;
   - `/favicon.svg` and every `/_astro/` file the first public page links to answer 200, and that page names at least one.
   - A redirect is checked by its status and its destination: it counts only if both are the expected ones, and its `Location` is the expected path on the site, never the Access login. A 302 to the Access login on an open path is a failure, not a redirect.
-- **Must be closed:** `/`, `/drafts/`, `/catalog/` and one published private artifact, when there is one, answer 302 to the Access login or 401. When nothing is public, so does `/favicon.svg`. `/api/library` answers 302 to the Access login only: the Worker sends its own 401 to a request without an Access token, so a 401 there could mean Access let the request through ([decided on ticket 07](issues/07-probe-from-outside-what-is-open.md#2026-10-26-review-of-b8a4ab9-and-the-owners-decisions)).
+- **Must be closed:** `/`, `/drafts/`, `/catalog/` and one published private artifact, when there is one, answer 302 to the Access login or 401. When nothing is public, so does `/favicon.svg`. `/api/library` answers 302 to the Access login only: the Worker sends its own 401 to a request without an Access token, so a 401 there could mean Access let the request through (decided on ticket 07).
 - **`noindex`:** every response from the assets layer carries `X-Robots-Tag: noindex`. Responses Access itself sends (its 302 and 401) can't carry it and aren't asked to.
 - **Propagation:** a path that's off is retried for up to a minute before the probe fails, since Access and the deploy take a moment to propagate (proposed).
 - It prints the origin it asks, then one line per path, with what it expected and what it got, and exits non-zero on any mismatch.
