@@ -100,15 +100,16 @@ export async function readEntry(root: string, slug: string): Promise<Entry> {
   const subject = artifactFrontmatter.shape.subject.safeParse(frontmatter.subject);
   const isPublic = artifactFrontmatter.shape.public.safeParse(frontmatter.public);
   const isDraft = artifactFrontmatter.shape.draft.safeParse(frontmatter.draft);
+  const draft = isDraft.success && isDraft.data;
   return {
     file,
     source: artifactSource(text),
     id: id.success ? id.data : undefined,
     formerSlugs: formerSlugs.success ? (formerSlugs.data ?? []) : [],
     subject: subject.success ? subject.data : undefined,
-    draft: isDraft.success && isDraft.data,
+    draft,
     // A draft is never public: the schema refuses one marked public, and it opens nothing.
-    public: isPublic.success && isPublic.data && !(isDraft.success && isDraft.data),
+    public: isPublic.success && isPublic.data && !draft,
     invalidIdentityFields: [
       ...(id.success ? [] : ["id" as const]),
       ...(formerSlugs.success ? [] : ["formerSlugs" as const]),

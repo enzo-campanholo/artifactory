@@ -52,13 +52,12 @@ function deployedSite(): Record<string, SiteAnswer> {
     "/favicon.svg": open({ status: 200 }),
     "/_astro/limites.Ab12.css": open({ status: 200 }),
     "/_astro/page.Cd34.js": open({ status: 200 }),
-    "/api/library": { status: 401 },
+    "/catalog/": { status: 401 },
   };
 }
 
 const passingLines = [
-  "Probing https://estudos.example.org from outside, with no cookies and following no redirects.",
-  "ok  /limites/: expected 200 with noindex, got 200 with noindex",
+  "ok  /limites/: expected 200 with noindex and /_astro/ files, got 200 with noindex and 2 /_astro/ files",
   "ok  /limites: expected 307 to /limites/ with noindex, got 307 to /limites/ with noindex",
   "ok  /limite: expected 301 to /limites/ with noindex, got 301 to /limites/ with noindex",
   "ok  /limite/: expected 301 to /limites/ with noindex, got 301 to /limites/ with noindex",
@@ -67,8 +66,8 @@ const passingLines = [
   "ok  /_astro/page.Cd34.js: expected 200 with noindex, got 200 with noindex",
   "ok  /: expected 302 to the Access login or 401, got 302 to the Access login",
   "ok  /drafts/: expected 302 to the Access login or 401, got 302 to the Access login",
-  "ok  /api/library: expected 302 to the Access login or 401, got 401",
-  "ok  /catalog/: expected 302 to the Access login or 401, got 302 to the Access login",
+  "ok  /api/library: expected 302 to the Access login, got 302 to the Access login",
+  "ok  /catalog/: expected 302 to the Access login or 401, got 401",
   "ok  /derivadas/: expected 302 to the Access login or 401, got 302 to the Access login",
 ];
 
@@ -91,6 +90,9 @@ describe("pnpm probe against the deployed site", () => {
     site.requests = [];
   });
 
+  const probing = () =>
+    `Probing estudos.example.org at ${site.url}, from outside, with no cookies and following no redirects.`;
+
   function probe(
     env = ["ARTIFACTORY_DOMAIN=estudos.example.org"],
     unset: string[] = [],
@@ -109,7 +111,9 @@ describe("pnpm probe against the deployed site", () => {
     const run = await probe();
 
     expect(run.exitCode).toBe(0);
-    expect(run.stdout).toBe([...passingLines, "All 12 paths answered as expected.", ""].join("\n"));
+    expect(run.stdout).toBe(
+      [probing(), ...passingLines, "All 12 paths answered as expected.", ""].join("\n"),
+    );
   });
 
   function outcome(run: CommandRun) {
@@ -168,8 +172,22 @@ describe("pnpm probe against the deployed site", () => {
     site.answers["/limites/"] = { status: 200, body: limitesPage };
 
     expect(outcome(await probe())).toEqual(
-      oneOff("OFF /limites/: expected 200 with noindex, got 200 without noindex"),
+      oneOff(
+        "OFF /limites/: expected 200 with noindex and /_astro/ files, got 200 without noindex and 2 /_astro/ files",
+      ),
     );
+  });
+
+  it("fails a first public page that names no /_astro/ file, leaving no file to check", async () => {
+    site.answers["/limites/"] = open({ status: 200, body: "<!doctype html><html></html>" });
+
+    expect(outcome(await probe())).toEqual({
+      exitCode: 1,
+      off: [
+        "OFF /limites/: expected 200 with noindex and /_astro/ files, got 200 with noindex and no /_astro/ files",
+      ],
+      verdict: "pnpm probe: 1 of 10 paths didn't answer as expected",
+    });
   });
 
   it("fails a private artifact anyone can open", async () => {
@@ -185,6 +203,14 @@ describe("pnpm probe against the deployed site", () => {
 
     expect(outcome(await probe())).toEqual(
       oneOff("OFF /: expected 302 to the Access login or 401, got 200 with noindex"),
+    );
+  });
+
+  it("fails the Library API answering 401, which only the Worker sends past Access", async () => {
+    site.answers["/api/library"] = { status: 401 };
+
+    expect(outcome(await probe())).toEqual(
+      oneOff("OFF /api/library: expected 302 to the Access login, got 401"),
     );
   });
 
@@ -205,11 +231,11 @@ describe("pnpm probe against the deployed site", () => {
       expect(allClosed.exitCode).toBe(0);
       expect(allClosed.stdout).toBe(
         [
-          "Probing https://estudos.example.org from outside, with no cookies and following no redirects.",
+          probing(),
           "ok  /favicon.svg: expected 302 to the Access login or 401, got 302 to the Access login",
           "ok  /: expected 302 to the Access login or 401, got 302 to the Access login",
           "ok  /drafts/: expected 302 to the Access login or 401, got 302 to the Access login",
-          "ok  /api/library: expected 302 to the Access login or 401, got 302 to the Access login",
+          "ok  /api/library: expected 302 to the Access login, got 302 to the Access login",
           "ok  /catalog/: expected 302 to the Access login or 401, got 302 to the Access login",
           "ok  /derivadas/: expected 302 to the Access login or 401, got 302 to the Access login",
           "All 6 paths answered as expected.",
@@ -235,9 +261,9 @@ describe("pnpm probe against the deployed site", () => {
     expect(run.exitCode).toBe(0);
     expect(run.stdout).toBe(
       [
-        passingLines[0],
+        probing(),
         "Retrying what's off for up to 2 seconds, while Access and the deploy propagate.",
-        ...passingLines.slice(1),
+        ...passingLines,
         "All 12 paths answered as expected.",
         "",
       ].join("\n"),
@@ -274,7 +300,7 @@ describe("pnpm probe against the deployed site", () => {
       const run = await probe(["ARTIFACTORY_DOMAIN=outro.example.org"]);
 
       expect(run.exitCode).toBe(0);
-      expect(run.stdout.split("\n")[0]).toBe(passingLines[0]);
+      expect(run.stdout.split("\n")[0]).toBe(probing());
     } finally {
       await succeeds(repo.run("git", ["checkout", "--", "wrangler.jsonc"]));
     }

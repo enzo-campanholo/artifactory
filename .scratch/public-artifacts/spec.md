@@ -168,12 +168,12 @@ On `main`, after the check passes, in this order:
   - each public artifact's `/<slug>/` answers 200;
   - `/<slug>` answers the assets layer's trailing-slash redirect, 307 to `/<slug>/`;
   - each former slug, with and without its slash, answers 301 to `/<slug>/`;
-  - `/favicon.svg` and every `/_astro/` file the first public page links to answer 200.
+  - `/favicon.svg` and every `/_astro/` file the first public page links to answer 200, and that page names at least one.
   - A redirect is checked by its status and its destination: it counts only if both are the expected ones, and its `Location` is the expected path on the site, never the Access login. A 302 to the Access login on an open path is a failure, not a redirect.
-- **Must be closed:** `/`, `/drafts/`, `/api/library`, `/catalog/` and one published private artifact, when there is one, answer 302 to the Access login or 401. When nothing is public, so does `/favicon.svg`.
+- **Must be closed:** `/`, `/drafts/`, `/catalog/` and one published private artifact, when there is one, answer 302 to the Access login or 401. When nothing is public, so does `/favicon.svg`. `/api/library` answers 302 to the Access login only: the Worker sends its own 401 to a request without an Access token, so a 401 there could mean Access let the request through ([decided on ticket 07](issues/07-probe-from-outside-what-is-open.md#2026-10-26-review-of-b8a4ab9-and-the-owners-decisions)).
 - **`noindex`:** every response from the assets layer carries `X-Robots-Tag: noindex`. Responses Access itself sends (its 302 and 401) can't carry it and aren't asked to.
 - **Propagation:** a path that's off is retried for up to a minute before the probe fails, since Access and the deploy take a moment to propagate (proposed).
-- It prints one line per path, with what it expected and what it got, and exits non-zero on any mismatch.
+- It prints the origin it asks, then one line per path, with what it expected and what it got, and exits non-zero on any mismatch.
 
 ### Setup by the owner
 

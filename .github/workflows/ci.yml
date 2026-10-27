@@ -103,8 +103,6 @@ jobs:
         env:
           CLOUDFLARE_ACCESS_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCESS_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-      # Checks from outside that exactly the public paths are open, so a mistake in what's open
-      # shows as a red run.
       - name: Probe
         if: github.ref == 'refs/heads/main' && vars.ARTIFACTORY_DOMAIN != ''
         run: pnpm probe

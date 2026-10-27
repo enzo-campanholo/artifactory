@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { publicPathsFile } from "../src/public-paths.ts";
+import { messageOf } from "./error-message.ts";
 import { readDeployedSite, type DeployedSite } from "./wrangler-config.ts";
 
 // Keeps the public Access app's Bypass in step with the build's public paths
@@ -15,10 +16,6 @@ const bypass = { name: publicAppName, decision: "bypass", include: [{ everyone: 
 function fail(message: string): never {
   console.error(`pnpm public-access: ${message}`);
   process.exit(1);
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 interface Envelope<T> {
