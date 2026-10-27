@@ -11,7 +11,7 @@ Specified in [Public artifacts](../spec.md): "Checked by hand before the first a
 - Agents never push or deploy here; the owner does. A `/wizard` script may guide the owner through the push, the run and the checks.
 
 - [x] The hand check on `pnpm dev:worker` passes (agent, recorded here).
-- [ ] After the owner's deploy: the private window shows the visitor's page, the phone the owner's and saves, and `pnpm probe` passes (owner).
+- [x] After the owner's deploy: the private window shows the visitor's page, the phone the owner's and saves, and `pnpm probe` passes (owner).
 - [ ] Recorded here: whether `_headers` reaches the 301s, and the trailing-slash redirect's status; the probe and spec are corrected if either differs.
 
 ## Comments
@@ -96,3 +96,7 @@ A headless Chrome with no cookies loaded `https://<domain>/rsa-by-hand/` (domain
 The owner saw "This page couldn't start" on a preview served from `pnpm dev:worker` over plain HTTP at a Tailscale address. That isn't a secure context, so `crypto.randomUUID` (called by `startStore`, `design-system/src/state.ts`) is undefined and throws; the same page from `localhost` started. The live site is HTTPS, so it doesn't apply there. A preview for another machine needs HTTPS or a forwarded `localhost` port.
 
 **Left for the owner:** the phone check in the second checklist item (owner's page, saves).
+
+### 2026-10-27: the phone check passes
+
+Owner, T3 thread, 2026-10-27: on the signed-in phone, the owner's page saves answers. With the visitor's page and the probe recorded in [the first live run](#2026-10-27-the-first-live-run), the second checklist item is met. Still open here: `noindex` on a public artifact's 301s, and ticket 06's API questions the run left unexercised.
