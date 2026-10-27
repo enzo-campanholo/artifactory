@@ -80,3 +80,27 @@ Two-axis review (Standards and Spec) of `7ea260f...0419cae`. The probe's open se
 **Not taken:** checking `/_astro/` closed when nothing is public. With nothing public there's no page to name its files, and the ticket names only the favicon.
 
 **Coordinator's edit:** `0419cae` replaced the local checkout path in the `Where:` lines of 06's and 07's handoffs with "the upstream checkout", since everything committed upstream is public. The handoffs are otherwise unchanged.
+
+### 2026-10-26: handoff (fix round)
+
+Owner: the implementation sub-agent the coordinator's T3 thread started for 07's fix round; no delegated agents.
+Where: the upstream checkout, branch `public-access`, HEAD `e0d98e3` (the fixes), plus the commit carrying this comment. Not pushed.
+Done: every accepted finding of [the review](#2026-10-26-review-of-b8a4ab9-and-the-owners-decisions), in `e0d98e3`, with the docs that describe them:
+
+1. `/api/library` passes only on a 302 to the Access login; the other closed paths keep "302 to the Access login or 401". Test: "fails the Library API answering 401, which only the Worker sends past Access", red before the change; the passing fixture now answers the Library API with the login redirect and the catalog with a 401, so a 401 still passes where Access may send it.
+2. The first public page expects "200 with noindex and /_astro/ files", and one naming none is `OFF`. Test: "fails a first public page that names no /_astro/ file, leaving no file to check", red before the change (it passed with exit 0).
+3. The first line names the origin the probe asks: `Probing https://<domain> from outside, …`, or `Probing <domain> at <origin>, from outside, …` when `ARTIFACTORY_PROBE_ORIGIN` points elsewhere. Test: the passing run's first line, red before the change; the retry, nothing-public and `wrangler.jsonc` tests assert it too.
+4. This comment, and [08's](08-share-the-first-public-artifact.md#2026-10-26-from-ticket-07s-fix-round).
+5. The CI Probe step's comment is gone (the step's name and place say what it would). The skill's Watch CI step 4 says the steps after the check "deploy the site, set what's open, then probe from outside what is", the Probe bullet names an artifact going public still behind the sign-in or one going private still open, and the `OFF` lines are explained once, where the rerun paragraph says what to give the owner.
+6. `readEntry` reads the draft value into one local; `messageOf` lives in `scripts/error-message.ts` for the probe and `pnpm public-access`; `isAccessLogin(answer)` serves both the closed check and the answer's description (one `isClosed` no longer fits, since after finding 1 what closes a path depends on the path); `held` is `openSlugs` and `firstPage` is `firstPublicPage`, the page's path; the `/_astro/` files are found from the first public page's answer once the first round of asking ends, then asked with the same deadline, and `answersAsExpected` and `astroFiles` take the answer as an argument.
+
+The spec's "The probe" and `CODING_STANDARDS.md`'s seam 1 list follow. `tests/check/probe.test.ts` has 15 tests against the site stand-in, all passing. Check: the full plain `pnpm check` passed on `e0d98e3` with 0 failures, `current` there; the run on the HEAD carrying this comment is in the sub-agent's final message.
+Partial: none. Findings: none due.
+Decisions:
+
+- The review, the site stand-in's approval and what wasn't taken: [review of b8a4ab9 and the owner's decisions](#2026-10-26-review-of-b8a4ab9-and-the-owners-decisions).
+- The domain: [approved](#2026-10-26-where-the-probe-gets-the-domain-approved). Where this work happens: [approved](#2026-10-26-where-this-work-happens-approved).
+- Unresolved, for the owner at 08's first live run, blocking only closing 08: the trailing-slash status, `noindex` on the 301s and the 307, and the form of Access's login redirect ([08's comment](08-share-the-first-public-artifact.md#2026-10-26-from-ticket-07s-fix-round)).
+- Not settled by the spec: the [first handoff's](#2026-10-26-handoff) choices stand, except that a 401 on `/api/library` now fails and the first public page must name an `/_astro/` file.
+
+Running: none. Next: the coordinator's review of `414dc4a..HEAD`.
