@@ -2,13 +2,20 @@
 
 Agents publish study artifacts without asking. Every change outside `artifacts/` needs the owner's confirmation first.
 
-A checkout with an `upstream` remote is a private copy: it holds the owner's artifacts and matches upstream everywhere else. Make every change outside `artifacts/` in a checkout of the upstream repo instead; the copy receives it from the Sync upstream workflow.
-
 Astro 7 is newer than your training: check the `astro-docs` MCP server before using any Astro API.
 
 A change to the artifact workflow or to what `pnpm check` reports updates the `artifact` skill in the same commit.
 
 Read `CODING_STANDARDS.md` before writing or reviewing platform or design system code, and `design-system/CLAUDE.md` before changing the design system.
+
+## Two repos
+
+The upstream repo is public. It holds the platform and has no `artifacts/`, and its CI only checks. A checkout with an `upstream` remote is a private copy: it holds the owner's artifacts, its CI deploys the site, and it matches upstream everywhere else.
+
+- **The private copy** takes artifact work, making an artifact public or private included, and anything run against the deployed site.
+- **A checkout of the upstream repo** takes every change outside `artifacts/`, `.scratch/` tickets included. The copy receives it from the Sync upstream workflow. When no upstream checkout is open, ask the owner for its path.
+- Upstream has no artifacts, so platform work there is shown against fixtures, and against real artifacts only in the copy.
+- Anything committed upstream is public: name only public artifacts in it.
 
 ## Where things live
 

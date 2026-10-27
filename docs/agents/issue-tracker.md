@@ -1,6 +1,6 @@
 # Issue tracker: Local Markdown
 
-Issues and specs for this repo live as markdown files in `.scratch/`.
+Issues and specs for this repo live as markdown files in `.scratch/`. They belong to the upstream repo: a private copy carries them only from the sync, so claim, comment on and close them in a checkout of the upstream repo, even when the work itself happens in the copy.
 
 ## Conventions
 
