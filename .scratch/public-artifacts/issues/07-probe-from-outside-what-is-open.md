@@ -39,3 +39,25 @@ Here: the probe reads artifacts from the checkout, and upstream has none. Show i
 ### 2026-10-26: where the probe gets the domain (approved)
 
 Owner, T3 orchestrator thread, 2026-10-26: the probe reads the custom domain from `wrangler.jsonc` when it's filled in, as in CI, and otherwise from an `ARTIFACTORY_DOMAIN` environment variable. With neither, it fails and names both, e.g. `ARTIFACTORY_DOMAIN=$(gh variable get ARTIFACTORY_DOMAIN) pnpm probe`. The probe never calls `gh` itself.
+
+### 2026-10-26: handoff
+
+Owner: the implementation sub-agent the coordinator's T3 thread started for ticket 07; no delegated agents.
+Where: `/home/isolino/.t3/projects/artifactory-oss`, branch `public-access`, HEAD `b8a4ab9` (the probe), plus the commit carrying this comment. Not pushed.
+Done: `scripts/probe.ts` (`pnpm probe`), `publicSlugs()` in `src/public-paths.ts` (the one public filter, which `publicPaths()` now calls too), `Entry.draft` in `src/artifacts.ts`, the Probe step after Open public paths in `.github/workflows/ci.yml` under the deploy steps' gate, the `artifact` skill's Watch CI, `CODING_STANDARDS.md` (seam 1's list, the allowed test doubles and "Not tested automatically"), the spec's "The probe" and Testing Decisions, and `README.md`'s step 7, all in `b8a4ab9`. Shown by `tests/check/probe.test.ts` (13 tests, seam 1) against `tests/check/site-stand-in.ts` with fixture artifacts (a public one with a former slug, a published private one, a draft): the full pass printed line by line; a former slug redirecting to another host, a 301 where the trailing-slash 307 belongs, a 302 to the Access login on an open path, an `/_astro/` file left closed, a page without `noindex`, a private artifact open and the Library open, each failing with exactly its one `OFF` line; nothing public, with the favicon expected closed; a path that opens on its second ask within the retry budget, and one still off when the budget runs out; the domain taken from a filled-in `wrangler.jsonc` over `ARTIFACTORY_DOMAIN`, and refused with neither or with a URL in place of a hostname. Mutating the `noindex` check, the destination check, the draft filter and the retry made 7 tests red. Pass and fail output against the stand-in and against `wrangler dev`'s assets layer, run once by hand from a fixture repo, are in the sub-agent's final message. Check: the full plain `pnpm check` runs on the final HEAD after this comment; its result is in that message.
+Partial: none. Findings: none due.
+Decisions:
+
+- The domain: [where the probe gets the domain (approved)](#2026-10-26-where-the-probe-gets-the-domain-approved). `ARTIFACTORY_DOMAIN` must be a bare hostname.
+- Where this work happens: [approved](#2026-10-26-where-this-work-happens-approved).
+- Unresolved, for the owner: the deployed site's stand-in is a new allowed test double in `CODING_STANDARDS.md`, the way the [owner's ticket 06 decision](06-keep-the-public-access-app-in-step-in-ci.md#2026-10-26-review-of-e2c3c37-and-the-owners-decisions) allowed the Access API stand-in, and as the coordinator's brief asked. If the owner refuses it, the tests and the standards line go and the probe is left untested, as the spec first said. That blocks only closing 07.
+- Not settled by the spec, decided here:
+  - Access's login is recognized by its `Location` path, `/cdn-cgi/access/login`, on any host, since the probe doesn't know the team domain without a filled-in `wrangler.jsonc`.
+  - A `Location` is resolved against `https://<domain><path>` before it's compared, so a relative and an absolute redirect to the same page both pass, and one to another host fails.
+  - `noindex` is asked of every open path's answer, the 301s and the 307 included, as "The probe" says. 08 settles whether Cloudflare sends it on the 301s.
+  - "One published private artifact" is the first artifact, by entry file, that is neither public nor a draft.
+  - The `/_astro/` files are every `/_astro/…` the first public page's HTML names, and the first public page is the first public artifact's, by entry file.
+  - A path that's off is asked again every 5 seconds until a minute has passed since the probe started. `ARTIFACTORY_PROBE_RETRY_MS` shortens that and `ARTIFACTORY_PROBE_ORIGIN` points the probe at a stand-in; the tests set both and CI sets neither.
+  - A 401 on a closed path passes whoever sends it: on `wrangler dev`, `/api/library`'s came from the Worker.
+
+Running: none. Next: the coordinator's review of `7ea260f..HEAD`.

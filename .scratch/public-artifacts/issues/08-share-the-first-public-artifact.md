@@ -27,3 +27,13 @@ Here: everything in this ticket runs in the private copy (Make public, the hand 
 ### 2026-10-26: from ticket 06
 
 The first live run of `pnpm public-access` settles what the Access API stand-in couldn't: whether the list endpoints honour `name`, `exact` and `aud`, whether an app in the list carries its `policies`, and whether the reusable Bypass deletes right after its app. Read the Close and Open steps' logs on that run, and record here what differed. Ticket 06's [fix-round handoff](06-keep-the-public-access-app-in-step-in-ci.md#2026-10-26-handoff-fix-round) holds the full list.
+
+### 2026-10-26: from ticket 07
+
+- **The probe by hand.** In the private copy's checkout, after the deploy's Probe step: `ARTIFACTORY_DOMAIN=$(gh variable get ARTIFACTORY_DOMAIN) pnpm probe`. It prints one line per path, `ok` or `OFF`, with what it expected and what it got, retries what's off for a minute, and exits 1 on any `OFF`. `wrangler.jsonc` holds its placeholders in a checkout, so the domain comes from the variable; in CI it comes from the filled-in `wrangler.jsonc`.
+- **What the first live run settles,** read off the Probe step's log or the hand run:
+  - the trailing-slash redirect's status: the probe expects 307 on `/<slug>`. If it gets another, change the status in `scripts/probe.ts`, the literals in `tests/check/probe.test.ts` and the spec's "The probe", still checking the destination.
+  - whether `_headers` reaches the 301s of former slugs and the 307: the probe asks `noindex` of both. If either lacks it, the probe asks it of the 200s only, as the spec's "Unconfirmed in the research" says.
+  - the form of Access's login redirect: the probe takes any 302 whose `Location` path starts `/cdn-cgi/access/login` as the login. An `OFF` line saying "got 302 to https://…" on a closed path means the login's form differs.
+  - whether Access answers 302 or 401 on `/api/library`: either passes.
+- **Local evidence, not proof:** run once against `wrangler dev` (no Access in front) from a fixture repo, the local assets layer answered `/<slug>` with 307 to `/<slug>/` and each former slug with 301, every answer carrying `noindex`. The live edge may differ.
