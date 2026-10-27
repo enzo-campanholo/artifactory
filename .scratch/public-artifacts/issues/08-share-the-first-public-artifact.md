@@ -79,3 +79,20 @@ Screenshots, kept under `/tmp` and not committed:
 ### 2026-10-27: no live link in the README (decided)
 
 Owner, T3 thread, 2026-10-27, settling the Unresolved in [the sample artifact decision](#2026-10-26-the-first-share-is-a-new-sample-artifact-approved): upstream's `README.md` does not link the live sample, so the owner's domain stays out of the repo. The README will show screenshots of the sample instead, later. **Deferred:** those screenshots, not part of this ticket.
+
+### 2026-10-27: the first live run
+
+Upstream `main` fast-forwarded to `7d7f6dd`, Sync upstream ran, and the private copy's CI run 40504985287 went green at every step: `pnpm check: 0 failures`, Close public paths ("There's no public Access app, so nothing is open to close."), migrations, deploy, Open public paths ("Created the public Access app, opening 4 destinations": `/_astro/*`, `/favicon.svg`, `/rsa-by-hand`, `/rsa-by-hand/`), and Probe ("All 25 paths answered as expected."). The probe by hand from the upstream checkout passed too, on 24 paths: that checkout lacks the copy's own artifacts, so it skips `/algoritmo-de-euclides/`, which CI's run found closed.
+
+What it settles, from [ticket 07's questions](#2026-10-26-from-ticket-07):
+
+- **The trailing-slash redirect:** `/rsa-by-hand` answers 307 to `/rsa-by-hand/` with `noindex`, as the probe expects. No change.
+- **`noindex` on the 307:** present. **On the 301s:** not exercised, since `rsa-by-hand` has no former slugs; only the local evidence says `_headers` reaches them. The probe keeps asking it of them.
+- **Access's login redirect:** `/`, `/drafts/`, `/catalog/`, `/api/library` and a private artifact each answer 302 to `/cdn-cgi/access/login`, the form the probe takes. `/api/library` answers 302, not 401.
+- **Ticket 06's API questions:** the run took only the "no app yet" path: the list found no public app, and `open` created it with its four destinations. Honouring the list filters with an app present, `policies` in the list, deleting the reusable policy after its app, and the reach of `*` beyond what the probe checks are still unexercised. A rerun exercises the first two; making the sample private exercises the deletion.
+
+A headless Chrome with no cookies loaded `https://<domain>/rsa-by-hand/` (domain left out here, per [the README decision](#2026-10-27-no-live-link-in-the-readme-decided)): 200 with `X-Robots-Tag: noindex`, `data-viewer="visitor"`, the store started, no "couldn't start" notice, no `/api/` request and no page error.
+
+The owner saw "This page couldn't start" on a preview served from `pnpm dev:worker` over plain HTTP at a Tailscale address. That isn't a secure context, so `crypto.randomUUID` (called by `startStore`, `design-system/src/state.ts`) is undefined and throws; the same page from `localhost` started. The live site is HTTPS, so it doesn't apply there. A preview for another machine needs HTTPS or a forwarded `localhost` port.
+
+**Left for the owner:** the phone check in the second checklist item (owner's page, saves).
