@@ -1,6 +1,6 @@
 # 07: Probe from outside what is open
 
-Status: claimed
+Status: resolved
 Blocked by: [06: Keep the public Access app in step in CI](06-keep-the-public-access-app-in-step-in-ci.md)
 
 **What to build:** `pnpm probe`, run by CI after `open` and by the owner by hand, checks from outside, with no cookies and following no redirects, that exactly the intended paths are open: each public artifact's page answers 200, its unslashed path the assets layer's 307 to it, each former slug a 301 to it, and `/favicon.svg` and the first public page's `/_astro/` files 200; `/`, `/drafts/`, `/api/library`, `/catalog/` and one private artifact answer 302 to the Access login or 401; every assets-layer response carries `noindex`. It prints one line per path and exits non-zero on any mismatch.
@@ -12,10 +12,10 @@ Specified in [Public artifacts](../spec.md): "The probe". It reads the checkout'
 - With nothing public, `/favicon.svg` must be closed too.
 - The `artifact` skill's Watch CI gains the Probe step (red means the new version is live but something is open or closed that shouldn't be; rerun once, then tell the owner), in the same commit. `CODING_STANDARDS.md`'s "Not tested automatically" names the probe as the check on every deploy.
 
-- [ ] `pnpm probe` checks every path the spec lists, by status and destination, and prints expected and actual per line.
-- [ ] CI runs it on `main` after `open`.
-- [ ] Shown against a local stand-in (e.g. `pnpm dev:worker`) for its pass and fail output; the live run is [08](08-share-the-first-public-artifact.md).
-- [ ] The `artifact` skill and `CODING_STANDARDS.md` are updated in the same commit; `pnpm check` passes.
+- [x] `pnpm probe` checks every path the spec lists, by status and destination, and prints expected and actual per line.
+- [x] CI runs it on `main` after `open`.
+- [x] Shown against a local stand-in (e.g. `pnpm dev:worker`) for its pass and fail output; the live run is [08](08-share-the-first-public-artifact.md).
+- [x] The `artifact` skill and `CODING_STANDARDS.md` are updated in the same commit; `pnpm check` passes.
 
 ## Comments
 
@@ -104,3 +104,13 @@ Decisions:
 - Not settled by the spec: the [first handoff's](#2026-10-26-handoff) choices stand, except that a 401 on `/api/library` now fails and the first public page must name an `/_astro/` file.
 
 Running: none. Next: the coordinator's review of `414dc4a..HEAD`.
+
+### 2026-10-26: closed
+
+**Result:** `pnpm probe` checks from outside, by status and destination, that exactly the public paths are open and the rest closed, one expected/actual line per path, and CI runs it on the private copy's `main` after Open. `/api/library` passes only on a 302 to the Access login. Commits on `public-access`: `b8a4ab9` (the probe), `e0d98e3` (the review fixes), with handoffs `a46ba5f` and `1e777f8`.
+
+**Validation:** 15 tests at seam 1 in `tests/check/probe.test.ts` against the site stand-in, each review fix shown red first; pass and fail output against a stand-in and `wrangler dev` quoted in the first handoff; the full plain `pnpm check` passed on `1e777f8`, applicability `current`.
+
+**Review:** two-axis review recorded above; every accepted finding and the approval are applied. Accepted deviation: one `isAccessLogin(answer)` instead of `isClosed(answer)`, since after finding 1 what counts as closed depends on the path.
+
+**Left undone:** the live run, and the three questions it settles (Unresolved above), are [08](08-share-the-first-public-artifact.md)'s. Nothing is pushed: the owner merges and pushes upstream `main`, per the approved landing.
