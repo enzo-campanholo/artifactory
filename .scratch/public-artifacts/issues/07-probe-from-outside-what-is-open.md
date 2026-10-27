@@ -35,3 +35,7 @@ Here: the probe reads artifacts from the checkout, and upstream has none. Show i
 - CI: put the Probe step after "Open public paths" in `.github/workflows/ci.yml`, with the same `if:` gate.
 - The `artifact` skill's Watch CI step 4 lists the red Close and Open steps: add Probe there. `CODING_STANDARDS.md`'s "Not tested automatically" names `scripts/public-access.ts` under Access routing: add the probe as the check on every deploy.
 - `tests/check/access-api-stand-in.ts` shows a local HTTP stand-in driven by a seam 1 test, if the probe is tested the same way.
+
+### 2026-10-26: where the probe gets the domain (approved)
+
+Owner, T3 orchestrator thread, 2026-10-26: the probe reads the custom domain from `wrangler.jsonc` when it's filled in, as in CI, and otherwise from an `ARTIFACTORY_DOMAIN` environment variable. With neither, it fails and names both, e.g. `ARTIFACTORY_DOMAIN=$(gh variable get ARTIFACTORY_DOMAIN) pnpm probe`. The probe never calls `gh` itself.

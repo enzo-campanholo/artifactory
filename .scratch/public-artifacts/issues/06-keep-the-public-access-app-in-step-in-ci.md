@@ -42,3 +42,25 @@ Decisions: [where this work happens (approved)](#2026-10-26-where-this-work-happ
 - Unconfirmed until the owner's first live run (08): the list endpoints' `name`/`exact`/`aud` filters (the script filters again itself), and that deleting the reusable policy right after its app is accepted.
 - Flag for the owner: ADR 0005's last sentence ("until then, nothing is open") goes stale once this lands; the spec says no ADR change, so it's untouched.
 Running: none after the check. Next: the coordinator's code review of `5cccc90..HEAD`.
+
+### 2026-10-26: review of e2c3c37 and the owner's decisions
+
+Two-axis review (Standards and Spec) of `5cccc90...4bc3963`. Nothing is missing, and nothing opens more than the manifest.
+
+**Approved** (owner, T3 orchestrator thread, 2026-10-26):
+
+- Keep the fixture tests, the Access API stand-in and the new allowed test double. The spec's "Not tested automatically" and "No new seam" lines change to match: only what opens on the live account stays untested.
+- Update ADR 0005's last sentence ("until then, nothing is open") in this branch. The decision itself stays.
+- Say "an artifact going private/public", not "a page going…", in CI, the skill and the spec's story 14 (`GLOSSARY.md` lists "page" under _Avoid_ for an artifact). "A public artifact's page" stays.
+
+**Accepted findings, due in the fix round:**
+
+1. `open` and `close` check that the Bypass policy is a bypass with an Everyone include, and repair it when it isn't. `open` fails when the protected app links it. A policy linked elsewhere makes its DELETE fail, and the message says so.
+2. `close` removes every destination that isn't wanted before it fails on any refusal, so a red Close still leaves the site locked. A refusal it can't act on safely (no manifest, placeholder domain) removes everything from the public app, deleting it, then fails.
+3. The `/api` refusal covers any destination whose path could match `/api` or `/api/…`, wildcards included.
+4. Comments that only repeat the code go (`ci.yml` "If this fails, nothing is migrated or deployed"; the domain/AUD sentence in `scripts/wrangler-config.ts`; the close/open summary in `scripts/public-access.ts`). The spec link and the fail-locked reason stay.
+5. The skill's "the owner names it, otherwise list and wait" rule lives in one bullet. Rename and Frontmatter's `public` bullet stop repeating Frontmatter's destination cost and Make public's step 1.
+6. `printChanges` runs once; the error-message expression and `per_page=1000` each live in one place. `setDestinations` gets a name that covers deleting the app. The local `open` stops shadowing the mode. The tests say "protected app" as the code does. `deploy-config.ts`'s `text` becomes `value`.
+7. Ticket 06's handoff `Decisions:` links this comment. The API behaviour left unconfirmed until 08 becomes an Unresolved item: the owner decides at the first live run, and it blocks only closing 08.
+
+**Not taken:** the stand-in's own `AccessApp`/`AccessPolicy` types stay, as an independent source. `readDeployedSite(root)` stays, since 07 uses it next.
