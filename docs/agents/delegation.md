@@ -2,7 +2,7 @@
 
 ## Briefs
 
-A delegated brief names the ticket, the branch or worktree, the files the child owns, the [decision comments](issue-tracker.md#decisions) that bound the work, and the `scripts/heavy` rules from `CLAUDE.md`. Carry those pointers and accepted findings into a replacement brief. Recorded authorization covers its stated scope after interruption or compaction; ask only for a still-unresolved decision that blocks the next action.
+A delegated brief names the ticket, the branch or worktree, the files the child owns, the [decision comments](issue-tracker.md#decisions) that bound the work, and the `scripts/heavy` rules from `CLAUDE.md`, with [browser-verification.md](browser-verification.md)'s server rule when the child drives a browser. Carry those pointers and accepted findings into a replacement brief. Recorded authorization covers its stated scope after interruption or compaction; ask only for a still-unresolved decision that blocks the next action.
 
 A review brief also says who receives the review, who decides on each finding, and how accepted findings reach the implementer: in the implementer's next brief, or appended to the ticket. The child reports completion in its final message.
 

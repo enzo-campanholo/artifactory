@@ -20,7 +20,7 @@ Among the shared parts `CODING_STANDARDS.md` lists:
 
 ## A real browser
 
-Put a server and the browser script that uses it in one `scripts/heavy` command. Inside a queued command, run the unwrapped inner executable: `pnpm build`, `pnpm check` and `pnpm look` take the queue themselves, and the queue isn't re-entrant, so `scripts/heavy` around one of them inside another queued command is refused.
+Put a server and the browser script that uses it in one `scripts/heavy` command.
 
 To review a change in a real browser, build first, then run `node scripts/verify-browser.ts <artifact-slug> [--dist <built-directory>]`. It serves the built output and never builds, so the build must include `/catalog/eye/` and an artifact of your own, made with `pnpm new`, that has questions and a table that overflows at 393 px. It writes `.look/<slug>/browser/results.json` and a contact sheet. Exit 0 means every required assertion passed, 2 a bad argument or missing build, and 1 a failed, unavailable or unsupported case. Its output hashes identify the files it inspected, not the commit that built them, and its captures still need a person to judge them.
 
