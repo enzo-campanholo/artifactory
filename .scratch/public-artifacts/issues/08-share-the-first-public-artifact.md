@@ -10,7 +10,7 @@ Specified in [Public artifacts](../spec.md): "Checked by hand before the first a
 - Before the push, on `pnpm dev:worker`: the artifact shows the owner's page and saves; with the owner mark removed, the visitor's page, no `/api/` request, answers gone on reload. Judge the first paint on a built page.
 - Agents never push or deploy here; the owner does. A `/wizard` script may guide the owner through the push, the run and the checks.
 
-- [ ] The hand check on `pnpm dev:worker` passes (agent, recorded here).
+- [x] The hand check on `pnpm dev:worker` passes (agent, recorded here).
 - [ ] After the owner's deploy: the private window shows the visitor's page, the phone the owner's and saves, and `pnpm probe` passes (owner).
 - [ ] Recorded here: whether `_headers` reaches the 301s, and the trailing-slash redirect's status; the probe and spec are corrected if either differs.
 
@@ -49,3 +49,29 @@ Owner, T3 orchestrator thread, 2026-10-26: the first public artifact is a new on
 - **Unresolved, for the owner at this ticket's first live run:** the trailing-slash redirect's status, whether `noindex` reaches the 301s and the 307, and the form of Access's login redirect, each read off the probe's lines as [from ticket 07](#2026-10-26-from-ticket-07) says. The owner decides what the probe expects from each; that blocks only closing this ticket ([07's review](07-probe-from-outside-what-is-open.md#2026-10-26-review-of-b8a4ab9-and-the-owners-decisions)).
 - **This replaces that comment's `/api/library` line.** The probe passes `/api/library` only on a 302 to the Access login: the Worker answers 401 itself to a request without an Access token, so a 401 there could mean Access let the request through. An `OFF` line saying "got 401" on `/api/library` is a failure until the owner has seen which of the two sent it.
 - **The probe's first line names the origin it asks.** On the live run it reads `Probing https://<domain> from outside, …`; one naming a domain "at" another origin means `ARTIFACTORY_PROBE_ORIGIN` is set.
+
+### 2026-10-27: the hand check on `pnpm dev:worker` passes
+
+Run on branch `sample-artifact` at `bae7789`, with the sample artifact `rsa-by-hand` (ID `ep0zvgsx`), before any push. A Puppeteer script drove Chrome against `pnpm dev:worker` (the built site, with the Access stand-in in front and a fresh local D1), each viewer in its own browser context with no cookies or storage. It answered question 2 (`power-mod-13`, "Compute 5³ mod 13"). The stand-in signs every request it passes on, so the visitor's requests carried an Access token too. That doesn't change the check: the viewer comes only from the owner mark in `localStorage`, and a visitor's page makes no request the token could affect. The Worker's 401 to a request with no token is left to `pnpm probe` on the live site.
+
+`/api/` requests, per phase:
+
+| Phase | `/api/` requests |
+| --- | --- |
+| Owner's device before the mark: the artifact first | none; the visitor's form, as `GLOSSARY.md` says of a device the owner hasn't studied on |
+| Owner opens the Library | `GET /api/library` 200; leaves the owner mark |
+| Owner opens the artifact, answers 8 | `GET /api/state/ep0zvgsx` 200, `PUT …/attempts/<id>/answers/power-mod-13` 201 |
+| Owner reloads | `GET /api/state/ep0zvgsx` 200 |
+| Owner reloads with the device copy cleared, the mark kept | `GET /api/state/ep0zvgsx` 200 |
+| Visitor opens the artifact, answers 7 | none |
+| Visitor reloads | none |
+| Owner's state read afterwards | `GET /api/state/ep0zvgsx` 200 |
+
+1. **As the owner: passes.** `data-viewer="owner"`, the Library link shown, no visitor line. The answer saved (`data-status="saved"`, marked right). After a reload it was still there, and still there after a reload with the device copy cleared: the state API's response held `{ response: "8", mark: "right" }`, so the page drew it from the server.
+2. **As a visitor: passes.** `data-viewer="visitor"`, the Library link hidden, the line "Your answers stay on this page and are gone when you leave." shown. The answer was checked on the page (marked wrong, the right answer shown), with no `/api/` request and nothing in `localStorage`: no owner mark, no device copy. After a reload the question was unanswered again, still with no `/api/` request. The owner's state afterwards held only the owner's answer.
+3. **First paint, on the built page: passes.** Each viewer was loaded at 393×852 with the CPU slowed 6×, under a Chrome trace with screenshots, and an observer installed before the document recorded every change to `data-viewer` and what each animation frame showed. For both viewers, `data-viewer` was set once, to the final viewer, about 1.5 s before `first-paint` (visitor: set at 170 ms, painted at 1672 ms; owner: 144 ms and 1712 ms). Every frame that held the masthead showed only that viewer's form. The trace's first painted frame, taken at the moment of `first-paint`, already shows the final form: the visitor's with no Library link and with the visitor line, the owner's with "← Library" and without the line. In the built HTML, the head's viewer script comes before the first stylesheet. The first run's in-page observer didn't install (it watched `document.documentElement` before it existed), so step 3 was run again with the fix. Both runs' trace frames show the same thing.
+
+Screenshots, kept under `/tmp` and not committed:
+
+- `/tmp/handcheck-08/out/`: `1c-owner-head.png`, `1c-owner-answered.png`, `1e-owner-after-reload.png`, `2a-visitor-head.png`, `2a-visitor-answered.png`, `2b-visitor-after-reload.png`, and `results.json`, which has every request and assertion.
+- `/tmp/handcheck-08/out-paint/`: `3a-first-paint-visitor-frame1.jpg` and `3b-first-paint-owner-frame1.jpg` (the first painted frames; `frame0` is the blank page before navigation), the later frames, `*-final.png`, the traces and `results.json`.
