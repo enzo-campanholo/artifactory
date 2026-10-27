@@ -1,6 +1,6 @@
 # 01: Diagnose the iPhone jumping inside a numeric question
 
-Status: needs-info
+Status: wontfix
 
 **Report (owner, 2026-10-24):** on an iPhone, after tapping the text "Calcule mdc(84, 36)…" inside the question box of a `NumericQuestion` (a Euclid's algorithm artifact, since removed from this repo), the screen rapidly repositioned itself over and over. Tapping elsewhere stopped it, and the page then looked normal.
 
@@ -13,3 +13,7 @@ Candidates to rule in or out once there is a signal, none confirmed: the phone b
 The numeric field filling its row on the phone is a separate, landed layout change; it neither claims nor is expected to fix this.
 
 ## Comments
+
+### 2026-10-27: closed, not reproduced
+
+Owner, T3 thread, 2026-10-27: they tried to reproduce the jumping and couldn't, so they take it for an iOS quirk rather than the page's. Closed as `wontfix` with no fix and no cause named. If it comes back, reopen this ticket and follow its "To diagnose" steps, starting with a recording of the signal.
