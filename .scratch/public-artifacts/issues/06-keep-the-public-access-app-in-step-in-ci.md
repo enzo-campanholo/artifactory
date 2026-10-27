@@ -1,6 +1,6 @@
 # 06: Keep the public Access app in step in CI
 
-Status: claimed
+Status: resolved
 
 **What to build:** on `main`, CI keeps a second Access app, with one Bypass/Everyone policy, exactly in step with the build's public paths: `pnpm public-access close` before the migrations and the deploy keeps only what's open now and still public, and `pnpm public-access open` after the deploy sets exactly the new manifest. Every failure leaves the site locked, every run replaces the whole list so a rerun repairs drift, and the app is deleted when nothing is public. From here the owner can ask an agent to make an artifact public or private.
 
@@ -13,9 +13,9 @@ Specified in [Public artifacts](../spec.md): "The public Access script", "CI" an
 - `README.md`: "How it works" stops saying Access keeps the whole site private; "Deploying your own" adds the Access steps, the token and the owner's checks. `CODING_STANDARDS.md`'s "Not tested automatically" names the script under Access routing.
 - Don't run `open` or `close` against the live account from an agent session: the first live run is the owner's ([08](08-share-the-first-public-artifact.md)).
 
-- [ ] `close` and `open` behave as the spec's "The public Access script" says, including create, replace and delete, shown with a dry run against recorded API responses or a local stand-in.
-- [ ] `.github/workflows/ci.yml` on `main` runs close, migrations, deploy and open in that order, with the right secrets per step; branch runs are unchanged.
-- [ ] The `artifact` skill, `README.md` and `CODING_STANDARDS.md` are updated in the same commit; `pnpm check` passes.
+- [x] `close` and `open` behave as the spec's "The public Access script" says, including create, replace and delete, shown with a dry run against recorded API responses or a local stand-in.
+- [x] `.github/workflows/ci.yml` on `main` runs close, migrations, deploy and open in that order, with the right secrets per step; branch runs are unchanged.
+- [x] The `artifact` skill, `README.md` and `CODING_STANDARDS.md` are updated in the same commit; `pnpm check` passes.
 
 ## Comments
 
@@ -73,3 +73,13 @@ Done: every accepted finding and approved decision in [the review](#2026-10-26-r
 Partial: none. Findings: none due. Two apps with the fixed name still fail both modes before any change, as before.
 Decisions: [where this work happens (approved)](#2026-10-26-where-this-work-happens-approved), [review of e2c3c37 and the owner's decisions (approved)](#2026-10-26-review-of-e2c3c37-and-the-owners-decisions). Unresolved, the owner's at the first live run in [08](08-share-the-first-public-artifact.md), blocking only closing 08: whether Cloudflare honours the list endpoints' `name`/`exact`/`aud` filters (the script filters again itself), returns each app's `policies` in the list (the protected-app and other-app checks read them), accepts deleting the reusable policy right after its app, and reads a destination's `*` and subpaths no wider than the script assumes.
 Running: none after the check. Next: the coordinator's review of `83bff73..HEAD`.
+
+### 2026-10-26: closed
+
+**Result:** `pnpm public-access close|open` keeps the public Access app and its Bypass in step with the build's manifest, and CI runs Close, migrations, deploy and Open on the private copy's `main`, gated like the deploy steps. Upstream and branch runs are unchanged. Commits on `public-access`: `e2c3c37` (the build), `d0f8d6a` (the review fixes), with handoffs `4bc3963` and `52bc447`.
+
+**Validation:** 15 tests at seam 1 in `tests/check/public-access.test.ts` against the Access API stand-in, each behaviour change shown red first and a mutation per safety rule; the full plain `pnpm check` passed on `52bc447`, applicability `current`. The coordinator read the script and the CI diff: every path narrows the app before it fails, and `open` checks the protected app and the Bypass before it changes anything.
+
+**Review:** two-axis review recorded above; every accepted finding and approved decision is applied. Accepted beyond that comment, as consistent with it: story 13's "an artifact going private", Watch CI naming another app using the Bypass as the owner's to fix, and deletion lines that stay true when `close` fails locked.
+
+**Left undone:** two apps with the fixed name still fail both modes before any change, so `close` doesn't lock that case down; only a hand-made duplicate causes it. Nothing has run against the live account: the API behaviour listed as Unresolved above is settled by the owner's first live run in [08](08-share-the-first-public-artifact.md). Nothing is pushed: the owner merges and pushes upstream `main`, per the approved landing.
