@@ -12,7 +12,7 @@ Specified in [Public artifacts](../spec.md): "Checked by hand before the first a
 
 - [x] The hand check on `pnpm dev:worker` passes (agent, recorded here).
 - [x] After the owner's deploy: the private window shows the visitor's page, the phone the owner's and saves, and `pnpm probe` passes (owner).
-- [ ] Recorded here: whether `_headers` reaches the 301s, and the trailing-slash redirect's status; the probe and spec are corrected if either differs.
+- [x] Recorded here: whether `_headers` reaches the 301s, and the trailing-slash redirect's status; the probe and spec are corrected if either differs.
 
 ## Comments
 
@@ -100,3 +100,10 @@ The owner saw "This page couldn't start" on a preview served from `pnpm dev:work
 ### 2026-10-27: the phone check passes
 
 Owner, T3 thread, 2026-10-27: on the signed-in phone, the owner's page saves answers. With the visitor's page and the probe recorded in [the first live run](#2026-10-27-the-first-live-run), the second checklist item is met. Still open here: `noindex` on a public artifact's 301s, and ticket 06's API questions the run left unexercised.
+
+### 2026-10-27: the 301s, after renaming the sample
+
+Owner, T3 thread, 2026-10-27: rename the sample to test a public artifact's former slug. Commit `f7c9a1f` renamed `rsa-by-hand` to `rsa-from-scratch` with `pnpm rename` (full `pnpm check`: 0 failures) and updated the folder's path in `CLAUDE.md` and `README.md`. The private copy's CI run 40510858345 went green at every step:
+
+- **`noindex` on the 301s:** the probe got `/rsa-by-hand` and `/rsa-by-hand/` each as 301 to `/rsa-from-scratch/` with `noindex`, and `/rsa-from-scratch` as 307 to `/rsa-from-scratch/` with `noindex`. "All 27 paths answered as expected." Both questions of the third checklist item are settled as the probe and spec expect, so neither changes.
+- **Ticket 06's API questions, the "app present" path:** `close` found the existing app ("The public Access app opens 4 destinations.") and `open` added `/rsa-from-scratch` and `/rsa-from-scratch/` to it ("opens 6 destinations"). So the list filters and the `policies` in the list behave as the script needs. Still unexercised: deleting the reusable policy after its app, which happens only when no artifact is public, and any reach of a destination's `*` beyond what the probe checks.
