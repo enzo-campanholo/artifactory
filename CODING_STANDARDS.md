@@ -29,7 +29,7 @@ Tests exist so agents can rewrite code freely while behaviour holds. A test that
 - The build's deployable output is `dist/` and `dist-worker/`, which `wrangler deploy` ships, so a test may assert what's in them. Anything else a build writes, such as `.astro/` or `.build/`, is an intermediate file.
 - Take expected values from an independent source: a literal, a worked example or the spec. Never recompute them the way the code does.
 - No smoke tests: "renders", "is defined", "exports X", or "doesn't throw" with nothing else asserted. The type checker and the build already catch those.
-- The only test doubles are the in-memory transport and fixtures: fixture repos, a fixture question manifest, a local D1. Our own modules are never mocked.
+- The only test doubles are the in-memory transport and fixtures: fixture repos, a fixture question manifest, a local D1, and a local stand-in for Cloudflare's Access API. Our own modules are never mocked.
 - A bug fix adds a test only if no existing test could have caught it, and extending the nearest existing test comes first.
 - Name a test after the behaviour, in `GLOSSARY.md` vocabulary ("a retried answer that returns your own answer counts as saved"), never after the bug or the ticket.
 - When a behaviour is removed, delete its tests.
@@ -56,6 +56,7 @@ Tests exist so agents can rewrite code freely while behaviour holds. A test that
    - the built site: the Library and drafts page and the eye in their running head, "Public" on a public artifact's Library row and on no other row, an artifact masthead's back link, date line and eye, the remembered theme applied in every page's head (the 404's included) and no eye on the 404, a public artifact's page (its public marker, back link, visitor's line and signed-out link to the Library, none of which a private page has) and the viewer its head decides from the owner mark, with none decided on a private page, rendered math, code, tables, diagrams, figures and images, the question manifest, the Library questions block (each listed artifact's question numbers and sections, in the list's order), content hashes, the build ID, redirects for former slugs, the public paths manifest, the `noindex` header rule with no `robots.txt`, and an empty Library passing with no public paths
    - holding an artifact page's first paint until its scripts have run
    - `pnpm new` and `pnpm rename`
+   - `pnpm public-access` against the Access API stand-in: `open` creating the public app with its Bypass for everyone, replacing its whole list and repairing hand edits, and refusing to open anything without the protected app or with its Cookie Path Attribute on; `close` keeping only what stays public and adding nothing; the app and its Bypass deleted once nothing is public; a manifest with an `/api/` path or a `wrangler.jsonc` still holding its placeholders refused before any change; and the destinations it prints as removed and added
    - heavy-command queue ownership/nesting, read-only status and check provenance through public fixture commands
    - `scripts/verify-browser.ts`'s argument and missing-output refusals; with `ARTIFACTORY_BROWSER_ACCEPTANCE=1`, one built fixture's theme keyboard focus and toggles, media isolation, overflowing-table cues and startup notices, with broken output as negative cases
 2. **The Worker's HTTP API against a local D1** (`tests/worker`), with the real migrations and a fixture question manifest. It owns:
@@ -73,7 +74,7 @@ Tests exist so agents can rewrite code freely while behaviour holds. A test that
    - state notices, the Library's statuses and what to revisit in the Library, and the theme choice
 4. **The scoring module** (`tests/scoring`). It owns each question kind's `check`, the number syntax a numeric answer and its key are written in (refused and ambiguous input included), the numeric key's rules, and the revision rules of [ADR 0001](docs/adr/0001-artifact-state-stores-answers-only.md): a corrected key or tolerance rescores, self-checked marks stand, an added question reopens a finished attempt, a removed question is ignored until its ID returns, and progress and score arithmetic. Seams 2 and 3 trust it and don't repeat these cases.
 
-Not tested automatically: how diagrams and figures look (agents use `pnpm look`), the CI workflow, Access login and routing, browser accessibility (the design system checks it with impeccable), and external links.
+Not tested automatically: how diagrams and figures look (agents use `pnpm look`), the CI workflow, Access login and routing (what the public Access script, `scripts/public-access.ts`, actually opens on the live account; its requests are tested against the stand-in above), browser accessibility (the design system checks it with impeccable), and external links.
 
 The browser acceptance above runs only with `ARTIFACTORY_BROWSER_ACCEPTANCE=1`: `ARTIFACTORY_BROWSER_ACCEPTANCE=1 pnpm exec vitest run tests/check/browser-verification.test.ts`. Real screen readers and physical devices stay outside it.
 

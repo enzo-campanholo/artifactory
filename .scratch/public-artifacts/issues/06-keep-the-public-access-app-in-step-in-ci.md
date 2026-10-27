@@ -1,6 +1,6 @@
 # 06: Keep the public Access app in step in CI
 
-Status: ready-for-agent
+Status: claimed
 
 **What to build:** on `main`, CI keeps a second Access app, with one Bypass/Everyone policy, exactly in step with the build's public paths: `pnpm public-access close` before the migrations and the deploy keeps only what's open now and still public, and `pnpm public-access open` after the deploy sets exactly the new manifest. Every failure leaves the site locked, every run replaces the whole list so a rerun repairs drift, and the app is deleted when nothing is public. From here the owner can ask an agent to make an artifact public or private.
 

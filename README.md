@@ -11,7 +11,7 @@ You hand an agent (Claude Code or Codex) your notes, slides or a topic. It write
 - **Artifacts:** each one is an MDX entry in `artifacts/<slug>/`, holding content and data, plus behaviour only inside a design system `Stage`. Agents create, revise and publish them with the `artifact` skill in `.claude/skills/artifact/`.
 - **Site:** Astro builds every artifact, the Library, the drafts page and the design system's catalog into static pages. Math is rendered with Temml, code with Shiki and diagrams with D2. The build moves an artifact page's scripts into its `<head>` with `blocking="render"`, so in Chromium its first frame already shows the answers this device last showed.
 - **Design system:** `design-system/` is the `@artifactory/design-system` package. Artifacts import only its components, listed in `design-system/COMPONENTS.md`.
-- **State:** a Cloudflare Worker serves the pages and the state API, which stores answers in D1. Cloudflare Access keeps the site private to the owner.
+- **State:** a Cloudflare Worker serves the pages and the state API, which stores answers in D1. Cloudflare Access keeps the site behind the owner's sign-in, apart from the artifacts the owner marks `public` in their frontmatter: CI opens those to anyone with the link through a second Access app with a Bypass policy, and closes them again when the mark goes. The state API never opens, so a visitor's answers stay on their page.
 - **Gate:** `pnpm check` builds the site and runs every check: the artifact rules, types, lint, HTML validation, formatting, dead code and the tests. CI runs it on every push and deploys `main` when it passes.
 
 The decisions behind this are in `docs/adr/`, and `GLOSSARY.md` defines the vocabulary.
@@ -46,10 +46,10 @@ Your artifacts live in a private copy of this repo, which takes everything outsi
    ```
 
 2. Create a D1 database named `artifactory` (`pnpm exec wrangler login`, then `pnpm exec wrangler d1 create artifactory`) and note its ID.
-3. Add your domain to Cloudflare. In Zero Trust (the free plan asks for a payment method but doesn't charge), choose a team name: your team domain is `https://<team>.cloudflareaccess.com`. Create a self-hosted Access application covering the hostname you'll serve the site on, with a policy that lets only you in, and note its audience (AUD) tag.
-4. Create a Cloudflare API token from the "Edit Cloudflare Workers" template, with Account › D1 › Edit added.
+3. Add your domain to Cloudflare. In Zero Trust (the free plan asks for a payment method but doesn't charge), choose a team name: your team domain is `https://<team>.cloudflareaccess.com`. Create a self-hosted Access application covering the hostname you'll serve the site on, with a policy that lets only you in, and note its audience (AUD) tag. Leave its Cookie Path Attribute off, so your answers on a public artifact reach the state API, and leave Bot Fight Mode off for the zone, since it can't be scoped by path and may challenge your `/api/` calls.
+4. Create a Cloudflare API token from the "Edit Cloudflare Workers" template, with Account › D1 › Edit added. Create a second token with only Account › Access: Apps and Policies › Edit: CI keeps the public artifacts' Access app with it, apart from the deploy token.
 5. Create a fine-grained GitHub token for your repository alone, with Contents and Workflows set to read and write.
-6. In your repository's Actions settings, add the secrets `CLOUDFLARE_API_TOKEN` and `UPSTREAM_SYNC_TOKEN` (the GitHub token), and these variables:
+6. In your repository's Actions settings, add the secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCESS_API_TOKEN` (the Access token) and `UPSTREAM_SYNC_TOKEN` (the GitHub token), and these variables:
 
    | Variable                | Value                                           |
    | ----------------------- | ----------------------------------------------- |
@@ -60,7 +60,9 @@ Your artifacts live in a private copy of this repo, which takes everything outsi
    | `ACCESS_AUD`            | the Access application's AUD tag                |
    | `UPSTREAM_REPOSITORY`   | `enzo-campanholo/artifactory`                   |
 
-7. Push to `main`. Until `ARTIFACTORY_DOMAIN` is set, CI only checks. Once it is, CI fills these values into `wrangler.jsonc` (`scripts/deploy-config.ts`), applies the D1 migrations in `migrations/` and runs `wrangler deploy`.
+7. Push to `main`. Until `ARTIFACTORY_DOMAIN` is set, CI only checks. Once it is, CI fills these values into `wrangler.jsonc` (`scripts/deploy-config.ts`), closes what went private (`pnpm public-access close`), applies the D1 migrations in `migrations/`, runs `wrangler deploy`, and opens exactly the build's public paths (`pnpm public-access open`). Every deploy needs the Access token, even with nothing public, and `open` stops before opening anything while your Access application's Cookie Path Attribute is on.
+
+An artifact goes public when an agent sets `public: true` in its frontmatter at your request, on the next deploy. After the first one, open it in a private window, where you should get the visitor's page, and on a phone where you're signed in, where you should get your own page and your answers should save.
 
 Every day, the Sync upstream workflow merges this repo's `main` into your copy and pushes it, which deploys. It stops instead when your copy differs from this repo outside `artifacts/`: make platform changes here, or in your own public fork, never in the copy.
 

@@ -15,6 +15,7 @@
     "look": "node scripts/heavy-command.ts node scripts/look.ts",
     "new": "node scripts/new.ts",
     "rename": "node scripts/rename.ts",
+    "public-access": "node scripts/public-access.ts",
     "components": "node scripts/components.ts",
     "format": "prettier --write ."
   },

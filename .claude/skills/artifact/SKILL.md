@@ -1,6 +1,6 @@
 ---
 name: artifact
-description: Study artifacts in `artifacts/`. Use to create one from the owner's request or source material, revise one, publish a draft, rename or delete one, and to fix a `pnpm check` or CI failure that names an "artifact skill" section.
+description: Study artifacts in `artifacts/`. Use to create one from the owner's request or source material, revise one, publish a draft, make one public or private, rename or delete one, and to fix a `pnpm check` or CI failure that names an "artifact skill" section.
 ---
 
 # Study artifacts
@@ -11,6 +11,7 @@ An artifact is the folder `artifacts/<slug>/`: an `index.mdx` entry, plus the `.
 
 - **Publish without asking.** Creating, revising and publishing a draft are what the owner asked for, so do them and reply with the URL.
 - **Draft only on request.** Make an artifact a draft (`--draft`) only when the owner asks for one.
+- **Make public or private only the artifact the owner names.** Many artifacts are built from course material the owner can't share, so each stays private until the owner asks for it by name. For a vague request ("share the Cálculo ones"), list exactly which artifacts you'll change, by slug and title, and wait for the owner's yes.
 - **Rename or delete only the artifact the owner names.** The request is the confirmation. For a vague request ("tidy up the old Bioquímica ones"), list exactly which artifacts you'll rename or delete, by slug and title, and wait for the owner's yes. Rename or delete nothing on your own initiative: a changed title or main language keeps its slug.
 - **Stay inside `artifacts/`.** When an artifact needs something the design system lacks, make do with the components that exist, or propose the addition to the owner and wait.
 - **Keep source material out of git.** Read it where the owner provided it. If it must be saved, put it in the git-ignored `sources/` folder at the repo root.
@@ -43,9 +44,19 @@ Each workflow ends with the shared steps under [Finishing](#finishing). An artif
 1. Set `draft: false`, and set `published` to today's date in São Paulo, the owner's day (`TZ=America/Sao_Paulo date +%F`), not the session's UTC date. The artifact then appears at the top of the Library.
 2. Finish: check, publish, watch CI, reply.
 
+### Make public
+
+1. Set `public: true` in the frontmatter. If the artifact is a draft, publish it in the same change, as in [Publish a draft](#publish-a-draft).
+2. Finish: check, publish, watch CI, reply. The reply gives the URL and says that anyone with the link can open it once CI is green, that search engines don't list it, and that the Library marks it "Public"; if it was a draft, say you published it.
+
+### Make private
+
+1. Remove the `public` line.
+2. Finish: check, publish, watch CI, reply. The reply says that anyone with the link now meets the owner's sign-in.
+
 ### Rename
 
-1. `pnpm rename <old-slug> <new-slug>`. It moves the folder, records the old slug as a former slug in `formerSlugs` and rewrites links to it in other artifacts, then prints what it did. It refuses a new slug that breaks [Slugs](#slugs). Renaming back to a former slug is fine: `pnpm rename` takes it off the list. `formerSlugs` is `pnpm rename`'s alone, and the build turns each former slug into a permanent redirect, so there's no `_redirects` file to edit.
+1. `pnpm rename <old-slug> <new-slug>`. It moves the folder, records the old slug as a former slug in `formerSlugs` and rewrites links to it in other artifacts, then prints what it did. It refuses a new slug that breaks [Slugs](#slugs). Renaming back to a former slug is fine: `pnpm rename` takes it off the list. `formerSlugs` is `pnpm rename`'s alone, and the build turns each former slug into a permanent redirect, so there's no `_redirects` file to edit. A public artifact's former slugs stay open while it's public, so a link the owner sent before the rename still works, and each one costs two of the Access app's destinations (see [Frontmatter](#frontmatter)).
 2. Finish: check, publish, watch CI, reply with the new URL.
 
 ### Delete
@@ -110,7 +121,12 @@ To see the page while writing, `pnpm dev` serves it at `http://localhost:4321/<s
 
 1. Find the run for your commit: `gh run list --commit "$(git rev-parse HEAD)"` (it can take a few seconds to appear).
 2. `gh run watch <id> --exit-status`. A publish run skips the platform tests and takes about a minute; its log says `pnpm check: skipped Vitest: …`. It takes about six when platform files changed since the last green run. If the run ends cancelled, a newer push replaced it while it waited. That run checks your commit too, so watch it instead: `gh run list --branch main --limit 1`.
-3. If it goes red, fixing it comes before anything else. Read the failures with `gh run view <id> --log-failed | tail -n 60`: the tail holds the same `pnpm check: N failures` block. Fix, check, push and watch again. A red run leaves the previous version live.
+3. If it goes red, fixing it comes before anything else. Read the failures with `gh run view <id> --log-failed | tail -n 60`: the tail holds the same `pnpm check: N failures` block. Fix, check, push and watch again. A red check leaves the previous version live.
+4. On `main`, the steps after the check change Cloudflare, and their failures aren't check failures, so their log has no failures block:
+   - **Close public paths** red: nothing was deployed, and a page going private may still be open.
+   - **Open public paths** red: the new version is live, but some public pages may still be behind the sign-in.
+
+   Rerun once with `gh run rerun <id>` and watch it. If the step is red again, tell the owner what its log's last lines say (`gh run view <id> --log-failed | tail -n 20`): a missing token or a Cookie Path Attribute that's on is theirs to fix in GitHub's or Cloudflare's settings.
 
 ### Reply
 
@@ -148,7 +164,7 @@ A `pnpm check` failure names one of these sections. Each one holds every rule of
 - `lang`: the main language, `pt-BR` or `en`.
 - `published`: the published date, unquoted (`2026-10-15`), the São Paulo date of the day it first appeared. Only publishing a draft changes it.
 - `draft`: `true` keeps the artifact out of the Library.
-- `public`: `true` opens the artifact to anyone with its link, and `false`, the default, keeps it behind the owner's sign-in. Making an artifact public isn't offered to the owner yet, so don't set it. A draft can't be public: `frontmatter` fails at the `public` line ("`public` can't be true on a draft"). Remove `public`, unless the owner asked for the draft to be published: then publish it as in Publish a draft.
+- `public`: `true` opens the artifact to anyone with its link, and `false`, the default, keeps it behind the owner's sign-in. Set or remove it only as in [Make public](#make-public) and [Make private](#make-private). A draft can't be public: `frontmatter` fails at the `public` line ("`public` can't be true on a draft"). Remove `public`, unless the owner asked for this artifact to be public: then publish it in the same change, as [Make public](#make-public) says.
 - One Access app opens at most 50 paths: two for each public artifact and for each of its former slugs, plus two shared by all. When the public artifacts need more, `public` fails at every public artifact. Never choose which to make private: list the public artifacts to the owner by slug and title, and wait.
 - `formerSlugs`: written only by `pnpm rename`.
 

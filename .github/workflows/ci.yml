@@ -76,6 +76,14 @@ jobs:
           D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
           ACCESS_TEAM_DOMAIN: ${{ vars.ACCESS_TEAM_DOMAIN }}
           ACCESS_AUD: ${{ vars.ACCESS_AUD }}
+      # Before anything is deployed, the public Access app keeps only what stays public, so a page
+      # going private closes first. If this fails, nothing is migrated or deployed.
+      - name: Close public paths
+        if: github.ref == 'refs/heads/main' && vars.ARTIFACTORY_DOMAIN != ''
+        run: pnpm public-access close
+        env:
+          CLOUDFLARE_ACCESS_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCESS_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       - if: github.ref == 'refs/heads/main' && vars.ARTIFACTORY_DOMAIN != ''
         run: pnpm exec wrangler d1 migrations apply artifactory --remote
         env:
@@ -86,4 +94,12 @@ jobs:
         run: pnpm exec wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      # Opens exactly the public paths manifest of the build just deployed, so a page going public
+      # opens only once its visitor's form is live.
+      - name: Open public paths
+        if: github.ref == 'refs/heads/main' && vars.ARTIFACTORY_DOMAIN != ''
+        run: pnpm public-access open
+        env:
+          CLOUDFLARE_ACCESS_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCESS_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
