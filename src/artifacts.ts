@@ -35,6 +35,7 @@ export interface Entry {
   id: string | undefined;
   formerSlugs: string[];
   subject: string | undefined;
+  draft: boolean;
   public: boolean;
   invalidIdentityFields: IdentityField[];
 }
@@ -105,6 +106,7 @@ export async function readEntry(root: string, slug: string): Promise<Entry> {
     id: id.success ? id.data : undefined,
     formerSlugs: formerSlugs.success ? (formerSlugs.data ?? []) : [],
     subject: subject.success ? subject.data : undefined,
+    draft: isDraft.success && isDraft.data,
     // A draft is never public: the schema refuses one marked public, and it opens nothing.
     public: isPublic.success && isPublic.data && !(isDraft.success && isDraft.data),
     invalidIdentityFields: [

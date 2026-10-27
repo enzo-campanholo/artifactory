@@ -1,6 +1,6 @@
 # 07: Probe from outside what is open
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: [06: Keep the public Access app in step in CI](06-keep-the-public-access-app-in-step-in-ci.md)
 
 **What to build:** `pnpm probe`, run by CI after `open` and by the owner by hand, checks from outside, with no cookies and following no redirects, that exactly the intended paths are open: each public artifact's page answers 200, its unslashed path the assets layer's 307 to it, each former slug a 301 to it, and `/favicon.svg` and the first public page's `/_astro/` files 200; `/`, `/drafts/`, `/api/library`, `/catalog/` and one private artifact answer 302 to the Access login or 401; every assets-layer response carries `noindex`. It prints one line per path and exits non-zero on any mismatch.

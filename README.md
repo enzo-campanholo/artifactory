@@ -60,7 +60,7 @@ Your artifacts live in a private copy of this repo, which takes everything outsi
    | `ACCESS_AUD`            | the Access application's AUD tag                |
    | `UPSTREAM_REPOSITORY`   | `enzo-campanholo/artifactory`                   |
 
-7. Push to `main`. Until `ARTIFACTORY_DOMAIN` is set, CI only checks. Once it is, CI fills these values into `wrangler.jsonc` (`scripts/deploy-config.ts`), closes what went private (`pnpm public-access close`), applies the D1 migrations in `migrations/`, runs `wrangler deploy`, and opens exactly the build's public paths (`pnpm public-access open`). Every deploy needs the Access token, even with nothing public, and `open` stops before opening anything while your Access application's Cookie Path Attribute is on.
+7. Push to `main`. Until `ARTIFACTORY_DOMAIN` is set, CI only checks. Once it is, CI fills these values into `wrangler.jsonc` (`scripts/deploy-config.ts`), closes what went private (`pnpm public-access close`), applies the D1 migrations in `migrations/`, runs `wrangler deploy`, opens exactly the build's public paths (`pnpm public-access open`), and probes from outside that exactly those are open (`pnpm probe`). Run the same probe from your own checkout with `ARTIFACTORY_DOMAIN=<your domain> pnpm probe`. Every deploy needs the Access token, even with nothing public, and `open` stops before opening anything while your Access application's Cookie Path Attribute is on.
 
 An artifact goes public when an agent sets `public: true` in its frontmatter at your request, on the next deploy. After the first one, open it in a private window, where you should get the visitor's page, and on a phone where you're signed in, where you should get your own page and your answers should save.
 

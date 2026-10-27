@@ -16,6 +16,7 @@
     "new": "node scripts/new.ts",
     "rename": "node scripts/rename.ts",
     "public-access": "node scripts/public-access.ts",
+    "probe": "node scripts/probe.ts",
     "components": "node scripts/components.ts",
     "format": "prettier --write ."
   },

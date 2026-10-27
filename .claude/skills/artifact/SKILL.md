@@ -121,11 +121,12 @@ To see the page while writing, `pnpm dev` serves it at `http://localhost:4321/<s
 1. Find the run for your commit: `gh run list --commit "$(git rev-parse HEAD)"` (it can take a few seconds to appear).
 2. `gh run watch <id> --exit-status`. A publish run skips the platform tests and takes about a minute; its log says `pnpm check: skipped Vitest: …`. It takes about six when platform files changed since the last green run. If the run ends cancelled, a newer push replaced it while it waited. That run checks your commit too, so watch it instead: `gh run list --branch main --limit 1`.
 3. If it goes red, fixing it comes before anything else. Read the failures with `gh run view <id> --log-failed | tail -n 60`: the tail holds the same `pnpm check: N failures` block. Fix, check, push and watch again. A red check leaves the previous version live.
-4. On `main`, the steps after the check change Cloudflare, and their failures aren't check failures, so their log has no failures block:
+4. On `main`, the steps after the check deploy the site and set what's open, and their failures aren't check failures, so their log has no failures block:
    - **Close public paths** red: nothing was deployed, and an artifact going private may still be open.
    - **Open public paths** red: the new version is live, but an artifact going public may still be behind the sign-in.
+   - **Probe** red: the new version is live, but a path is open or closed that shouldn't be. Its log has a line for each path it asked from outside, and each `OFF` line says what that path should answer and what it answered.
 
-   Rerun once with `gh run rerun <id>` and watch it. If the step is red again, tell the owner what its log's last lines say (`gh run view <id> --log-failed | tail -n 20`): a missing token, a Cookie Path Attribute that's on, or another Access app using the public artifacts' policy is theirs to fix in GitHub's or Cloudflare's settings.
+   Rerun once with `gh run rerun <id>` and watch it. If the step is red again, tell the owner what its log says: for Close or Open its last lines (`gh run view <id> --log-failed | tail -n 20`), where a missing token, a Cookie Path Attribute that's on, or another Access app using the public artifacts' policy is theirs to fix in GitHub's or Cloudflare's settings; for the Probe its `OFF` lines (`gh run view <id> --log-failed | grep ' OFF '`).
 
 ### Reply
 

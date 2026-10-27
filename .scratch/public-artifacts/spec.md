@@ -163,7 +163,7 @@ On `main`, after the check passes, in this order:
 
 ### The probe
 
-- **A `pnpm probe` command**, run by CI after opening and by the owner by hand. It reads the checkout's frontmatter through the public paths module and the custom domain from `wrangler.jsonc`. It sends unauthenticated requests with no cookies and follows no redirects.
+- **A `pnpm probe` command**, run by CI after opening and by the owner by hand. It reads the checkout's frontmatter through the public paths module and the custom domain from `wrangler.jsonc`, or from `ARTIFACTORY_DOMAIN` while `wrangler.jsonc` holds its placeholders, as in a checkout ([decided on ticket 07](issues/07-probe-from-outside-what-is-open.md#2026-10-26-where-the-probe-gets-the-domain-approved)). It sends unauthenticated requests with no cookies and follows no redirects.
 - **Must be open:**
   - each public artifact's `/<slug>/` answers 200;
   - `/<slug>` answers the assets layer's trailing-slash redirect, 307 to `/<slug>/`;
@@ -226,6 +226,7 @@ It never asserts the public paths module, the head script's source or call order
     - `dist/_headers` sends `X-Robots-Tag: noindex` on `/*`.
   - **The empty Library fixture:** the manifest is empty.
   - **The public Access script** (`public-access.test.ts`), run against a local stand-in for Cloudflare's Access API, a test double `CODING_STANDARDS.md` allows, with fixture manifests: the account the stand-in holds afterwards and the script's exit code and printed lines.
+  - **The probe** (`probe.test.ts`), run against a local stand-in for the deployed site, a test double `CODING_STANDARDS.md` allows, with fixture artifacts: the probe's exit code and its line for each path.
   - Prior art: "redirects every former slug straight to the current slug" in `valid-artifacts.test.ts`, "writes every artifact's questions … into the question manifest" in `library-and-question-manifest.test.ts`, and the theme choice's tests in `tests/store/theme-choice.test.ts`.
 - **Seam 3, the store over happy-dom** (`tests/store`). The kept transports are driven around the in-memory transport, as the device copy's tests do:
   - a load, a save, an "already answered" save and a Library load each leave the owner mark;
@@ -238,7 +239,7 @@ It never asserts the public paths module, the head script's source or call order
 
 **Not tested automatically:**
 
-- **What the public Access script opens on the live account, and the probe.** They're Access routing and the CI workflow, which `CODING_STANDARDS.md` already leaves out. The probe is their check on every deploy.
+- **What the public Access script opens on the live account, and what the live site answers the probe.** They're Access routing and the CI workflow, which `CODING_STANDARDS.md` already leaves out. The probe is their check on every deploy.
 - **The look of the visitor's form, the line and the Library mark.** Impeccable checks them in the catalog, in both languages, both themes, print, and at a narrow and a wide width.
 
 **Checked by hand before the first artifact goes public:**
