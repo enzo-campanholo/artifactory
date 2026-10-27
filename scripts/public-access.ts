@@ -5,9 +5,9 @@ import { publicPathsFile } from "../src/public-paths.ts";
 import { messageOf } from "./error-message.ts";
 import { readDeployedSite, type DeployedSite } from "./wrangler-config.ts";
 
-// Keeps the public Access app's Bypass in step with the build's public paths
-// (.scratch/public-artifacts/spec.md, "The public Access script"). Every change goes in an order
-// that never opens more than the manifest asks, so a failure leaves artifacts locked.
+// Keeps the public Access app's Bypass (docs/adr/0005-cloudflare-workers-d1-access.md) in step
+// with the build's public paths. Every change goes in an order that never opens more than the
+// manifest asks, so a failure leaves artifacts locked.
 
 const root = process.cwd();
 const publicAppName = "artifactory public artifacts";

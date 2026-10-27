@@ -4,8 +4,7 @@ import { messageOf } from "./error-message.ts";
 import { readDeployedSite } from "./wrangler-config.ts";
 
 // Checks from outside, with no cookies and following no redirects, that exactly the public paths
-// are open (.scratch/public-artifacts/spec.md, "The probe"). It reads the checkout's frontmatter,
-// so it runs without a build.
+// are open. It reads the checkout's frontmatter, so it runs without a build.
 
 function fail(message: string): never {
   console.error(`pnpm probe: ${message}`);
