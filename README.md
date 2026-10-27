@@ -33,7 +33,7 @@ To start an artifact by hand, `pnpm new <slug> --subject "<Subject>" --lang <pt-
 
 ## Deploying your own
 
-Your artifacts live in a private copy of this repo, which takes everything outside `artifacts/` from here. It also takes the sample artifact, `artifacts/rsa-by-hand/`, which is public, so your site shares it too. The site runs on Cloudflare's free plans, deployed by GitHub Actions from that copy.
+Your artifacts live in a private copy of this repo, which takes everything outside `artifacts/` from here. It also takes the sample artifact, `artifacts/rsa-from-scratch/`, which is public, so your site shares it too. The site runs on Cloudflare's free plans, deployed by GitHub Actions from that copy.
 
 1. Create an empty private repository on GitHub, then fill it from this one:
 

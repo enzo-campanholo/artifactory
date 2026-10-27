@@ -10,7 +10,7 @@ Read `CODING_STANDARDS.md` before writing or reviewing platform or design system
 
 ## Two repos
 
-The upstream repo is public. It holds the platform and one sample artifact, `artifacts/rsa-by-hand/`, and its CI only checks. A checkout with an `upstream` remote is a private copy: it holds the owner's artifacts beside the sample, its CI deploys the site, and it matches upstream everywhere else.
+The upstream repo is public. It holds the platform and one sample artifact, `artifacts/rsa-from-scratch/`, and its CI only checks. A checkout with an `upstream` remote is a private copy: it holds the owner's artifacts beside the sample, its CI deploys the site, and it matches upstream everywhere else.
 
 - **The private copy** takes work on the owner's artifacts, making one public or private included, and anything run against the deployed site.
 - **A checkout of the upstream repo** takes every other change: the platform, the sample artifact and the `.scratch/` tickets. The copy receives it from the Sync upstream workflow. When no upstream checkout is open, ask the owner for its path.
