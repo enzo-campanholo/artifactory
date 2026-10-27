@@ -1,6 +1,6 @@
 # 01: Diagnose full-gate fixture setup timeouts
 
-Status: needs-triage
+Status: wontfix
 
 On 2026-10-25 a plain `pnpm check` exited 1 after Vitest fixture setup timed out in `tests/check/reporting.test.ts`, `artifact-checks.test.ts` and `valid-artifacts.test.ts`. Every earlier step passed, 350 tests passed, and Vitest ran for 69 minutes. The source didn't change during the run.
 
@@ -15,3 +15,7 @@ Transient host pressure fits the evidence but isn't established, and no code reg
 **If it recurs:** capture which fixture setup or check startup is slow, with contemporaneous memory, I/O pressure and `scripts/heavy --status --json`, before proposing a fix. Prove any fix at the existing fixture seam.
 
 ## Comments
+
+### 2026-10-27: closed, not recurred
+
+Owner, T3 thread, 2026-10-27: close it. It hasn't recurred: the full `pnpm check` on `f7c9a1f` passed locally that day (Vitest 483 s), and the private copy's CI runs 40504985287 and 40510858345 passed. Closed as `wontfix` with no cause established and no code changed. If it recurs, reopen this ticket and follow "If it recurs" above.
