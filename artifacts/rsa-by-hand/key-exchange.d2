@@ -1,0 +1,26 @@
+bob: "Bob\nkeeps d = 27\nhas nothing to read"
+line: "The open line\nnothing sent yet"
+alice: "Alice\nmessage m = 9"
+eve: "Eve\nlistening"
+
+bob -- line
+line -- alice
+line -- eve
+
+steps: {
+  publish: {
+    line.label: "The open line\nBob sent (55, 3)"
+    eve.label: "Eve\ncopied (55, 3)"
+  }
+  encrypt: {
+    alice.label: "Alice\n9³ mod 55 = 14"
+  }
+  send: {
+    line.label: "The open line\nBob sent (55, 3)\nAlice sent 14"
+    eve.label: "Eve\ncopied (55, 3), 14"
+  }
+  decrypt: {
+    bob.label: "Bob\nkeeps d = 27\n14²⁷ mod 55 = 9"
+    eve.label: "Eve\nhas (55, 3), 14\nlacks d"
+  }
+}

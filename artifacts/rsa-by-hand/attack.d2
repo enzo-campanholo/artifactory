@@ -1,0 +1,12 @@
+known: "Eve knows n = 55, e = 3, c = 14"
+pq: "p = 5, q = 11"
+phi: "φ = 40"
+d: "d = 27"
+m: "m = 9"
+
+known -> pq: "factor n: the hard step" {
+  style.stroke-width: 4
+}
+pq -> phi: "(p − 1)(q − 1)"
+phi -> d: "extended Euclid"
+d -> m: "c to the d, mod n"

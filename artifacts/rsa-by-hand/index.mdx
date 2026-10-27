@@ -1,0 +1,581 @@
+---
+id: "ep0zvgsx"
+title: "RSA by hand"
+subject: "Cryptography"
+lang: en
+published: 2026-10-26
+draft: false
+public: true
+---
+
+import Diagram from "@artifactory/design-system/diagram";
+import Figure from "@artifactory/design-system/figure";
+import Note from "@artifactory/design-system/note";
+import NumericQuestion from "@artifactory/design-system/numeric-question";
+import OpenQuestion from "@artifactory/design-system/open-question";
+import Proof from "@artifactory/design-system/proof";
+import Ref from "@artifactory/design-system/ref";
+import SingleChoice from "@artifactory/design-system/single-choice";
+import Stage from "@artifactory/design-system/stage";
+import Statement from "@artifactory/design-system/statement";
+import Stepper from "@artifactory/design-system/stepper";
+import attack from "./attack.d2";
+import keyExchange from "./key-exchange.d2?steps";
+import cubeMap from "./cube-map.svg?raw";
+import powersOfThree from "./powers-of-three.svg?raw";
+import whoKnowsWhat from "./who-knows-what.svg?raw";
+
+RSA lets two people who have never met keep a secret in full view of everyone: one of them publishes a key that anyone can use to lock a message, and only that person can unlock it. This artifact builds RSA from four pieces of number theory small enough for pencil and paper: arithmetic with remainders, inverses found by the extended Euclidean algorithm, Euler's totient, and Fermat's little theorem. By the end you can make a toy key pair, encrypt and decrypt with it by hand, prove that decryption gives the message back, and explain why your toy key falls in seconds while a real one holds.
+
+## Two keys
+
+For most of history, encryption needed a shared secret. The sender and the receiver agreed on a key beforehand, through some channel no eavesdropper could reach, and whoever held the key could both lock and unlock. That fails when the two have never met, as when your browser first talks to a bank.
+
+Public-key cryptography splits the key in two. Bob makes a pair: a **public key**, which he publishes, and a **private key**, which he shows no one. Anyone can encrypt a message to Bob with the public key, but only the private key decrypts it. Picture a padlock Bob hands out open: anyone can snap it shut on a box, and only Bob holds the key that opens it.<Note>Whitfield Diffie and Martin Hellman published the idea in 1976, and Ron Rivest, Adi Shamir and Leonard Adleman found RSA, named after them, in 1977. Clifford Cocks had found an equivalent scheme at GCHQ in 1973, kept secret until 1997.</Note>
+
+The cast is traditional: Alice wants to send Bob a message, and Eve records everything that passes between them. Eve also knows exactly how RSA works. All of the security rests on the private key, none of it on keeping the method secret.
+
+<SingleChoice id="what-eve-lacks" answer={3}>
+
+Alice encrypts a message with Bob's public key and sends it. Eve has recorded everything sent and knows the method. What does she still lack to read the message?
+
+1. Bob's public key
+2. The encrypted message
+3. Bob's private key
+4. A description of how RSA works
+
+</SingleChoice>
+
+## Clock arithmetic
+
+RSA computes with remainders. On a 12-hour clock, 5 hours after 9 o'clock is 2 o'clock, because $9 + 5 = 14$ leaves 2 on division by 12. Arithmetic modulo $n$ works the same way for any $n$: only the remainder on division by $n$ matters.
+
+<Statement kind="definition" id="congruence" name="Congruence">
+
+Two integers $a$ and $b$ are **congruent modulo $n$**, written $a \equiv b \pmod{n}$, when $n$ divides $a - b$. The **remainder** $a \bmod n$ is the one number from $0$ to $n - 1$ congruent to $a$.
+
+</Statement>
+
+So $14 \equiv 2 \pmod{12}$ and $14 \bmod 12 = 2$, and negative numbers have remainders too: $-1 \equiv 11 \pmod{12}$. What makes hand computation possible is that congruence survives addition and multiplication.
+
+<Statement kind="lemma" id="reduce-as-you-go">
+
+If $a \equiv a' \pmod{n}$ and $b \equiv b' \pmod{n}$, then $a + b \equiv a' + b'$ and $ab \equiv a'b' \pmod{n}$.
+
+</Statement>
+
+<Proof of="reduce-as-you-go">
+
+$n$ divides $a - a'$ and $b - b'$, so it divides $(a + b) - (a' + b') = (a - a') + (b - b')$, and it divides $ab - a'b' = a(b - b') + b'(a - a')$.
+
+</Proof>
+
+By <Ref to="reduce-as-you-go" />, you may replace any number by its remainder at any point of a computation, so the numbers you write down never grow past $n^2$.
+
+<Statement kind="example" id="three-to-the-fifth">
+
+Compute $3^5 \bmod 7$ without computing $3^5$.
+
+---
+
+$3^2 = 9 \equiv 2$, so $3^4 \equiv 2^2 = 4$, and $3^5 = 3^4 \cdot 3 \equiv 4 \cdot 3 = 12 \equiv 5 \pmod{7}$. Check: $3^5 = 243 = 34 \cdot 7 + 5$.
+
+</Statement>
+
+<NumericQuestion id="power-mod-13" answer="8">
+
+Compute $5^3 \bmod 13$, reducing as you go.
+
+</NumericQuestion>
+
+## Inverses
+
+Division undoes multiplication. Modulo $n$ there are no fractions, but some numbers still have a partner that undoes them.
+
+<Statement kind="definition" id="inverse" name="Inverse">
+
+An integer $d$ is an **inverse of $e$ modulo $n$** when $ed \equiv 1 \pmod{n}$.
+
+</Statement>
+
+Modulo 10, $3 \cdot 7 = 21 \equiv 1$, so 7 is an inverse of 3. But 4 has none: $4d$ is always even, and an even number never leaves 1 on division by 10. A common factor is the obstacle, and the only one.
+
+<Statement kind="theorem" id="inverse-exists">
+
+$e$ has an inverse modulo $n$ if and only if $\gcd(e, n) = 1$, and the extended Euclidean algorithm finds it.
+
+</Statement>
+
+<Proof of="inverse-exists">
+
+If $ed \equiv 1 \pmod{n}$, then $ed - 1 = kn$ for some integer $k$, so any common divisor of $e$ and $n$ divides $ed - kn = 1$.
+
+Conversely, Euclid's algorithm starts from $n$ and $e$ and makes each new remainder from the two before it: the one two back, less $k$ times the one before, where $k$ is their quotient. The last nonzero remainder is $\gcd(e, n)$. Keep beside each remainder $r$ a coefficient $t$ with $r \equiv te \pmod{n}$: they start as $n \equiv 0 \cdot e$ and $e \equiv 1 \cdot e$, and the combination that makes each new remainder makes its coefficient, by <Ref to="reduce-as-you-go" />. When the gcd is $1$, the last nonzero remainder is $1 \equiv te$, so $t$ is an inverse.
+
+</Proof>
+
+<Statement kind="example" id="inverse-of-seven">
+
+Find the inverse of 7 modulo 60.
+
+---
+
+Each row is the row two above, less $k$ times the row above, with $k$ the quotient of their remainders: $60 = 8 \cdot 7 + 4$ gives $k = 8$, the remainder $4$ and the coefficient $0 - 8 \cdot 1 = -8$.
+
+| Remainder $r$ | Coefficient $t$ | Quotient $k$ |
+| ------------: | --------------: | -----------: |
+|            60 |               0 |              |
+|             7 |               1 |            8 |
+|             4 |              −8 |            1 |
+|             3 |               9 |            1 |
+|             1 |             −17 |            3 |
+|             0 |              60 |              |
+
+The remainder reaches 1 with $t = -17$, so $-17 \cdot 7 \equiv 1 \pmod{60}$, and the inverse is $-17 + 60 = 43$. Check: $7 \cdot 43 = 301 = 5 \cdot 60 + 1$.
+
+</Statement>
+
+<NumericQuestion id="inverse-of-3-mod-40" answer="27">
+
+Find the inverse of 3 modulo 40, as a number from 0 to 39.
+
+</NumericQuestion>
+
+Figure 3.1 runs the same algorithm in Python on numbers you type, the way you would at a desk: each pass of the loop adds a row with its quotient, then its new remainders and coefficients. Try an $e$ that shares a factor with phi, too.
+
+<Stage
+  build="inverse"
+  input={{
+    label: "Find the inverse of e modulo phi",
+    fields: [
+      { name: "e", min: 1, max: 9999 },
+      { name: "phi", min: 2, max: 9999 },
+    ],
+    examples: [
+      { e: 7, phi: 60 },
+      { e: 3, phi: 40 },
+      { e: 6, phi: 40 },
+      { e: 1, phi: 2 },
+      { e: 60, phi: 7 },
+      { e: 9999, phi: 9998 },
+      { e: 6765, phi: 4181 },
+    ],
+  }}
+  prompt="Type e and phi, then press Start."
+  caption="The extended Euclidean algorithm, one line at a time."
+>
+
+```python
+def inverse(e, phi):
+    r0, r1 = phi, e
+    t0, t1 = 0, 1
+    while r1 != 0:
+        k = r0 // r1
+        r0, r1 = r1, r0 - k * r1
+        t0, t1 = t1, t0 - k * t1
+    if r0 != 1:
+        raise ValueError
+    return t0 % phi
+```
+
+| Pass  |  k | r0 | r1 |  t0 |  t1 |
+| ----- | -: | -: | -: | --: | --: |
+| start |    | 60 |  7 |   0 |   1 |
+| 1     |  8 |  7 |  4 |   1 |  −8 |
+| 2     |  1 |  4 |  3 |  −8 |   9 |
+| 3     |  1 |  3 |  1 |   9 | −17 |
+| 4     |  3 |  1 |  0 | −17 |  60 |
+
+</Stage>
+
+## Euler's totient
+
+RSA's private key is an inverse, but modulo what? The answer is a count.
+
+<Statement kind="definition" id="totient" name="Euler's totient">
+
+For a positive integer $n$, **Euler's totient** $\varphi(n)$ is the number of integers $k$ from $1$ to $n$ with $\gcd(k, n) = 1$.
+
+</Statement>
+
+$\varphi(10) = 4$, counting 1, 3, 7 and 9. For a prime $p$, every number from $1$ to $p - 1$ counts, so $\varphi(p) = p - 1$. RSA needs one more case, a product of two primes.
+
+<Statement kind="lemma" id="totient-of-pq">
+
+If $p$ and $q$ are different primes, then $\varphi(pq) = (p - 1)(q - 1)$.
+
+</Statement>
+
+<Proof of="totient-of-pq">
+
+Of the $pq$ numbers from $1$ to $pq$, those sharing a factor with $pq$ are the $q$ multiples of $p$ and the $p$ multiples of $q$. Only $pq$ itself is both, so $pq - q - p + 1 = (p - 1)(q - 1)$ remain.
+
+</Proof>
+
+<Ref to="totient-of-pq" /> takes one multiplication when you know $p$ and $q$. [Breaking the toy](#breaking-the-toy) shows that without them, finding $\varphi(pq)$ is as hard as finding $p$ and $q$.
+
+<NumericQuestion id="totient-of-91" answer="72">
+
+Compute $\varphi(91)$.
+
+</NumericQuestion>
+
+## Fermat and Euler
+
+Powers modulo a prime come back around. The stepper below follows the powers of 3 modulo 7, reducing each by <Ref to="reduce-as-you-go" />.
+
+<Stepper
+  figure={powersOfThree}
+  alt="The numbers 0 to 6 around a circle. Arrows join the powers of 3 modulo 7 in order, 3, 2, 6, 4, 5 and 1, then back to 3, filling in every number except 0."
+  captions={[
+    "3¹ = 3.",
+    "3² = 9 ≡ 2.",
+    "3³ ≡ 2 · 3 = 6.",
+    "3⁴ ≡ 6 · 3 = 18 ≡ 4.",
+    "3⁵ ≡ 4 · 3 = 12 ≡ 5.",
+    "3⁶ ≡ 5 · 3 = 15 ≡ 1.",
+    "3⁷ ≡ 1 · 3 = 3: the cycle starts again.",
+  ]}
+/>
+
+The powers of 3 reach 1 at the sixth power, $p - 1$, and then repeat. Not every base visits every remainder on the way: the powers of 2 modulo 7 run 2, 4, 1 and repeat. But every base that 7 doesn't divide reaches 1 at the sixth power, and Fermat's little theorem says so for every prime.
+
+<Statement kind="theorem" id="fermat" name="Fermat's little theorem">
+
+If $p$ is prime and $p$ doesn't divide $a$, then $a^{p-1} \equiv 1 \pmod{p}$.
+
+</Statement>
+
+<Proof of="fermat">
+
+Multiply each of $1, 2, \dots, p - 1$ by $a$. No product is divisible by $p$, since a prime divides a product only when it divides a factor. No two products are congruent either: $ai \equiv aj$ would make $p$ divide $a(i - j)$, hence $i - j$, which forces $i = j$. So the products are $1, 2, \dots, p - 1$ again, in another order, and multiplying them all together gives, modulo $p$,
+
+$$
+a^{p-1} \cdot (p-1)! \equiv (p-1)!.
+$$
+
+$p$ divides no factor of $(p - 1)!$, so $\gcd((p - 1)!, p) = 1$ and $(p - 1)!$ has an inverse modulo $p$ by <Ref to="inverse-exists" />. Multiplying both sides by it leaves $a^{p-1} \equiv 1$.
+
+</Proof>
+
+Euler's theorem runs the same argument over the numbers that share no factor with $n$, for any $n$.
+
+<Statement kind="theorem" id="euler" name="Euler's theorem">
+
+If $\gcd(a, n) = 1$, then $a^{\varphi(n)} \equiv 1 \pmod{n}$.
+
+</Statement>
+
+<Proof of="euler">
+
+Let $k_1, \dots, k_{\varphi(n)}$ be the numbers from $1$ to $n$ that share no factor with $n$. Each $a k_i$ shares no factor with $n$ either, and $a k_i \equiv a k_j$ would make $n$ divide $a(k_i - k_j)$, hence $k_i - k_j$, since $a$ shares no factor with $n$. So multiplying by $a$ permutes the $k_i$ modulo $n$, and $a^{\varphi(n)}$ times their product is congruent to their product, which has an inverse by <Ref to="inverse-exists" />.
+
+</Proof>
+
+<Ref to="fermat" /> is the case $n = p$, since $\varphi(p) = p - 1$. Both say that exponents can be reduced: when $\gcd(a, n) = 1$, $a^k \bmod n$ depends only on $k \bmod \varphi(n)$.
+
+<NumericQuestion id="fermat-power" answer="2">
+
+Compute $5^{1000} \bmod 7$.
+
+</NumericQuestion>
+
+## Making a key pair
+
+RSA combines the four pieces: Bob multiplies two primes, and picks his two exponents as inverses modulo the totient.
+
+<Statement kind="definition" id="key-pair" name="RSA key pair">
+
+Choose two different primes $p$ and $q$, and let $n = pq$. Choose $e$ with $1 < e < \varphi(n)$ and $\gcd(e, \varphi(n)) = 1$, and let $d$ be the inverse of $e$ modulo $\varphi(n)$. The **public key** is the pair $(n, e)$, and the **private key** is $d$. Bob keeps $p$, $q$ and $\varphi(n)$ secret too, or destroys them.
+
+</Statement>
+
+<Ref to="inverse-exists" /> is why $e$ must share no factor with $\varphi(n)$: otherwise $d$ doesn't exist.<Note>In practice $e$ is almost always $65537 = 2^{16} + 1$. It is prime, so it fits any $\varphi(n)$ that it doesn't divide, and its binary form, a 1, fifteen 0s and a 1, makes encryption fast.</Note>
+
+<Statement kind="example" id="toy-key">
+
+Make a key pair from $p = 5$, $q = 11$ and $e = 3$.
+
+---
+
+$n = 5 \cdot 11 = 55$, and $\varphi(55) = 4 \cdot 10 = 40$ by <Ref to="totient-of-pq" />. $\gcd(3, 40) = 1$, so $e = 3$ will do, and its inverse modulo 40 is $d = 27$, which you found in [the question on inverses](#q-inverse-of-3-mod-40): $3 \cdot 27 = 81 = 2 \cdot 40 + 1$. The public key is $(55, 3)$, and the private key is $27$.
+
+</Statement>
+
+<SingleChoice id="choosing-e" answer={3}>
+
+Bob's primes give $\varphi(n) = 40$. Which of these can he choose as $e$?
+
+1. $2$
+2. $5$
+3. $7$
+4. $10$
+
+</SingleChoice>
+
+## Encrypting and decrypting
+
+<Statement kind="definition" id="encryption" name="Encryption and decryption">
+
+A message is a number $m$ with $0 \le m < n$. Encrypting it with the public key $(n, e)$ gives the **ciphertext** $c = m^e \bmod n$. Decrypting $c$ with the private key computes $c^d \bmod n$.
+
+</Statement>
+
+Real exponents have hundreds of digits, so nobody computes $m^e$ and then reduces it. **Square-and-multiply** reads the exponent in binary: repeated squaring gives $m$, $m^2$, $m^4$, $m^8$ and so on, each reduced modulo $n$, and the result multiplies together those whose bit in the exponent is 1. That is at most two multiplications per bit. Step through it in Python:
+
+<Stepper
+  lines={["1", "2-3", "4-5", "6", "7", "8", "9"]}
+  captions={[
+    "pow_mod takes the base m, the exponent e and the modulus n.",
+    "acc, the result so far, starts at 1, and base at m reduced modulo n.",
+    "While e has bits left, test the lowest: e % 2 is 1 when it is set.",
+    "A set bit multiplies the current power of m into acc, reduced.",
+    "Square base: m becomes m², then m⁴, m⁸ and so on, always reduced.",
+    "Shift e right by one bit, dropping the bit just used.",
+    "No bits left: acc is mᵉ mod n.",
+  ]}
+>
+
+```python
+def pow_mod(m, e, n):
+    acc = 1
+    base = m % n
+    while e > 0:
+        if e % 2 == 1:
+            acc = acc * base % n
+        base = base * base % n
+        e = e // 2
+    return acc
+```
+
+</Stepper>
+
+<Statement kind="example" id="toy-message">
+
+Encrypt $m = 9$ with the public key $(55, 3)$, then decrypt the result with $d = 27$.
+
+---
+
+To encrypt, $9^2 = 81 \equiv 26$, and $9^3 \equiv 26 \cdot 9 = 234 \equiv 14 \pmod{55}$, so $c = 14$.
+
+To decrypt, write $27 = 16 + 8 + 2 + 1$ and square 14 four times, reducing each time:
+
+| Power    | Square        | Modulo 55 |
+| -------- | ------------- | --------: |
+| $14^{1}$ |               |        14 |
+| $14^{2}$ | $14^2 = 196$  |        31 |
+| $14^{4}$ | $31^2 = 961$  |        26 |
+| $14^{8}$ | $26^2 = 676$  |        16 |
+| $14^{16}$ | $16^2 = 256$ |        36 |
+
+Then multiply the powers that make up 27, reducing as you go:
+
+$$
+\begin{aligned}
+14^{27} &= 14^{1} \cdot 14^{2} \cdot 14^{8} \cdot 14^{16} \\
+&\equiv 14 \cdot 31 \cdot 16 \cdot 36 \pmod{55}.
+\end{aligned}
+$$
+
+$14 \cdot 31 = 434 \equiv 49$, then $49 \cdot 16 = 784 \equiv 14$, then $14 \cdot 36 = 504 \equiv 9$. Bob reads $m = 9$.
+
+</Statement>
+
+Encryption shuffles the messages. Figure 7.1 plots $c = m^3 \bmod 55$ for every message from 0 to 54: each ciphertext comes from exactly one message, so decryption can undo it, but neighbouring messages land far apart.<Note>Textbook RSA always leaves $0$, $1$ and $n - 1$ unchanged, whatever the key. Real systems pad messages so that such values are never encrypted bare.</Note>
+
+<Figure
+  src={cubeMap}
+  alt="A scatter plot of the ciphertext c = m³ mod 55 against the message m, for m from 0 to 54. The dots are scattered, one in every column and one in every row. Nine hollow dots lie on the dashed diagonal c = m, at m = 0, 1, 10, 11, 21, 34, 44, 45 and 54."
+  caption="One dot in every column and every row. The hollow dots on the dashed diagonal are messages that encrypt to themselves."
+/>
+
+<NumericQuestion id="encrypt-4" answer="31">
+
+Bob's public key is $(33, 3)$. Encrypt the message $m = 4$.
+
+</NumericQuestion>
+
+<NumericQuestion id="decrypt-31" answer="4">
+
+Bob's private key for $(33, 3)$ is $d = 7$. Decrypt the ciphertext $c = 31$. Negative remainders are allowed while you compute.
+
+</NumericQuestion>
+
+The stepper below puts the toy key from <Ref to="toy-key" /> to work between Alice and Bob, with Eve listening.
+
+<Stepper
+  diagram={keyExchange}
+  alt="Bob and Alice joined by an open line, with Eve listening on it. Bob sends his public key (55, 3) over the line and Alice sends back 14, her message 9 encrypted. Eve copies both, but only Bob, holding d = 27, turns 14 back into 9."
+  captions={[
+    "Bob has made his key pair from p = 5 and q = 11, and keeps d = 27. Alice's message is 9. Eve listens on the line.",
+    "Bob sends his public key (55, 3) over the line. Eve copies it, as anyone may.",
+    "Alice encrypts 9 with the public key: 9³ mod 55 = 14.",
+    "She sends 14 over the line. Eve copies that too.",
+    "Bob decrypts 14 with d and reads 9. Eve holds every number that was sent, and still not d.",
+  ]}
+/>
+
+## Why it works
+
+Decryption raises $m$ to the power $e$ and then to the power $d$, so it computes $m^{ed}$, and $d$ was chosen so that $ed = 1 + k\varphi(n)$ for some integer $k$. When $m$ shares no factor with $n$, <Ref to="euler" /> finishes the job: $m^{ed} = m \cdot (m^{\varphi(n)})^k \equiv m$. A message that is a multiple of $p$ or $q$ needs <Ref to="fermat" /> twice instead.
+
+<Statement kind="theorem" id="rsa-works" name="RSA decrypts">
+
+For every message $m$ with $0 \le m < n$, $(m^e \bmod n)^d \bmod n = m$.
+
+</Statement>
+
+<Proof of="rsa-works">
+
+By <Ref to="reduce-as-you-go" />, the left side is $m^{ed} \bmod n$, and by <Ref to="totient-of-pq" />, $ed = 1 + k(p - 1)(q - 1)$ for some integer $k$. Work modulo $p$ first. If $p$ divides $m$, then $m^{ed} \equiv 0 \equiv m$. Otherwise <Ref to="fermat" /> gives $m^{p-1} \equiv 1$, so
+
+$$
+\begin{aligned}
+m^{ed} &= m \cdot \left(m^{p-1}\right)^{k(q-1)} \\
+&\equiv m \pmod{p}.
+\end{aligned}
+$$
+
+Either way, $p$ divides $m^{ed} - m$, and the same argument shows that $q$ divides it. Two different primes that both divide a number divide their product, so $n = pq$ divides $m^{ed} - m$. Since $0 \le m < n$, the remainder $m^{ed} \bmod n$ is $m$ itself.
+
+</Proof>
+
+<OpenQuestion id="why-mod-phi">
+
+Bob picks $d$ with $ed \equiv 1 \pmod{\varphi(n)}$. Why wouldn't $ed \equiv 1 \pmod{n}$ do instead?
+
+---
+
+Exponents don't repeat modulo $n$. What repeats is the power: by <Ref to="euler" />, $m^{\varphi(n)} \equiv 1$ when $m$ shares no factor with $n$, so for such $m$ an exponent may be reduced modulo $\varphi(n)$, and $ed \equiv 1 \pmod{\varphi(n)}$ makes $m^{ed} \equiv m^1$. Nothing similar holds modulo $n$.
+
+With the toy key, $3 \cdot 37 = 111 \equiv 1 \pmod{55}$, so $d = 37$ is an inverse modulo $n$. But $m = 2$ encrypts to $2^3 = 8$, and $8^{37} \bmod 55 = 13$, not 2.
+
+</OpenQuestion>
+
+## Your own key pair
+
+Figure 9.1 runs everything above on numbers you choose. Type two different primes below 100, an exponent $e$ and a message $m$, and press Start. The drawing shows who holds each value as it appears, and the table works each one out. Then try a number that isn't prime, an $e$ that shares a factor with $\varphi$, or a message that isn't below $n$.
+
+<Stage
+  build="rsa"
+  input={{
+    label: "Make a key pair and send a message",
+    fields: [
+      { name: "p", min: 2, max: 97 },
+      { name: "q", min: 2, max: 97 },
+      { name: "e", min: 2, max: 9999 },
+      { name: "m", min: 0, max: 9999 },
+    ],
+    examples: [
+      { p: 5, q: 11, e: 3, m: 9 },
+      { p: 61, q: 53, e: 17, m: 65 },
+      { p: 5, q: 11, e: 3, m: 10 },
+      { p: 5, q: 11, e: 3, m: 0 },
+      { p: 5, q: 11, e: 3, m: 60 },
+      { p: 9, q: 11, e: 3, m: 9 },
+      { p: 5, q: 12, e: 3, m: 9 },
+      { p: 7, q: 7, e: 5, m: 9 },
+      { p: 5, q: 11, e: 5, m: 9 },
+      { p: 5, q: 11, e: 41, m: 9 },
+      { p: 2, q: 3, e: 2, m: 1 },
+      { p: 97, q: 89, e: 5, m: 8632 },
+      { p: 97, q: 89, e: 9999, m: 9999 },
+    ],
+  }}
+  prompt="Type two primes, an exponent and a message, then press Start."
+  figure={whoKnowsWhat}
+  alt="Three columns of boxes: what Bob keeps (p, q, φ, d and the decrypted m′), what everyone sees (n, e and the ciphertext c), and what Alice keeps (her message m)."
+  caption="A toy key pair made and used, one value at a time."
+>
+
+| Symbol | Value | Worked out          |
+| ------ | ----: | ------------------- |
+| p      |     5 | prime               |
+| q      |    11 | prime               |
+| n      |    55 | 5 × 11              |
+| φ      |    40 | 4 × 10              |
+| e      |     3 | gcd(3, 40) = 1      |
+| d      |    27 | 3 × 27 = 2 × 40 + 1 |
+| m      |     9 | below 55            |
+| c      |    14 | 9³ mod 55           |
+| m′     |     9 | 14²⁷ mod 55         |
+
+</Stage>
+
+The same toy in Python, whose built-in `pow` takes a modulus as its third argument and, from Python 3.8, finds an inverse when the exponent is −1. Bob publishes `n` and `e`, keeps `d`, and forgets `p`, `q` and `phi`:
+
+```python
+p, q, e = 5, 11, 3
+n = p * q                # 55
+phi = (p - 1) * (q - 1)  # 40
+d = pow(e, -1, phi)      # 27
+c = pow(9, e, n)         # 14
+assert pow(c, d, n) == 9
+```
+
+<OpenQuestion id="message-too-large">
+
+Run Figure 9.1 with $p = 5$, $q = 11$, $e = 3$ and $m = 60$. Bob gets back 5, not 60. Why?
+
+---
+
+Decryption computes $c^d \bmod n$, always a number from 0 to 54, and the argument behind <Ref to="rsa-works" /> only shows that it is congruent to the message modulo 55. Since $60 \equiv 5$, the messages 60 and 5 encrypt to the same ciphertext, 15, and no key can tell them apart. That is why a message must be below $n$, and why a longer one is split up, or, in practice, why RSA carries only a short key.
+
+</OpenQuestion>
+
+## Breaking the toy
+
+Eve has $n = 55$, $e = 3$ and $c = 14$. Every step from there to the message is one Bob took himself, except the first: Bob chose $p$ and $q$, while Eve has to find them by factoring $n$.
+
+<Diagram
+  src={attack}
+  alt="Eve's path from what she knows to the message: factor n = 55 into 5 and 11, compute φ = 40, invert e to get d = 27, then decrypt c = 14 to m = 9. The first arrow, factoring, is drawn heavier than the rest."
+  caption="Every arrow after the first is a computation Bob did himself."
+/>
+
+For $n = 55$, factoring is no obstacle: try 2, 3 and 5, and 5 divides it. A composite $n$ always has a factor no larger than $\sqrt{n}$, so trial division takes at most about $\sqrt{n}$ tries: fewer than a hundred for any key Figure 9.1 makes.
+
+Eve can't get around factoring by finding $\varphi(n)$ some other way. Since $\varphi(n) = (p - 1)(q - 1) = n - (p + q) + 1$, knowing $\varphi(n)$ tells her $p + q$ as well as $pq$, and then $p$ and $q$ are the roots of $x^2 - (p + q)x + n$. Finding $\varphi(n)$ is factoring in disguise.
+
+<NumericQuestion id="break-91" answer="29">
+
+Eve intercepts a message encrypted with the public key $(91, 5)$. Find the private key $d$, the smallest positive one.
+
+</NumericQuestion>
+
+Even without factoring, a toy key leaks. With $n = 55$ there are only 55 possible messages, so Eve can encrypt every one of them with the public key and see which gives $c$.
+
+<OpenQuestion id="why-toy-fails">
+
+Give two separate reasons why the toy key $(55, 3)$ protects nothing, even when Bob keeps $d$ secret.
+
+---
+
+First, $n = 55$ factors at once by trial division, and with $p = 5$ and $q = 11$ Eve computes $\varphi(n) = 40$ and $d = 27$ exactly as Bob did.
+
+Second, she doesn't even need $d$: with only 55 possible messages, she encrypts each one with the public key and finds the one that gives the ciphertext she saw. Either attack alone reads every message.
+
+</OpenQuestion>
+
+## Real RSA
+
+Real RSA keeps the algebra and changes the sizes. A modulus of 2048 bits, a number of 617 decimal digits, is the common minimum today, with $p$ and $q$ of about 1024 bits each. Bob finds them by testing random numbers of that size until two are prime, which takes moments, since testing whether a number is prime is far easier than finding its factors.
+
+Trial division would take about $2^{1024}$ tries. Cleverer algorithms exist: the fastest known, the general number field sieve, takes less than exponential time, and in 2020 it factored an 829-bit RSA challenge number with thousands of years of computing time spread across many machines. A 2048-bit modulus is far beyond it.<Note>No one has proved that factoring is hard. RSA's security rests on decades of failed attempts to find a fast method.</Note>
+
+The other leak doesn't go away with size. Textbook RSA, as built here, is deterministic: the same message and key always give the same ciphertext.
+
+<SingleChoice id="yes-or-no" answer={2}>
+
+Bob's key has a 2048-bit modulus, and Alice uses it to send the single word "yes" or "no", encoded as a number. What can Eve do?
+
+1. Nothing: the modulus is too large to factor.
+2. Encrypt "yes" and "no" with the public key and compare each with the ciphertext.
+3. Factor $n$ by trial division, since the message is short.
+4. Compute $d$ from $e$ with the extended Euclidean algorithm.
+
+</SingleChoice>
+
+So real systems never encrypt a bare message. Standards such as OAEP pad it with random bytes first, so that encrypting the same message twice gives different ciphertexts, and a ciphertext someone tampered with fails to decrypt. And since RSA is slow next to ciphers that share one key, it usually carries only a short random key, which then encrypts the data itself.<Note>Textbook RSA is also malleable: multiplying $c$ by $2^e$ gives a ciphertext of $2m$, without knowing $m$.</Note>
+
+One threat lies ahead. Shor's algorithm would factor $n$ quickly on a large enough quantum computer. None exists that comes anywhere near numbers of this size, but standards bodies have published post-quantum replacements, and systems have begun to move to them.
