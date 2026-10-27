@@ -61,3 +61,22 @@ Decisions:
   - A 401 on a closed path passes whoever sends it: on `wrangler dev`, `/api/library`'s came from the Worker.
 
 Running: none. Next: the coordinator's review of `7ea260f..HEAD`.
+
+### 2026-10-26: review of b8a4ab9 and the owner's decisions
+
+Two-axis review (Standards and Spec) of `7ea260f...0419cae`. The probe's open set matches `publicPaths()` and what `scripts/public-access.ts` opens. The CI gate, the single public filter and the domain order follow the approved comments.
+
+**Approved** (owner, T3 orchestrator thread, 2026-10-26): keep the site stand-in as an allowed test double in `CODING_STANDARDS.md`, with the probe's tests. Only the live run stays untested.
+
+**Accepted findings, due in the fix round:**
+
+1. `/api/library` passes only on a 302 to the Access login. A 401 there can come from the Worker itself (`worker/index.ts`), so it would hide an Access Bypass on the state API. The other closed paths keep "302 to the Access login or 401".
+2. A first public page whose 200 names no `/_astro/` file is an `OFF` line, not a pass.
+3. The probe prints the origin it actually asks, so a stray `ARTIFACTORY_PROBE_ORIGIN` can't pass as the live domain.
+4. The handoff's three questions for the first live run (the trailing-slash status, `noindex` on the 301s and the 307, the form of Access's login redirect) become an Unresolved item: the owner decides at the first live run in 08, and it blocks only closing 08. Link 08's comment. `Decisions:` links this comment, and `Done:` gives the check's scope and applicability.
+5. The CI Probe comment gives a reason or goes. In the skill, step 4 stops saying the later steps "set what's open" for the Probe, and the `OFF` lines are explained once.
+6. Smells: one local for the draft value in `src/artifacts.ts`; `messageOf` shared with `scripts/public-access.ts`; one `isClosed(answer)` for both uses; `held` and `firstPage` renamed for what they hold; the `/_astro/` discovery out of the retry loop, with predicates taking the answer as an argument.
+
+**Not taken:** checking `/_astro/` closed when nothing is public. With nothing public there's no page to name its files, and the ticket names only the favicon.
+
+**Coordinator's edit:** `0419cae` replaced the local checkout path in the `Where:` lines of 06's and 07's handoffs with "the upstream checkout", since everything committed upstream is public. The handoffs are otherwise unchanged.

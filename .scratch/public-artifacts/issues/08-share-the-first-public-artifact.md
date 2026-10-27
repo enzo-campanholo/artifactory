@@ -37,3 +37,9 @@ The first live run of `pnpm public-access` settles what the Access API stand-in 
   - the form of Access's login redirect: the probe takes any 302 whose `Location` path starts `/cdn-cgi/access/login` as the login. An `OFF` line saying "got 302 to https://…" on a closed path means the login's form differs.
   - whether Access answers 302 or 401 on `/api/library`: either passes.
 - **Local evidence, not proof:** run once against `wrangler dev` (no Access in front) from a fixture repo, the local assets layer answered `/<slug>` with 307 to `/<slug>/` and each former slug with 301, every answer carrying `noindex`. The live edge may differ.
+
+### 2026-10-26: the first share is a new sample artifact (approved)
+
+Owner, T3 orchestrator thread, 2026-10-26: the first public artifact is a new one built for the purpose, which also becomes the upstream repo's sample artifact. It covers public-key cryptography (RSA by hand) and uses the platform's capabilities to the full: math, stepped code, D2 diagrams, figures, every question type and a custom build. It's in English, from original material rather than course material. It lives in upstream's `artifacts/` with `public: true`, so every private copy receives it by sync and shares it; its edits are made upstream, like any change outside a copy's own artifacts. Built on branch `sample-artifact`, not pushed, like 06 and 07.
+
+**Unresolved:** a link to it in the upstream `README.md` would publish the owner's domain there. The owner decides after the first live run; it blocks only that README line.
