@@ -37,6 +37,7 @@ interface Item {
   element: ElementHandle;
   kind: Kind;
   name: string;
+  modelAnswer?: { details: ElementHandle<HTMLDetailsElement>; location: string };
 }
 
 interface Shots {
@@ -103,7 +104,13 @@ const report: BrowserReport = {
 };
 const screenshots = new Map<
   string,
-  { number: string; description: string; summary: string | undefined; files: string[] }
+  {
+    number?: string;
+    location?: string;
+    description: string;
+    summary: string | undefined;
+    files: string[];
+  }
 >();
 let session: Awaited<ReturnType<typeof startBrowser>>;
 try {
@@ -151,10 +158,12 @@ try {
       const elements = await page.$$(itemSelector);
       if (elements.length === 0) test.outcome = "not-applicable";
       for (const [index, element] of elements.entries()) {
-        const item = await resolveItem(element, index);
-        const { files, summary } = await kinds[item.kind].shoot(page, test, item, viewport.width);
+        const item = await resolveItem(page, test, element, index);
+        const { files, summary } = await shootRevealed(page, test, item, viewport.width);
         screenshots.set(item.name, {
-          number: await numberOf(page, item),
+          ...(item.modelAnswer === undefined
+            ? { number: await numberOf(page, item) }
+            : { location: item.modelAnswer.location }),
           description: await kinds[item.kind].describe(item),
           summary,
           files: [...(screenshots.get(item.name)?.files ?? []), ...files],
@@ -177,8 +186,9 @@ if (screenshots.size === 0) console.log(`\npnpm look: ${entry} has nothing for l
 else {
   const widths = lookViewports.map(({ width }) => `${String(width)} px`).join(" and ");
   console.log(`\npnpm look: ${entry} at ${widths} wide`);
-  for (const [name, { number, description, summary, files }] of screenshots) {
-    console.log(`\n${name}${number === "" ? "" : ` (${number})`}: ${description}`);
+  for (const [name, { number, location, description, summary, files }] of screenshots) {
+    const place = location ?? number ?? "";
+    console.log(`\n${name}${place === "" ? "" : ` (${place})`}: ${description}`);
     if (summary !== undefined) console.log(`  ${summary}`);
     for (const file of files) console.log(`  ${folder}/${file}`);
   }
@@ -193,7 +203,12 @@ process.exitCode = report.cases.some((test) =>
   : 0;
 
 // A Stage is shot by its frame, which holds its caption and number.
-async function resolveItem(selected: ElementHandle, index: number): Promise<Item> {
+async function resolveItem(
+  page: Page,
+  test: BrowserCase,
+  selected: ElementHandle,
+  index: number,
+): Promise<Item> {
   const kind = await selected.evaluate((node): Kind =>
     node.matches("artifact-stepper")
       ? node.querySelector(".stepper-boards") !== null
@@ -212,7 +227,66 @@ async function resolveItem(selected: ElementHandle, index: number): Promise<Item
   const element = kind.startsWith("stage-")
     ? ((await selected.$(":scope > figure")) ?? selected)
     : selected;
-  return { element, kind, name: `${String(index + 1).padStart(2, "0")}-${kinds[kind].stem}` };
+  const name = `${String(index + 1).padStart(2, "0")}-${kinds[kind].stem}`;
+  const details = (
+    await element.evaluateHandle((node) => node.closest("details.question-model-answer"))
+  ).asElement() as ElementHandle<HTMLDetailsElement> | null;
+  if (details === null) return { element, kind, name };
+  const question = required(
+    test,
+    `${name}: question number`,
+    (
+      await details.evaluateHandle((node) =>
+        node.closest(".question")?.querySelector(".question-number"),
+      )
+    ).asElement(),
+  );
+  const location = `inside the model answer of ${await accessibleText(page, question)}`;
+  return { element, kind, name, modelAnswer: { details, location } };
+}
+
+// A model answer opens only once an answer is written, so look opens it itself, on the build's
+// throwaway state, and closes it again once its item is shot.
+async function shootRevealed(
+  page: Page,
+  test: BrowserCase,
+  item: Item,
+  width: number,
+): Promise<Shots> {
+  const { shoot } = kinds[item.kind];
+  if (item.modelAnswer === undefined) return shoot(page, test, item, width);
+  const { details } = item.modelAnswer;
+  await toggle(details, true);
+  const shots = await shoot(page, test, item, width);
+  await toggle(details, false);
+  assertCase(
+    test,
+    `${item.name}: model answer closed again`,
+    false,
+    await details.evaluate((node) => node.open),
+  );
+  return shots;
+}
+
+function toggle(details: ElementHandle<HTMLDetailsElement>, open: boolean): Promise<void> {
+  return details.evaluate(
+    (node, open) =>
+      new Promise<void>((done) => {
+        if (node.open === open) {
+          done();
+          return;
+        }
+        node.addEventListener(
+          "toggle",
+          () => {
+            done();
+          },
+          { once: true },
+        );
+        node.open = open;
+      }),
+    open,
+  );
 }
 
 // Code has no `alt`, so a code Stepper's captions say what each step shows.
@@ -239,11 +313,15 @@ function describeDrawing({ element }: Item): Promise<string> {
   });
 }
 
-// The number is a CSS counter, which only the rendered page knows, so it's read from the
-// accessibility tree: the label, then the counter's pieces ("1", ".", "2") under one node.
 async function numberOf(page: Page, { element }: Item): Promise<string> {
   const number = await element.$(":scope > figcaption .figure-number");
-  if (number === null) return "";
+  return number === null ? "" : accessibleText(page, number);
+}
+
+// Figure and question numbers are CSS counters, which only the rendered page knows, so they're
+// read from the accessibility tree: the label, in the page's language, then the counter's pieces
+// ("1", ".", "2") under one node.
+async function accessibleText(page: Page, number: ElementHandle): Promise<string> {
   const textOf = (node: SerializedAXNode, separator: string): string =>
     node.role === "StaticText"
       ? (node.name ?? "")

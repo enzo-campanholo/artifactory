@@ -503,3 +503,97 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     );
   },
 );
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look model answer evidence",
+  () => {
+    let repo: FixtureRepo;
+    beforeAll(async () => {
+      repo = await createFixtureRepo({
+        "artifacts/look-model-answer/circle.svg":
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="stroke-accent" fill="none" stroke-width="4"/></svg>\n',
+        "artifacts/look-model-answer/index.mdx": [
+          "---",
+          "id: modelans",
+          "title: look-model-answer",
+          "subject: Artifactory",
+          "lang: en",
+          "published: 2026-10-25",
+          "---",
+          "",
+          'import Figure from "@artifactory/design-system/figure";',
+          'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+          'import OpenQuestion from "@artifactory/design-system/open-question";',
+          'import circle from "./circle.svg?raw";',
+          "",
+          "## Questions",
+          "",
+          '<NumericQuestion id="one-plus-one" answer="2">',
+          "",
+          "What is one plus one?",
+          "",
+          "</NumericQuestion>",
+          "",
+          '<OpenQuestion id="draw-a-circle">',
+          "",
+          "Draw a circle.",
+          "",
+          "---",
+          "",
+          "A circle:",
+          "",
+          '<Figure src={circle} alt="Literal circle of radius forty." />',
+          "",
+          "</OpenQuestion>",
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    it(
+      "reveals a figure inside a model answer to shoot it, names its question, then closes the model answer",
+      async () => {
+        const result = await repo.run("pnpm", ["look", "look-model-answer"]);
+        const report = JSON.parse(
+          await readFile(join(repo.root, ".look/look-model-answer/results.json"), "utf8"),
+        ) as {
+          cases: {
+            id: string;
+            outcome: string;
+            captures: string[];
+            assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
+            observed: { figures: { name: string; location?: string }[] };
+          }[];
+        };
+        expect(result.exitCode, result.output).toBe(0);
+        expect(result.output).toContain(
+          [
+            "01-figure (inside the model answer of Question 2): Literal circle of radius forty.",
+            "  .look/look-model-answer/01-figure-393.png",
+            "  .look/look-model-answer/01-figure-1920.png",
+          ].join("\n"),
+        );
+        for (const width of [393, 1920]) {
+          const test = report.cases.find(({ id }) => id === `look-${String(width)}`);
+          expect(test?.outcome).toBe("captured-awaiting-visual-review");
+          expect(test?.captures).toEqual([`01-figure-${String(width)}.png`]);
+          expect(test?.assertions).toContainEqual({
+            name: "01-figure: model answer closed again",
+            expected: false,
+            actual: false,
+            passed: true,
+          });
+          expect(test?.observed.figures).toContainEqual(
+            expect.objectContaining({
+              name: "01-figure",
+              location: "inside the model answer of Question 2",
+            }),
+          );
+        }
+      },
+      checkTimeout,
+    );
+  },
+);
