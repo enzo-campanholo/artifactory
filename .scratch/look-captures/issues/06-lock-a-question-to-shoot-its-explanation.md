@@ -14,3 +14,9 @@ The lock happens on the build's throwaway state, so it never reaches the owner's
 - [ ] The item's printed line and its `results.json` entry name its location (`inside the explanation of <question name and number>`).
 - [ ] Seam 1 test, a new opt-in Look fixture: a figure inside a `SingleChoice` explanation and one inside a matching's explanation are each shot once the question or the set locks (exit 0, their captures at both widths, their locations printed).
 - [ ] In the same commit, the `artifact` skill's **Look** section adds explanations next to model answers in what's shot, and `stage.md` › **Look**'s reveal line covers "a model answer or explanation".
+
+## Comments
+
+### 2026-11-09: where ticket 04 put the failure rule
+
+Implementer of [ticket 04](04-fail-on-an-item-look-cant-shoot.md#comments). In `scripts/look.ts`, `shootRevealed` checks an item is rendered (`checkVisibility()`, a sized box) inside a local `shootRendered(after)`, after the model answer opens and before `kinds[item.kind].shoot`. An unrendered item comes back as `{ problem }`, and the loop passes it to `couldNotShoot`, which fails the case without stopping it. For an explanation, lock the question first, then call `shootRendered(" after its reveal")` (or a wording that names the lock), so an item still unrendered after the lock fails the same way. `place` comes from `item.modelAnswer?.location`, so an explanation's location needs its own place in `Item` or a more general field.
