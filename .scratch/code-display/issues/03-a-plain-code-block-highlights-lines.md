@@ -20,3 +20,13 @@ This is design-system work: do it in a local session with impeccable (`design-sy
 - [ ] The `artifact` skill's **Code blocks** section documents `{…}`, its grammar, that it counts the shown number, that it is visual only so the prose names the marked lines, its failures, and that a one-block Stepper and a Stage refuse it. This lands in the same commit as the check change. The `Stage` doc comment's **Code** paragraph says `{…}` isn't allowed in its block, and the `Stepper` doc comment says the same for `lines`. Run `pnpm components`.
 - [ ] The catalog shows a plain block with `{…}`.
 - [ ] Shared part: the look reaches every `pre` through `rich-content.css`, so check the one-block code Stepper's catalog page (still greying by step, not by fence) and a Stage with code (unmarked, its own marks intact), with the same evidence as the plain block.
+
+### 2026-11-09: where 02 left the fence's info string
+
+From code display 02's implementation:
+
+- **Shiki never sees the info string.** Code display 01's note says Satteri hands `meta` to Shiki; it doesn't in this site. With `features.rawHtml` on (math needs it), Satteri drops the code element's `data`, `meta` included, on the way to the highlight plugin, so `this.options.meta` is undefined in every Shiki transformer. Read `{…}` where 02 reads `start`: in the `code` visitor of `mathAndCode` in `src/rich-content.ts`, from `node.meta`.
+- **How 02 carries it past highlighting.** The `code` visitor pushes `{ code, first }` for every fence onto `ctx.data.fenceStarts` (typed by a `DataMap` augmentation of `satteri`), in document order. The `shownLineNumbers` hast plugin runs after Shiki, finds each `pre`'s entry by its code text (`ctx.textContent`), and writes `data-line` on each `span.line` with `ctx.setProperty`. Extend that entry with the marked lines, and mark them in the same pass, rather than adding a second lookup. Shiki writes the line class as `properties.class` ("line"), not `className`.
+- `fenceStart` in `src/rich-content.ts` finds `start` in the info string by a whitespace-bounded token, so a `{…}` beside it doesn't disturb it. Its failures report at the fence through the `atFence` helper in the same visitor, which takes the rule ID, the written text and where on the fence line to look for it: reuse it for `{…}`'s rule.
+- The grammar's refusal examples now count from the block's first number (`numberList` in `design-system/src/number-lists.ts`): under `start=0` they read `"1", "1-3", "1-" or "0-1, 4"`; from 1 they read as before.
+- The catalog has a `start=0` plain block on `/catalog/`, a `start=0` one-block Stepper after the first code Stepper, and a `start=0` Stage ("Code numbered from 0") on `/catalog/stage/`, for the shared-part checks.

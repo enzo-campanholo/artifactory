@@ -20,3 +20,7 @@ Blocked by: [Code display 02](../../code-display/issues/02-a-fence-starts-its-li
 ### 2026-11-09: the shown number is already in the content as written
 
 From code display 01's implementation: `writtenContent` in `design-system/src/step-applier.ts` now reads each code line's shown number from its `data-line` attribute (`Written.codeLineNumbers`, one list per block), on the page and in the check's Stage runs alike. Key the content's code lines by those numbers rather than by position, and they follow `start` once code display 02 lands.
+
+### 2026-11-09: `start` landed
+
+From code display 02's implementation: a fence's `start=N` now sets its lines' `data-line`, so `Written.codeLineNumbers` already holds the shown numbers (0 first under `start=0`) on the page and in the check's Stage runs. A step's `lines` key that isn't one of them fails as "it has lines 0 to 3" (or "it has only line N"). The numbers are written by the `shownLineNumbers` hast plugin in `src/rich-content.ts`, not by a Shiki transformer: Satteri hands Shiki no info string while raw HTML is on. `/catalog/stage/` has a Stage over a `start=0` listing, "Code numbered from 0" (`design-system/catalog/sum-listing.build.ts`), which a content-reading build could take over.
