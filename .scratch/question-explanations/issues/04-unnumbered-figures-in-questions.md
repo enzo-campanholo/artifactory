@@ -18,3 +18,9 @@ Design-system work: run it in a local session with impeccable (`design-system/CL
 - [ ] The catalog's questions page shows an `OpenQuestion` whose model answer holds a figure, a figure inside the `SingleChoice`'s or `NumericQuestion`'s explanation, and a numbered figure after those questions, checked closed and open, unanswered, right and wrong, in both languages and in print.
 - [ ] Shared parts: the figure counter in the artifact page's frame reaches `Figure`, `Diagram`, `Stage` and `Stepper` figures; check a numbered figure and a numbered diagram elsewhere on the catalog (the components page) keep their numbers, with the same evidence. If `figure.css` or `SvgImage.astro` change, they reach `Figure`, `Diagram` and `Stage`: check each on its catalog page.
 - [ ] Figure numbers are CSS and not tested automatically (`docs/agents/test-seams.md` › Not tested automatically): the evidence is the catalog captures above, and no test is added.
+
+## Comments
+
+### 2026-11-09: from 01
+
+Implementer of [01](01-question-revealed-part.md#comments). Key the rule on `.question-revealed` (`design-system/src/RevealedPart.astro`): it wraps the model answer today and every explanation 02 and 03 add, open, closed or hidden alike. The model answer's part sits inside its closed `<details>`, so CSS on it can't count what the browser doesn't render; skip the counters there with `counter-increment: none` on the figures inside it, not by counting.

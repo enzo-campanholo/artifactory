@@ -1,5 +1,6 @@
 ---
 import { questionAnchor, questionMarkers } from "./question-markers.ts";
+import RevealedPart from "./RevealedPart.astro";
 import type { AutoCheckedKind, Json } from "./scoring.ts";
 
 type Props = { id: string; prompt: string } & (
@@ -61,13 +62,11 @@ const hint = hints[kind];
           <span data-lang="en">Show the model answer</span>
           <span data-lang="pt">Ver a resposta-modelo</span>
         </summary>
-        <div class="question-model-answer-body" tabindex="-1">
-          <p class="question-model-answer-heading">
-            <span data-lang="en">Model answer</span>
-            <span data-lang="pt">Resposta-modelo</span>
-          </p>
-          <div class="question-model-answer-text" set:html={modelAnswer} />
-        </div>
+        <RevealedPart
+          heading={{ en: "Model answer", pt: "Resposta-modelo" }}
+          content={modelAnswer}
+          tabindex="-1"
+        />
         <fieldset class="question-actions question-own-mark">
           <button
             type="submit"
@@ -287,30 +286,6 @@ const hint = hints[kind];
 
       .question[data-status] & > .question-own-mark {
         display: none;
-      }
-    }
-
-    .question-model-answer-body {
-      padding-block-start: var(--inset);
-      border-block-start: var(--rule) solid var(--color-text);
-    }
-
-    .question-model-answer-heading {
-      margin: 0 0 0.125rem;
-      font-family: var(--font-frame);
-      font-stretch: var(--font-stretch-frame);
-      font-size: var(--font-size-caption);
-      font-weight: var(--font-weight-frame-strong);
-      line-height: var(--line-height-frame);
-    }
-
-    .question-model-answer-text {
-      > :first-child {
-        margin-block-start: 0;
-      }
-
-      > :last-child {
-        margin-block-end: 0;
       }
     }
   }
