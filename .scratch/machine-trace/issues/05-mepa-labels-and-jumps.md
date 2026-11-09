@@ -12,6 +12,8 @@ Blocked by: 03, 04
 - [ ] The catalog's MEPA page's program uses `DSVS`, `NADA` and a label in both its Stages, and steps through them in a browser. Catalog work runs through impeccable in a local session.
 - [ ] Docs in the same commit: MEPA's doc comment covers labels, `DSVS`, `NADA`, the `labels` note and the new failures; `pnpm components` regenerates `COMPONENTS.md`; the `artifact` skill's `stage.md` lists the new failures.
 
+## Comments
+
 ### 2026-11-09: where labels go in MEPA's parse
 
 From machine trace 02's implementation: `instruction(text)` in `design-system/src/machines/mepa.ts` strips the `;` comment and reads one mnemonic and its comma-separated whole-number arguments, so `L1: NADA` fails today as "isn't a MEPA instruction". A line's address is its index in the listing, which `parse` checks starts at shown line 0. `view` dashes `state.i` and reverses `state.ran`, so a jump only sets `i`.
@@ -24,3 +26,11 @@ From machine trace 03's implementation:
 - `pnpm check` doesn't run catalog Stages, so nothing catches a catalog table as written that isn't the first example's last step: step both Stages to the end in a browser and compare.
 - `COMPONENTS.md`'s Machines section is MEPA's leading doc comment as written, under `### mepa` with its import line. The doc comment opens with the same trapezoid program as a whole Stage, its build and its tables; keep it the catalog's program, so the example uses every instruction too.
 - The Stage's static labels (Start, "of" in the counter, Figure) follow the page's root `lang`, not the nearest one, so on the English catalog page the pt-BR Stage's chrome is English while its steps are said in pt-BR (and the reverse under `?lang=pt-BR`). That's the Stage as it is; the ticket kept shared parts unchanged.
+
+### 2026-11-09: how 04 reports a program's problems
+
+From machine trace 04's implementation:
+
+- `parse`'s problems are now a refusal: `trace` throws them as `MachineProblems` (`stage-build.ts`), `runBuild` turns that into `{ refused: "unfit", problems }`, the page shows the Stage's "couldn't be worked out" line, and the check prints each problem once per Stage, with the first example: "with `x = 7, y = 2`, the machine can't read line 3: …" for a problem with a `line`, "… the machine can't run: …" for one without. So a jump to a missing label is a `{ line, problem }` from `parse`, and a `labels` entry for a label the program doesn't have is `{ line: undefined, problem }`; neither needs any change outside `mepa.ts`.
+- `parse` checks `roles` and `after` keys after reading the listing (`Object.hasOwn(listing, key)`, "`roles` names the address 7, which the listing doesn't have: it has addresses 0 to 2"). The spec keys notes "by address or label"; if 05 lets them take a label, widen that loop.
+- Fixtures: `unfitMachineStages` and `unfitMachineBuilds` in `tests/check/artifact-checks.test.ts`, inside the `stack-machine` artifact, with `machineStage(build, listing, { fence, examples, tables })` and `machineBuild(notes)`; their lines are asserted in "fails a machine trace whose program or notes don't fit…". A new Stage there moves both fixture totals.
