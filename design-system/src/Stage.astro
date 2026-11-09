@@ -483,6 +483,11 @@ interface Typed extends Staged {
  * label with a `fill-` class of its own, so a vertex filled that way can't be reversed. A mark on
  * a part with nothing it acts on fails the check.
  *
+ * These four are all the marks; there is no grey fill. A static figure elsewhere in the artifact
+ * that shows a state the Stage also shows draws it with the Stage's mark, so the two agree: a
+ * discovered vertex, still on the frontier, is provisional, so it is dashed in both, never filled
+ * grey, since grey (`fill-tint`, `fill-muted`) stays for what is unavailable or in the background.
+ *
  * **Colourings.** A Stage's drawing can be a colouring, written as a Figure's is (see
  * "Colourings" under `Figure`): `fill-swatch-N` areas, a label `<text x y data-swatch="N">` in
  * each coloured part's `<g>`, and `colours` naming the colours. Its build fails, as `Stage: …`,
@@ -546,6 +551,13 @@ interface Typed extends Staged {
  * MEPA's memory table holds a subroutine's record beside the globals, or writes its program in the
  * code block.
  *
+ * **New structure per run: not yet.** A build marks, rewrites and adds rows to what the content
+ * already draws, so it can't draw a structure a run produces, such as a search's tree. A search
+ * tree is a subgraph of the graph, so draw the graph and let the build mark the tree's edges
+ * `strong` as the run adds them, keep a `π` column for each vertex's parent, and let a growing
+ * `body` table list each vertex's level or children. A second artifact that needs a drawn tree
+ * reopens the question under ADR 0007's second-need rule: propose it as a change to the Stage.
+ *
  * **Beside the drawing.** A Stage sets its tables under its drawing. Set `beside` only where the
  * owner must see a step's marks and its table's rows together to follow the step, such as a graph
  * and its table of keys and parents, which stacked sit a scroll apart; most Stages leave it out.
@@ -561,9 +573,11 @@ interface Typed extends Staged {
  *
  * **Say it for the ear.** `say` is read aloud after "Passo N de M. Linha L.": write operators in
  * words ("o resto de 48 por 18", not "48 % 18"; "b não é zero", not "b != 0"), since a screen
- * reader reads `%` as "por cento" and other operators symbol by symbol. A screen reader reads a
- * word such as `aabba` as one word, so when its symbols matter, spell them out ("lê a, a, b, b,
- * a", "lê o terceiro símbolo, b"), and say "a palavra vazia", never "ε".
+ * reader reads `%` as "por cento" and other operators symbol by symbol. The line on screen is the
+ * same text, with no separate one for the eye, so write an assignment in words too: "M[4] recebe
+ * 7", not "M[4] ← 7". A screen reader reads a word such as `aabba` as one word, so when its
+ * symbols matter, spell them out ("lê a, a, b, b, a", "lê o terceiro símbolo, b"), and say "a
+ * palavra vazia", never "ε".
  *
  * `pnpm check` runs the build on every option, every combination of groups' options, or every
  * example against the built page and fails on a
