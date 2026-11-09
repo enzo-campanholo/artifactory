@@ -56,7 +56,13 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
     api.account.policies = [{ id: "owner-only", name: "Owner", decision: "allow", include: [] }];
   });
 
-  async function publicAccess(mode: string, manifest: string[] | undefined): Promise<CommandRun> {
+  // `pnpm public-access` is this script behind pnpm's own startup, so one test goes through pnpm
+  // and the rest start the script themselves.
+  async function publicAccess(
+    mode: string,
+    manifest: string[] | undefined,
+    command = ["node", "scripts/public-access.ts"],
+  ): Promise<CommandRun> {
     const manifestFile = join(repo.root, "dist-worker/public-paths.json");
     await mkdir(dirname(manifestFile), { recursive: true });
     await (manifest === undefined
@@ -66,8 +72,7 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
       `CLOUDFLARE_API_BASE_URL=${api.url}`,
       `CLOUDFLARE_ACCOUNT_ID=${standInAccountId}`,
       `CLOUDFLARE_ACCESS_API_TOKEN=${standInToken}`,
-      "pnpm",
-      "public-access",
+      ...command,
       mode,
     ]);
   }
@@ -87,7 +92,7 @@ describe("pnpm public-access against Cloudflare's Access API", () => {
   }
 
   it("open creates the public app with one Bypass policy for everyone, opening exactly the manifest", async () => {
-    const run = await publicAccess("open", limitesOpen);
+    const run = await publicAccess("open", limitesOpen, ["pnpm", "public-access"]);
 
     expect(run.exitCode).toBe(0);
     expect(publicApp()?.destinations).toEqual([

@@ -93,22 +93,24 @@ describe("pnpm probe against the deployed site", () => {
   const probing = () =>
     `Probing estudos.example.org at ${site.url}, from outside, with no cookies and following no redirects.`;
 
+  // `pnpm probe` is this script behind pnpm's own startup, so one test goes through pnpm and the
+  // rest start the script themselves.
   function probe(
     env = ["ARTIFACTORY_DOMAIN=estudos.example.org"],
     unset: string[] = [],
+    command = ["node", "scripts/probe.ts"],
   ): Promise<CommandRun> {
     return repo.run("env", [
       ...unset.flatMap((name) => ["-u", name]),
       `ARTIFACTORY_PROBE_ORIGIN=${site.url}`,
       "ARTIFACTORY_PROBE_RETRY_MS=0",
       ...env,
-      "pnpm",
-      "probe",
+      ...command,
     ]);
   }
 
   it("passes when exactly the public artifacts' paths are open, printing what each path was expected to answer and answered", async () => {
-    const run = await probe();
+    const run = await probe(undefined, undefined, ["pnpm", "probe"]);
 
     expect(run.exitCode).toBe(0);
     expect(run.stdout).toBe(

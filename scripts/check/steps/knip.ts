@@ -18,6 +18,7 @@ const problemByType: Record<string, string> = {
 
 export const knip: Step = {
   name: "knip",
+  reads: () => true,
   async run(root) {
     const knipRun = await runTool(root, "knip", ["--reporter", "json", "--no-progress"]);
     if (!knipRun.stdout.startsWith("{")) return unexplainedExit("knip", "knip.ts", knipRun);
