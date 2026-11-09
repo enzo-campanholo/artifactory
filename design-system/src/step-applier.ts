@@ -1,5 +1,6 @@
 import {
   MachineFault,
+  MachineProblems,
   mostSteps,
   type Build,
   type CodeLine,
@@ -110,6 +111,7 @@ export type Run =
   | { refused: "no-steps" }
   | { refused: "too-many"; most: number }
   | { refused: "fault"; line: number; fault: MachineFault["fault"] }
+  | { refused: "unfit"; problems: MachineProblems["problems"] }
   | { refused: "problems"; problems: StepProblem[] };
 
 export interface Field {
@@ -191,6 +193,7 @@ export function runBuild<Input extends string | Typed>(
     if (error instanceof MachineFault) {
       return { refused: "fault", line: error.line, fault: error.fault };
     }
+    if (error instanceof MachineProblems) return { refused: "unfit", problems: error.problems };
     return { refused: "threw", error };
   }
 }

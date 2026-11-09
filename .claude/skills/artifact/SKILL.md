@@ -18,7 +18,7 @@ An artifact is the folder `artifacts/<slug>/`: an `index.mdx` entry, plus the `.
 ## Before writing
 
 - In a fresh cloud session without `node_modules/`, run `pnpm install --frozen-lockfile`.
-- Read `design-system/COMPONENTS.md`, the whole component reference: what each component is for, its props, a usage example and the colour classes.
+- Read `design-system/COMPONENTS.md`, the whole component reference: what each component is for, its props, a usage example, the colour classes and the machines a Stage can trace.
 
 ## Before the first `gh` command
 

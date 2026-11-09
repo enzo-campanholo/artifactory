@@ -351,6 +351,17 @@ interface Typed extends Staged {
  * The page and `pnpm check` hand every run the same content, a fresh copy each time, so a run may
  * change its own. A build that doesn't need it leaves the argument out.
  *
+ * **Machine traces.** A Stage that runs a machine the design system holds, such as the stack
+ * machine MEPA, on a program and the owner's input is written as any Stage with `input`: the
+ * program in its content, the tables as the first example's result. Its build is
+ * `trace(machine, notes)` (below), never a copy of the machine. Each machine's entry under
+ * "Machines", after the components, gives its program's form, its tables as written in pt-BR and
+ * English, and its notes. A machine needing a growing structure beside a fixed one, such as a call
+ * stack's frames beside its locals or a tape beside its transitions, can't take two tables: a
+ * Stage that gives `body` holds exactly one. It keeps both in one table with a role column, as
+ * MEPA's memory table holds a subroutine's record beside the globals, or writes its program in the
+ * code block.
+ *
  * **Beside the drawing.** A Stage sets its tables under its drawing. Set `beside` only where the
  * owner must see a step's marks and its table's rows together to follow the step, such as a graph
  * and its table of keys and parents, which stacked sit a scroll apart; most Stages leave it out.

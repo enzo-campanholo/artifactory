@@ -1,0 +1,133 @@
+import Stage from "../src/Stage.astro";
+
+MEPA's machine trace: a Stage whose build is `trace(mepa, notes)`, running the listing written in its code block on the numbers typed. The listing works out a trapezoid's area, (a + b) × h div 2, with every instruction MEPA covers: `INPP`, `AMEM`, `LEIT`, `ARMZ`, `CRVL`, `SOMA`, `MULT`, `CRCT`, `DIVI`, `IMPR`, `DMEM`, `PARA` and `FIM`. The same program runs in a pt-BR Stage and in an English Stage, each with its tables as written in its language and its build's notes in that language too, so each says its steps in its own.
+
+The catalog script pressed Start on a = 3, b = 5, h = 4 and stepped to step 12, where `SOMA` runs. Line 10, the instruction that ran, is reversed, and line 11, where `i` points next, is dashed. What the step changed is strong: `i`, `s`, the sum 8 in M[3] and `← s` moving to it from M[4]. M[4] is above `s`, so it's muted and shows no role. Without JavaScript and in print, each Stage shows its tables as written: the first example's last step, where `DMEM 3` has freed every cell, so none shows a role or the top.
+
+## In Portuguese
+
+<div lang="pt-BR" data-catalog-run="start" data-catalog-step="12">
+
+<Stage
+  build="mepa-trapezio"
+  input={{
+    label: "Área do trapézio",
+    fields: [
+      { name: "a", min: 0, max: 20 },
+      { name: "b", min: 0, max: 20 },
+      { name: "h", min: 0, max: 20 },
+    ],
+    examples: [
+      { a: 3, b: 5, h: 4 },
+      { a: 2, b: 3, h: 3 },
+    ],
+  }}
+  prompt="Digite as bases e a altura e rode o programa."
+  caption="A área do trapézio na MEPA, uma instrução por passo."
+>
+
+```text start=0
+INPP
+AMEM 3        ; a, b, h
+LEIT
+ARMZ 0,0
+LEIT
+ARMZ 0,1
+LEIT
+ARMZ 0,2
+CRVL 0,0
+CRVL 0,1
+SOMA
+CRVL 0,2
+MULT
+CRCT 2
+DIVI
+IMPR
+DMEM 3
+PARA
+FIM
+```
+
+| Registrador | Valor |
+| ----------- | ----: |
+| i           |    17 |
+| s           |    −1 |
+| D[0]        |     0 |
+| entrada     |     — |
+| saída       |    16 |
+
+| Célula | Dado | Papel | Topo |
+| ------ | ---: | ----- | ---- |
+| M[0]   |    3 |       |      |
+| M[1]   |    5 |       |      |
+| M[2]   |    4 |       |      |
+| M[3]   |   16 |       |      |
+| M[4]   |    2 |       |      |
+
+</Stage>
+
+</div>
+
+## In English
+
+<div lang="en" data-catalog-run="start" data-catalog-step="12">
+
+<Stage
+  build="mepa-trapezoid"
+  input={{
+    label: "Trapezoid's area",
+    fields: [
+      { name: "a", min: 0, max: 20 },
+      { name: "b", min: 0, max: 20 },
+      { name: "h", min: 0, max: 20 },
+    ],
+    examples: [
+      { a: 3, b: 5, h: 4 },
+      { a: 2, b: 3, h: 3 },
+    ],
+  }}
+  prompt="Type the bases and the height and run the program."
+  caption="A trapezoid's area on MEPA, one instruction per step."
+>
+
+```text start=0
+INPP
+AMEM 3        ; a, b, h
+LEIT
+ARMZ 0,0
+LEIT
+ARMZ 0,1
+LEIT
+ARMZ 0,2
+CRVL 0,0
+CRVL 0,1
+SOMA
+CRVL 0,2
+MULT
+CRCT 2
+DIVI
+IMPR
+DMEM 3
+PARA
+FIM
+```
+
+| Register | Value |
+| -------- | ----: |
+| i        |    17 |
+| s        |    −1 |
+| D[0]     |     0 |
+| input    |     — |
+| output   |    16 |
+
+| Cell | Data | Role | Top |
+| ---- | ---: | ---- | --- |
+| M[0] |    3 |      |     |
+| M[1] |    5 |      |     |
+| M[2] |    4 |      |     |
+| M[3] |   16 |      |     |
+| M[4] |    2 |      |     |
+
+</Stage>
+
+</div>

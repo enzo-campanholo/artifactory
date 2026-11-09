@@ -651,6 +651,17 @@ again in the build: `steps({ a, b }, { code: [listing = []] })` takes the first 
 The page and `pnpm check` hand every run the same content, a fresh copy each time, so a run may
 change its own. A build that doesn't need it leaves the argument out.
 
+**Machine traces.** A Stage that runs a machine the design system holds, such as the stack
+machine MEPA, on a program and the owner's input is written as any Stage with `input`: the
+program in its content, the tables as the first example's result. Its build is
+`trace(machine, notes)` (below), never a copy of the machine. Each machine's entry under
+"Machines", after the components, gives its program's form, its tables as written in pt-BR and
+English, and its notes. A machine needing a growing structure beside a fixed one, such as a call
+stack's frames beside its locals or a tape beside its transitions, can't take two tables: a
+Stage that gives `body` holds exactly one. It keeps both in one table with a role column, as
+MEPA's memory table holds a subroutine's record beside the globals, or writes its program in the
+code block.
+
 **Beside the drawing.** A Stage sets its tables under its drawing. Set `beside` only where the
 owner must see a step's marks and its table's rows together to follow the step, such as a graph
 and its table of keys and parents, which stacked sit a scroll apart; most Stages leave it out.
@@ -835,12 +846,15 @@ from the Stage's content as written (MEPA's from the code block), so the program
 once, and says each step in the artifact's main language. `notes` are the program's own data,
 keyed by address, in the artifact's language, never read from the code's comments: `reads`
 names the Stage's fields in the order the machine reads them, exactly the Stage's fields, or
-`pnpm check` fails as `build-input`. Each machine's entry lists its other notes and its tables.
+`pnpm check` fails as `build-input`. Each machine's entry under "Machines" lists its other notes
+and its tables.
 
 The first step shows the starting state, then one step follows per step of the machine until it
 halts, at most 200 in all, as for any build: a run past them is refused, so keep runs short
 through the fields' bounds. Every cell whose text changed since the step before is `strong`. A
-fault, such as a division by zero, refuses the run, naming the line and the fault.
+fault, such as a division by zero, refuses the run, naming the line and the fault. A program or
+notes that don't fit the machine, a `reads` name that isn't one of the Stage's fields included,
+refuse every run, `pnpm check` naming each problem and the code line it's on.
 
 ```ts
 function trace<Program, State, Notes, const Reads extends string>(machine: Machine<Program, State, Notes>, notes: NoInfer<Notes> & { reads: readonly Reads[] }): Build<Record<Reads, number>>;
@@ -975,6 +989,150 @@ With `lines`:
 - `captions` (`string[]`, optional): One short caption per step, in step order, shown beside the buttons. Screen readers announce
   it with the step number and, for code, the step's lines; without captions they hear only
   those. Leave it out only when the prose around the stepper already explains each step.
+
+## Machines
+
+The machines the design system holds. A Stage traces one with a build whose default export is `trace(machine, notes)`, under the Stage's build above. Each entry says how to write the machine's program and tables in the Stage's content, and which notes its build gives.
+
+### mepa
+
+`import mepa from "@artifactory/design-system/machines/mepa";`
+
+MEPA, the stack machine Pascal-like languages compile to in Kowaltowski's textbook: the program
+counter `i`, the stack top `s`, the display `D` and the memory `M`. Trace it in a Stage with
+`input` whose content is the listing, a registers table and a memory table, with a build of a
+few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR:
+
+````mdx
+<Stage
+  build="trapezio"
+  input={{
+    label: "Área do trapézio",
+    fields: [
+      { name: "a", min: 0, max: 20 },
+      { name: "b", min: 0, max: 20 },
+      { name: "h", min: 0, max: 20 },
+    ],
+    examples: [{ a: 3, b: 5, h: 4 }, { a: 2, b: 3, h: 3 }],
+  }}
+  prompt="Digite as bases e a altura e rode o programa."
+  caption="A área do trapézio na MEPA, uma instrução por passo."
+>
+
+```text start=0
+INPP
+AMEM 3        ; a, b, h
+LEIT
+ARMZ 0,0
+LEIT
+ARMZ 0,1
+LEIT
+ARMZ 0,2
+CRVL 0,0
+CRVL 0,1
+SOMA
+CRVL 0,2
+MULT
+CRCT 2
+DIVI
+IMPR
+DMEM 3
+PARA
+FIM
+```
+
+| Registrador | Valor |
+| ----------- | ----: |
+| i           |    17 |
+| s           |    −1 |
+| D[0]        |     0 |
+| entrada     |     — |
+| saída       |    16 |
+
+| Célula | Dado | Papel | Topo |
+| ------ | ---: | ----- | ---- |
+| M[0]   |    3 |       |      |
+| M[1]   |    5 |       |      |
+| M[2]   |    4 |       |      |
+| M[3]   |   16 |       |      |
+| M[4]   |    2 |       |      |
+
+</Stage>
+````
+
+```ts
+// trapezio.build.ts
+import { trace } from "@artifactory/design-system/stage-build";
+import mepa from "@artifactory/design-system/machines/mepa";
+
+export default trace(mepa, {
+  reads: ["a", "b", "h"],
+  roles: { 1: ["base a", "base b", "altura h"], 2: "lido", 10: "a mais b", 14: "a área" },
+  after: { 16: "As variáveis a, b e h estão liberadas." },
+});
+```
+
+The tables as written are what the first example's last step leaves, as for any Stage with
+`input`: `PARA` keeps `i` on its own line, 17; every cell is above `s`, so none shows a role or
+`← s`; and M[3] and M[4] keep the last values the stack held there.
+
+**The listing** is the Stage's one code block, fenced ` ```text start=0 `, so address k is the
+line the page shows as k: never type the addresses into it. Each line is an instruction with its
+arguments and an optional `; comment`, and the last line is `FIM`:
+
+- `INPP` starts the program: `s` gets −1 and `D[0]` 0.
+- `AMEM n` reserves n cells on the stack, and `DMEM n` frees n.
+- `LEIT` reads the next field, in the order `reads` names them, onto the stack.
+- `ARMZ k,n` stores the top in `M[D[k] + n]` and pops it; `CRVL k,n` pushes a copy of it.
+- `CRCT c` pushes the constant c.
+- `SOMA`, `MULT` and `DIVI` replace the two cells at the top with their sum, product or quotient
+  (`DIVI` drops the remainder, as Pascal's `div`).
+- `IMPR` pops the top onto the output, and `PARA` stops the machine.
+
+**Failures**, each a `stage-run` failure of `pnpm check`. A listing the machine can't read is
+refused, naming the line: an instruction MEPA doesn't have ("`PUSH 3` isn't a MEPA
+instruction"), wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers"), a fence
+without `start=0`, `FIM` anywhere but on the last line, and a Stage with no code block or more
+than one. So is a `roles` or `after` note keyed to an address the listing doesn't have. A run is
+refused, naming the line, when it divides by zero, reads with no field left, drops the stack below
+its bottom, runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, reaches a cell below
+`M[0]`, or reaches `FIM`. A table without a column the view writes into fails as any Stage's
+does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
+
+**The registers table** has the rows `i`, `s`, `D[0]` and every other `D[k]` the listing names,
+then the input yet to be read and the output, each listing its values in order, `—` when empty.
+Its headers and the last two rows' names follow the artifact's main language. In pt-BR, as the
+example's, and in English, after the same run:
+
+| Register | Value |
+| -------- | ----: |
+| i        |    17 |
+| s        |    −1 |
+| D[0]     |     0 |
+| input    |     — |
+| output   |    16 |
+
+**The memory table** has `Célula` (`Cell`) as its first column and a row per cell, `M[0]` up to
+the highest cell the run reaches, in any order, so a run that reaches a row the table lacks
+fails. Its columns are `Célula | Dado | Papel | Desl. | Topo` in pt-BR, and in English:
+
+| Cell | Data | Role | Offset | Top |
+| ---- | ---: | ---- | -----: | --- |
+| M[0] |    3 |      |        |     |
+
+`Papel` (`Role`) and `Desl.` (`Offset`) are optional: leave `Papel` out and no role is shown, and
+`Desl.`, for the offsets in a subroutine's record, is kept as written. A cell above `s` is
+`muted` and shows no role, `← s` marks the top, and a cell with no value shows `?`. The cell
+each step writes is `strong`, even when it already held that value.
+
+**The lines:** the instruction that ran is `reversed`, and the one `i` points at next is
+`dashed` until the machine stops.
+
+**Notes**, besides `reads`, in the artifact's language: `roles`, by address, the role of the
+cell that instruction writes (`11: "lido"`), or for an `AMEM n` a list of n roles, one per cell
+it reserves (`1: ["x, global", "y, global"]`). A cell an `ARMZ` writes keeps its role unless the
+note gives one; any other write without one has no role. `after`, by address, a sentence added to
+that instruction's step (`14: "As globais x e y estão liberadas."`).
 
 ## Colours in diagrams
 

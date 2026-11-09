@@ -22,6 +22,10 @@ export function catalog(): AstroIntegration {
           entrypoint: new URL("pages/stage.astro", import.meta.url),
         });
         injectRoute({
+          pattern: "/catalog/mepa",
+          entrypoint: new URL("pages/mepa.astro", import.meta.url),
+        });
+        injectRoute({
           pattern: "/catalog/eye",
           entrypoint: new URL("pages/eye.astro", import.meta.url),
         });
