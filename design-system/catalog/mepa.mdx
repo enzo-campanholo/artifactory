@@ -1,12 +1,12 @@
 import Stage from "../src/Stage.astro";
 
-MEPA's machine trace: a Stage whose build is `trace(mepa, notes)`, running the listing written in its code block on the numbers typed. The listing works out a trapezoid's area, (a + b) × h div 2, with every instruction MEPA covers: `INPP`, `AMEM`, `LEIT`, `ARMZ`, `CRVL`, `SOMA`, `MULT`, `CRCT`, `DIVI`, `IMPR`, `DMEM`, `PARA` and `FIM`. The same program runs in a pt-BR Stage and in an English Stage, each with its tables as written in its language and its build's notes in that language too, so each says its steps in its own.
+MEPA's machine trace: a Stage whose build is `trace(mepa, notes)`, running the listing written in its code block on the numbers typed. The listing works out a trapezoid's area, (a + b) × h div 2, with every instruction MEPA covers: `INPP`, `AMEM`, `DSVS`, `NADA`, `LEIT`, `ARMZ`, `CRVL`, `SOMA`, `MULT`, `CRCT`, `DIVI`, `IMPR`, `DMEM`, `PARA` and `FIM`. It opens as a compiler lays out a program: `DSVS L1` jumps over the subroutines to `L1: NADA`, the main program's start, and since this program has none, it lands on the next line. A label names its line's address, and the build's `labels` note names its place, said when the jump lands there and when the run passes the `NADA`. The same program runs in a pt-BR Stage and in an English Stage, each with its tables as written in its language and its build's notes in that language too, so each says its steps in its own.
 
-The catalog script pressed Start on a = 3, b = 5, h = 4 and stepped to step 12, where `SOMA` runs. Line 10, the instruction that ran, is reversed, and line 11, where `i` points next, is dashed. What the step changed is strong: `i`, `s`, the sum 8 in M[3] and `← s` moving to it from M[4]. M[4] is above `s`, so it's muted and shows no role. Without JavaScript and in print, each Stage shows its tables as written: the first example's last step, where `DMEM 3` has freed every cell, so none shows a role or the top.
+The catalog script pressed Start on a = 3, b = 5, h = 4 and stepped to step 14, where `SOMA` runs. Line 12, the instruction that ran, is reversed, and line 13, where `i` points next, is dashed. What the step changed is strong: `i`, `s`, the sum 8 in M[3] and `← s` moving to it from M[4]. M[4] is above `s`, so it's muted and shows no role. Without JavaScript and in print, each Stage shows its tables as written: the first example's last step, where `DMEM 3` has freed every cell, so none shows a role or the top.
 
 ## In Portuguese
 
-<div lang="pt-BR" data-catalog-run="start" data-catalog-step="12">
+<div lang="pt-BR" data-catalog-run="start" data-catalog-step="14">
 
 <Stage
   build="mepa-trapezio"
@@ -29,6 +29,8 @@ The catalog script pressed Start on a = 3, b = 5, h = 4 and stepped to step 12, 
 ```text start=0
 INPP
 AMEM 3        ; a, b, h
+DSVS L1       ; salta os procedimentos
+L1: NADA
 LEIT
 ARMZ 0,0
 LEIT
@@ -50,7 +52,7 @@ FIM
 
 | Registrador | Valor |
 | ----------- | ----: |
-| i           |    17 |
+| i           |    19 |
 | s           |    −1 |
 | D[0]        |     0 |
 | entrada     |     — |
@@ -70,7 +72,7 @@ FIM
 
 ## In English
 
-<div lang="en" data-catalog-run="start" data-catalog-step="12">
+<div lang="en" data-catalog-run="start" data-catalog-step="14">
 
 <Stage
   build="mepa-trapezoid"
@@ -93,6 +95,8 @@ FIM
 ```text start=0
 INPP
 AMEM 3        ; a, b, h
+DSVS L1       ; skips the procedures
+L1: NADA
 LEIT
 ARMZ 0,0
 LEIT
@@ -114,7 +118,7 @@ FIM
 
 | Register | Value |
 | -------- | ----: |
-| i        |    17 |
+| i        |    19 |
 | s        |    −1 |
 | D[0]     |     0 |
 | input    |     — |

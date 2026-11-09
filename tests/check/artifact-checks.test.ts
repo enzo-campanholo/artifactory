@@ -271,7 +271,7 @@ function machineBuild(notes = 'reads: ["x", "y"]'): string {
 // result, worked out by hand: x = 7 is stored in M[0], and y = 2 is pushed to M[1] and printed.
 const unfitMachineStages = [
   ...machineStage("unknown", ["INPP", "PUSH 3", "PARA", "FIM"]),
-  ...machineStage("arguments", ["INPP", "AMEM", "CRVL 0", "ARMZ 0,x", "PARA", "FIM"], {
+  ...machineStage("arguments", ["INPP", "AMEM", "CRVL 0", "ARMZ 0,x", "DSVS 3", "PARA", "FIM"], {
     examples: "[{ x: 7, y: 2 }, { x: 1, y: 1 }]",
   }),
   ...machineStage("from-one", ["INPP", "PARA", "FIM"], { fence: "```text" }),
@@ -283,6 +283,9 @@ const unfitMachineStages = [
   ...machineStage("below-zero", ["INPP", "CRVL 0,-1", "PARA", "FIM"]),
   ...machineStage("no-para", ["INPP", "FIM"]),
   ...machineStage("notes", ["INPP", "PARA", "FIM"]),
+  ...machineStage("jumps", ["INPP", "DSVS L9", "L1: NADA", "PARA", "FIM"]),
+  ...machineStage("labelled", ["INPP", "L1: NADA", "L1: NADA", "L2:", "PARA", "FIM"]),
+  ...machineStage("labels", ["INPP", "PARA", "FIM"]),
   ...machineStage("reads", ["INPP", "PARA", "FIM"]),
   ...machineStage("no-registers", ["INPP", "PARA", "FIM"], { tables: memoryTable }),
   ...machineStage("no-top", ["INPP", "PARA", "FIM"], {
@@ -329,6 +332,8 @@ const unfitMachineBuilds = {
       "no-display",
       "below-zero",
       "no-para",
+      "jumps",
+      "labelled",
       "no-registers",
       "no-top",
       "unroled",
@@ -338,6 +343,9 @@ const unfitMachineBuilds = {
     'reads: ["x", "y"], roles: { 7: "x" }, after: { 9: "Done." }',
   ),
   "artifacts/stack-machine/reads.build.ts": machineBuild('reads: ["x", "z"]'),
+  "artifacts/stack-machine/labels.build.ts": machineBuild(
+    'reads: ["x", "y"], labels: { L2: "the end" }',
+  ),
 };
 
 const customBuilds = {
@@ -775,7 +783,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 121 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 126 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -969,11 +977,16 @@ describe.each([
           "artifacts/stack-machine/arguments.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: `AMEM` isn't `AMEM n`, with 1 whole number (artifact skill: Custom builds)",
           "artifacts/stack-machine/arguments.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 2: `CRVL 0` isn't `CRVL k,n`, with 2 whole numbers (artifact skill: Custom builds)",
           "artifacts/stack-machine/arguments.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 3: `ARMZ 0,x` isn't `ARMZ k,n`, with 2 whole numbers (artifact skill: Custom builds)",
+          "artifacts/stack-machine/arguments.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 4: `DSVS 3` isn't `DSVS L`, with a label (artifact skill: Custom builds)",
           "artifacts/stack-machine/below-zero.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: M[−1] doesn't exist (artifact skill: Custom builds)",
           "artifacts/stack-machine/bottom.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: the stack would drop below its bottom (artifact skill: Custom builds)",
           "artifacts/stack-machine/divide.build.ts:1:1 error stage-run: with `x = 7, y = 0`, the machine faults at line 8: division by zero (artifact skill: Custom builds)",
           "artifacts/stack-machine/divide.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the first example, the last step leaves `3` in the row `M[2]` and the column `Data`, and the table as written has `4`; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/stack-machine/from-one.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: the listing starts at address 0: fence it ` ```text start=0 ` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/jumps.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: `DSVS L9` jumps to the label `L9`, which the listing doesn't have: it has `L1` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/labelled.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 2: the label `L1` is already on line 1: give each line its own (artifact skill: Custom builds)",
+          "artifacts/stack-machine/labelled.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 3: `L2:` labels no instruction: write one after it, as `L2: NADA` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/labels.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `labels` names the label `L2`, which the listing doesn't have: it has no labels (artifact skill: Custom builds)",
           "artifacts/stack-machine/no-display.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: D[1] has no value (artifact skill: Custom builds)",
           "artifacts/stack-machine/no-input.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 3: no input is left to read (artifact skill: Custom builds)",
           "artifacts/stack-machine/no-para.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: the program reaches FIM without PARA (artifact skill: Custom builds)",
@@ -1024,7 +1037,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 122 failures" : "pnpm check: 121 failures",
+        fullScope ? "pnpm check: 127 failures" : "pnpm check: 126 failures",
       );
     });
   },

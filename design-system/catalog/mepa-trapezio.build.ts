@@ -3,18 +3,19 @@ import { trace } from "../src/stage-build.ts";
 
 export default trace(mepa, {
   reads: ["a", "b", "h"],
+  labels: { L1: "o início do programa principal" },
   roles: {
     1: ["base a", "base b", "altura h"],
-    2: "lido",
     4: "lido",
     6: "lido",
-    8: "cópia de a",
-    9: "cópia de b",
-    10: "a mais b",
-    11: "cópia de h",
-    12: "vezes h",
-    13: "o divisor",
-    14: "a área",
+    8: "lido",
+    10: "cópia de a",
+    11: "cópia de b",
+    12: "a mais b",
+    13: "cópia de h",
+    14: "vezes h",
+    15: "o divisor",
+    16: "a área",
   },
-  after: { 16: "As variáveis a, b e h estão liberadas." },
+  after: { 18: "As variáveis a, b e h estão liberadas." },
 });

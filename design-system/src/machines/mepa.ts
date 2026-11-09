@@ -2,7 +2,8 @@
  * MEPA, the stack machine Pascal-like languages compile to in Kowaltowski's textbook: the program
  * counter `i`, the stack top `s`, the display `D` and the memory `M`. Trace it in a Stage with
  * `input` whose content is the listing, a registers table and a memory table, with a build of a
- * few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR:
+ * few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR, laid out as a
+ * compiler lays out a program: a jump over the subroutines, none here, to the main program's start:
  *
  * ````mdx
  * <Stage
@@ -23,6 +24,8 @@
  * ```text start=0
  * INPP
  * AMEM 3        ; a, b, h
+ * DSVS L1       ; salta os procedimentos
+ * L1: NADA
  * LEIT
  * ARMZ 0,0
  * LEIT
@@ -44,7 +47,7 @@
  *
  * | Registrador | Valor |
  * | ----------- | ----: |
- * | i           |    17 |
+ * | i           |    19 |
  * | s           |    −1 |
  * | D[0]        |     0 |
  * | entrada     |     — |
@@ -68,17 +71,19 @@
  *
  * export default trace(mepa, {
  *   reads: ["a", "b", "h"],
- *   roles: { 1: ["base a", "base b", "altura h"], 2: "lido", 10: "a mais b", 14: "a área" },
- *   after: { 16: "As variáveis a, b e h estão liberadas." },
+ *   labels: { L1: "o início do programa principal" },
+ *   roles: { 1: ["base a", "base b", "altura h"], 4: "lido", 12: "a mais b", 16: "a área" },
+ *   after: { 18: "As variáveis a, b e h estão liberadas." },
  * });
  * ```
  *
  * The tables as written are what the first example's last step leaves, as for any Stage with
- * `input`: `PARA` keeps `i` on its own line, 17; every cell is above `s`, so none shows a role or
+ * `input`: `PARA` keeps `i` on its own line, 19; every cell is above `s`, so none shows a role or
  * `← s`; and M[3] and M[4] keep the last values the stack held there.
  *
  * **The listing** is the Stage's one code block, fenced ` ```text start=0 `, so address k is the
- * line the page shows as k: never type the addresses into it. Each line is an instruction with its
+ * line the page shows as k: never type the addresses into it. Each line is an optional label
+ * (`L1:`, a name of letters, digits and `_`, naming that line's address), an instruction with its
  * arguments and an optional `; comment`, and the last line is `FIM`:
  *
  * - `INPP` starts the program: `s` gets −1 and `D[0]` 0.
@@ -88,17 +93,24 @@
  * - `CRCT c` pushes the constant c.
  * - `SOMA`, `MULT` and `DIVI` replace the two cells at the top with their sum, product or quotient
  *   (`DIVI` drops the remainder, as Pascal's `div`).
+ * - `DSVS L` jumps: `i` gets the address of the line labelled `L`. MEPA has no conditional jump
+ *   yet, so a jump back to an earlier line repeats forever and runs past the Stage's 200 steps.
+ * - `NADA` does nothing: it marks a place, usually labelled, for a jump to land on.
  * - `IMPR` pops the top onto the output, and `PARA` stops the machine.
  *
  * **Failures**, each a `stage-run` failure of `pnpm check`. A listing the machine can't read is
  * refused, naming the line: an instruction MEPA doesn't have ("`PUSH 3` isn't a MEPA
- * instruction"), wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers"), a fence
- * without `start=0`, `FIM` anywhere but on the last line, and a Stage with no code block or more
- * than one. So is a `roles` or `after` note keyed to an address the listing doesn't have. A run is
- * refused, naming the line, when it divides by zero, reads with no field left, drops the stack below
- * its bottom, runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, reaches a cell below
- * `M[0]`, or reaches `FIM`. A table without a column the view writes into fails as any Stage's
- * does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
+ * instruction"), wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers", "`DSVS 3`
+ * isn't `DSVS L`, with a label"), a jump to a label no line has ("`DSVS L9` jumps to the label
+ * `L9`, which the listing doesn't have: it has `L1`"), a label on two lines ("the label `L1` is
+ * already on line 1"), a label with no instruction after it, a fence without `start=0`, `FIM`
+ * anywhere but on the last line, and a Stage with no code block or more than one. So is a `roles`
+ * or `after` note keyed to an address the listing doesn't have, and a `labels` note naming a label
+ * no line has ("`labels` names the label `L2`, which the listing doesn't have: it has `L1`"). A run
+ * is refused, naming the line, when it divides by zero, reads with no field left, drops the stack
+ * below its bottom, runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, reaches a
+ * cell below `M[0]`, or reaches `FIM`. A table without a column the view writes into fails as any
+ * Stage's does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
  *
  * **The registers table** has the rows `i`, `s`, `D[0]` and every other `D[k]` the listing names,
  * then the input yet to be read and the output, each listing its values in order, `—` when empty.
@@ -129,7 +141,10 @@
  * **The lines:** the instruction that ran is `reversed`, and the one `i` points at next is
  * `dashed` until the machine stops.
  *
- * **Notes**, besides `reads`, in the artifact's language: `roles`, by address, the role of the
+ * **Notes**, besides `reads`, in the artifact's language: `labels`, by label, the place each label
+ * names (`L1: "o início de main"`), said beside the label when a jump lands there ("Desvia para L1,
+ * o início de main: i recebe 3.") and when the run passes its `NADA` ("Passa por L1, o início de
+ * main, e não faz nada."); a label without one is said alone. `roles`, by address, the role of the
  * cell that instruction writes (`11: "lido"`), or for an `AMEM n` a list of n roles, one per cell
  * it reserves (`1: ["x, global", "y, global"]`). A cell an `ARMZ` writes keeps its role unless the
  * note gives one; any other write without one has no role. `after`, by address, a sentence added to
@@ -149,34 +164,44 @@ import {
 import type { CellChange, Content, Mark } from "../stage-build.ts";
 
 type Instruction =
-  | { op: "INPP" | "LEIT" | "SOMA" | "MULT" | "DIVI" | "IMPR" | "PARA" | "FIM" }
+  | { op: "INPP" | "LEIT" | "SOMA" | "MULT" | "DIVI" | "IMPR" | "NADA" | "PARA" | "FIM" }
   | { op: "AMEM" | "DMEM" | "CRCT"; n: number }
-  | { op: "ARMZ" | "CRVL"; k: number; n: number };
+  | { op: "ARMZ" | "CRVL"; k: number; n: number }
+  | { op: "DSVS"; label: string; to: number };
 
-const arity: Record<Instruction["op"], number> = {
-  INPP: 0,
-  LEIT: 0,
-  SOMA: 0,
-  MULT: 0,
-  DIVI: 0,
-  IMPR: 0,
-  PARA: 0,
-  FIM: 0,
-  AMEM: 1,
-  DMEM: 1,
-  CRCT: 1,
-  ARMZ: 2,
-  CRVL: 2,
+// Each operand by the name its shape gives it: `L` is a label, any other a whole number.
+const operands: Record<Instruction["op"], readonly string[]> = {
+  INPP: [],
+  LEIT: [],
+  SOMA: [],
+  MULT: [],
+  DIVI: [],
+  IMPR: [],
+  NADA: [],
+  PARA: [],
+  FIM: [],
+  AMEM: ["n"],
+  DMEM: ["n"],
+  CRCT: ["n"],
+  ARMZ: ["k", "n"],
+  CRVL: ["k", "n"],
+  DSVS: ["L"],
 };
 
 interface Notes {
+  labels?: Readonly<Record<string, string>>;
   roles?: Readonly<Record<number, string | readonly string[]>>;
   after?: Readonly<Record<number, string>>;
 }
 
+interface Line {
+  label: string | undefined;
+  read: Instruction;
+}
+
 interface Program {
   lang: Language;
-  listing: Instruction[];
+  listing: Line[];
   displays: number[];
   cells: number;
   roleColumn: boolean;
@@ -222,6 +247,10 @@ const headers = {
 const plural = (count: number, one: string, many: string) =>
   `${String(count)} ${count === 1 ? one : many}`;
 
+// A label is said with its place name when the `labels` note gives one: "L1, o início de main".
+const placed = (label: string, name: string | undefined) =>
+  name === undefined ? label : `${label}, ${name}`;
+
 const words = {
   "pt-BR": {
     starts: (s: string) => `O programa começa: s recebe ${s} e D[0] recebe 0.`,
@@ -241,6 +270,12 @@ const words = {
     computes: (cell: string, operation: string, value: string, s: string) =>
       `${cell} recebe ${operation}, que é ${value}, e s recebe ${s}.`,
     writes: (value: string, s: string) => `Escreve ${value} na saída: s recebe ${s}.`,
+    jumps: (label: string, name: string | undefined, i: string) =>
+      `Desvia para ${placed(label, name)}: i recebe ${i}.`,
+    passes: (label: string | undefined, name: string | undefined) =>
+      label === undefined
+        ? "Não faz nada."
+        : `Passa por ${placed(label, name)}${name === undefined ? "" : ","} e não faz nada.`,
     stops: "O programa para.",
   },
   en: {
@@ -261,6 +296,12 @@ const words = {
     computes: (cell: string, operation: string, value: string, s: string) =>
       `${cell} gets ${operation}, which is ${value}, and s gets ${s}.`,
     writes: (value: string, s: string) => `Writes ${value} to the output: s gets ${s}.`,
+    jumps: (label: string, name: string | undefined, i: string) =>
+      `Jumps to ${placed(label, name)}: i gets ${i}.`,
+    passes: (label: string | undefined, name: string | undefined) =>
+      label === undefined
+        ? "Does nothing."
+        : `Passes ${placed(label, name)}${name === undefined ? "" : ","} and does nothing.`,
     stops: "The program stops.",
   },
 };
@@ -290,20 +331,57 @@ const faults = {
   },
 };
 
-const isOp = (text: string): text is Instruction["op"] => Object.hasOwn(arity, text);
+const isOp = (text: string): text is Instruction["op"] => Object.hasOwn(operands, text);
 
-function instruction(text: string): Instruction | string {
+const labelName = /^[A-Za-z_]\w*$/;
+
+// A line as written, without its comment: its label, if it has one, and its instruction.
+function split(text: string): { label: string | undefined; written: string } {
   const written = text.replace(/;.*$/, "").trim();
+  const [, label, rest = ""] = /^([A-Za-z_]\w*):\s*(.*)$/.exec(written) ?? [];
+  return label === undefined ? { label, written } : { label, written: rest };
+}
+
+const listedLabels = (labels: ReadonlyMap<string, number>) =>
+  labels.size === 0
+    ? "it has no labels"
+    : `it has ${[...labels.keys()].map((label) => `\`${label}\``).join(", ")}`;
+
+function instruction(
+  written: string,
+  label: string | undefined,
+  labels: ReadonlyMap<string, number>,
+): Instruction | string {
   const [op = "", ...rest] = written.split(/\s+/);
+  if (op === "" && label !== undefined) {
+    return `\`${label}:\` labels no instruction: write one after it, as \`${label}: NADA\``;
+  }
   if (!isOp(op)) return `\`${written}\` isn't a MEPA instruction`;
   const args = rest.join("").split(",").filter(Boolean);
-  const count = arity[op];
-  const numbers = args.map((arg) => (/^-?\d+$/.test(arg) ? Number(arg) : Number.NaN));
-  if (numbers.length !== count || numbers.some(Number.isNaN)) {
-    const shape = ["", " n", " k,n"][count] ?? "";
-    return `\`${written}\` isn't \`${op}${shape}\`, with ${plural(count, "whole number", "whole numbers")}`;
+  const names = operands[op];
+  const fits =
+    args.length === names.length &&
+    names.every((name, at) => (name === "L" ? labelName : /^-?\d+$/).test(args[at] ?? ""));
+  if (!fits) {
+    const wholes = names.filter((name) => name !== "L").length;
+    const kinds = [
+      ...(names.includes("L") ? ["a label"] : []),
+      ...(wholes > 0 || names.length === 0
+        ? [plural(wholes, "whole number", "whole numbers")]
+        : []),
+    ];
+    const shape = names.length === 0 ? op : `${op} ${names.join(",")}`;
+    return `\`${written}\` isn't \`${shape}\`, with ${kinds.join(" and ")}`;
   }
-  const [k = 0, n = 0] = numbers;
+  if (op === "DSVS") {
+    const [target = ""] = args;
+    const to = labels.get(target);
+    if (to === undefined) {
+      return `\`${written}\` jumps to the label \`${target}\`, which the listing doesn't have: ${listedLabels(labels)}`;
+    }
+    return { op, label: target, to };
+  }
+  const [k = 0, n = 0] = args.map(Number);
   if (op === "ARMZ" || op === "CRVL") return { op, k, n };
   if (op === "AMEM" || op === "DMEM" || op === "CRCT") return { op, n: k };
   return { op };
@@ -319,19 +397,35 @@ function parse(content: Content, notes: Notes): Parsed<Program> {
     };
   }
   const problems: Problem[] = [];
-  const instructions: Instruction[] = [];
   if (listing[0]?.line !== 0) {
     problems.push({
       line: listing[0]?.line ?? 1,
       problem: "the listing starts at address 0: fence it ` ```text start=0 `",
     });
   }
-  listing.forEach(({ line, text }, address) => {
-    const read = instruction(text);
-    if (typeof read === "string") problems.push({ line, problem: read });
-    else instructions.push(read);
+  const written = listing.map(({ line, text }) => ({ line, ...split(text) }));
+  const labels = new Map<string, number>();
+  written.forEach(({ line, label }, address) => {
+    if (label === undefined) return;
+    const first = labels.get(label);
+    if (first === undefined) labels.set(label, address);
+    else {
+      problems.push({
+        line,
+        problem: `the label \`${label}\` is already on line ${String(listing[first]?.line)}: give each line its own`,
+      });
+    }
+  });
+  const lines: Line[] = [];
+  written.forEach(({ line, label, written: text }, address) => {
+    const read = instruction(text, label, labels);
+    if (typeof read === "string") {
+      problems.push({ line, problem: read });
+      return;
+    }
+    lines.push({ label, read });
     const last = address === listing.length - 1;
-    if (typeof read !== "string" && (read.op === "FIM") !== last) {
+    if ((read.op === "FIM") !== last) {
       problems.push({
         line,
         problem: last
@@ -340,6 +434,13 @@ function parse(content: Content, notes: Notes): Parsed<Program> {
       });
     }
   });
+  for (const label of Object.keys(notes.labels ?? {})) {
+    if (labels.has(label)) continue;
+    problems.push({
+      line: undefined,
+      problem: `\`labels\` names the label \`${label}\`, which the listing doesn't have: ${listedLabels(labels)}`,
+    });
+  }
   const addresses = `it has addresses 0 to ${String(listing.length - 1)}`;
   for (const [name, keyed] of [
     ["roles", notes.roles],
@@ -358,9 +459,9 @@ function parse(content: Content, notes: Notes): Parsed<Program> {
   return {
     program: {
       lang: content.lang,
-      listing: instructions,
+      listing: lines,
       displays: [
-        ...new Set([0, ...instructions.flatMap((read) => ("k" in read ? [read.k] : []))]),
+        ...new Set([0, ...lines.flatMap(({ read }) => ("k" in read ? [read.k] : []))]),
       ].sort((a, b) => a - b),
       cells: memory?.rows.length ?? 0,
       roleColumn: memory?.columns.includes(headers[content.lang].role) ?? false,
@@ -389,7 +490,7 @@ const cellName = (address: number) => `M[${shownNumber(address)}]`;
 
 function step(state: State): Moved<State> {
   const { program, i } = state;
-  const read = program.listing[i] ?? { op: "FIM" };
+  const { label, read } = program.listing[i] ?? { label: undefined, read: { op: "FIM" } };
   const say = words[program.lang];
   const spoken = (value: number | undefined) => spokenNumber(value, program.lang);
   const fault = (said: Said) => ({ fault: { line: i, fault: said } });
@@ -423,6 +524,14 @@ function step(state: State): Moved<State> {
   if (read.op === "PARA") {
     next.i = i;
     return moved(say.stops, true);
+  }
+  const name = (label: string) => program.notes.labels?.[label];
+  if (read.op === "DSVS") {
+    next.i = read.to;
+    return moved(say.jumps(read.label, name(read.label), spoken(read.to)));
+  }
+  if (read.op === "NADA") {
+    return moved(say.passes(label, label === undefined ? undefined : name(label)));
   }
   if (read.op === "FIM") return fault(faults.noPara);
   const s = state.s;
