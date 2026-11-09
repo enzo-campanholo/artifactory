@@ -1,6 +1,6 @@
 # 02: A Stage takes two or more choice groups
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01
 
 Spec: [Stage choice groups](../spec.md) › Behaviour › Choice groups, Runs and Look (the `pnpm check` half), Failures, Documentation, Shared parts. Decisions: [Stage controls and drawing](../../artifact-generation-gaps/issues/03-stage-controls-and-drawing.md) › Answer. Don't reopen them.
