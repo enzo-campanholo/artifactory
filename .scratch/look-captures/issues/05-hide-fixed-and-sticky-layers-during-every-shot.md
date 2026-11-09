@@ -1,6 +1,6 @@
 # 05: Hide fixed and sticky layers during every shot
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01 (Shoot every look item through one path)
 
 Spec: [What `pnpm look` captures](../spec.md) › The item alone
