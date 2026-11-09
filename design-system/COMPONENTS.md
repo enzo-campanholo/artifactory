@@ -121,7 +121,15 @@ fraction (`3/4`), but no thousands separators, `π`, `√` or expressions. Input
 number gets a message and uses up nothing. Without a tolerance the check is exact, so give one
 that matches the computation's precision whenever the answer is rounded.
 
-Write the question inside it. It can hold math, code and lists:
+Write the question inside it. It can hold math, code and lists.
+
+Then, optionally, a blank line, `---`, another blank line and the explanation: the worked
+solution, step by step to the right number. It can hold paragraphs, math, code, lists and
+figures. It shows, under the heading "Explicação" / "Explanation", only once the answer locks,
+right or wrong, after the right answer on a wrong one. It reasons about the answer but never
+teaches a fact for the first time, since an owner who skips the question never reads it, so put
+every fact they must learn in the text too. Write one whenever the source gives a worked
+solution:
 
 ```mdx
 import NumericQuestion from "@artifactory/design-system/numeric-question";
@@ -129,6 +137,10 @@ import NumericQuestion from "@artifactory/design-system/numeric-question";
 <NumericQuestion id="queda-livre" answer="9.81" tolerance={0.01} unit="m/s²">
 
 Uma pedra cai 4,905 m em 1 s a partir do repouso. Qual é a aceleração $g$?
+
+---
+
+A partir do repouso, $d = g t^2 / 2$, logo $g = 2d / t^2 = 2 \cdot 4{,}905 / 1^2 = 9{,}81$ m/s².
 
 </NumericQuestion>
 ```

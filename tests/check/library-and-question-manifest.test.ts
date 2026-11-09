@@ -51,6 +51,7 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "published: 2026-08-30",
         ],
         [
+          'import NumericQuestion from "@artifactory/design-system/numeric-question";',
           'import OpenQuestion from "@artifactory/design-system/open-question";',
           'import SingleChoice from "@artifactory/design-system/single-choice";',
           "",
@@ -89,6 +90,19 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "Pela definição de derivada como limite.",
           "",
           "</OpenQuestion>",
+          "",
+          '<NumericQuestion id="derivada-em-3" answer="6">',
+          "",
+          "Quanto vale a derivada de $x^2$ em $x = 3$?",
+          "",
+          "---",
+          "",
+          "Pela regra da potência, a derivada é $2x$:",
+          "",
+          "1. em $x = 3$, ela vale $2 \\cdot 3$;",
+          "2. logo, $6$.",
+          "",
+          "</NumericQuestion>",
         ],
       ),
       "artifacts/bases-nitrogenadas/index.mdx": artifact([
@@ -411,6 +425,7 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           questions: [
             { id: "regra-da-potencia", number: 1 },
             { id: "por-que-2x", number: 2, section: "A derivada de xn", math: ["xn"] },
+            { id: "derivada-em-3", number: 3, section: "A derivada de xn", math: ["xn"] },
           ],
         },
       ]);
@@ -514,6 +529,48 @@ describe("a repo with published artifacts and drafts, some with questions", () =
     });
   });
 
+  describe("a numeric question's explanation", () => {
+    it("comes after the field, hidden, under its heading in the artifact's language, and leaves the question as what comes before `---`", async () => {
+      const page = await builtPage("derivadas");
+      const question = page.querySelector("#q-derivada-em-3");
+      const field = question?.querySelector(".numeric-question-answer");
+      const explanation = question?.querySelector(".question-explanation");
+      const { copy } = inLanguage(explanation, "pt");
+      const text = (node: Element | null | undefined) =>
+        node?.textContent.replace(/\s+/g, " ").trim();
+
+      expect(text(question?.querySelector(".question-prompt"))).toBe(
+        "Quanto vale a derivada de x2 em x=3?",
+      );
+      expect(explanation?.hasAttribute("hidden")).toBe(true);
+      expect(
+        field !== null &&
+          field !== undefined &&
+          explanation !== null &&
+          explanation !== undefined &&
+          (field.compareDocumentPosition(explanation) & 4) !== 0,
+      ).toBe(true);
+      expect(text(copy?.querySelector(".question-revealed-heading"))).toBe("Explicação");
+      const content = copy?.querySelector(".question-revealed-content");
+      expect(text(content?.querySelector("p"))).toBe("Pela regra da potência, a derivada é 2x:");
+      expect([...(content?.querySelectorAll("ol > li") ?? [])].map(text)).toEqual([
+        "em x=3, ela vale 2⋅3;",
+        "logo, 6.",
+      ]);
+      expect(
+        question?.querySelector("#q-derivada-em-3--field")?.hasAttribute("aria-describedby"),
+      ).toBe(false);
+    });
+
+    it("isn't there on a numeric question written without one", async () => {
+      const page = await builtPage("eigenvalues");
+      expect(page.querySelector("#q-spring-frequency .question-explanation")).toBeNull();
+      expect(
+        page.querySelector("#q-spring-frequency--field")?.getAttribute("aria-describedby"),
+      ).toBe("q-spring-frequency--unit");
+    });
+  });
+
   describe("a matching between other questions", () => {
     async function matching(lang: "en" | "pt") {
       const page = await builtPage("eigenvalues");
@@ -605,12 +662,12 @@ describe("a repo with published artifacts and drafts, some with questions", () =
     it("dates a published artifact by its published date, links back to the Library and holds the eye", async () => {
       const published = await builtPage("derivadas");
       expect(masthead(published, "pt")).toEqual({
-        runningHead: ["Pular para o texto", "Biblioteca", "Tema escuro", "2 seções · 2 questões"],
+        runningHead: ["Pular para o texto", "Biblioteca", "Tema escuro", "2 seções · 3 questões"],
         identRow: ["Cálculo", "Publicado em 30 ago. 2026"],
         toggles: ["Tema escuro"],
       });
       expect(masthead(published, "en")).toEqual({
-        runningHead: ["Skip to the text", "Library", "Dark theme", "2 sections · 2 questions"],
+        runningHead: ["Skip to the text", "Library", "Dark theme", "2 sections · 3 questions"],
         identRow: ["Cálculo", "Published 30 Aug 2026"],
         toggles: ["Dark theme"],
       });
@@ -716,6 +773,7 @@ describe("a repo with published artifacts and drafts, some with questions", () =
         d3r1v4d4: [
           { id: "regra-da-potencia", kind: "single-choice", key: 2 },
           { id: "por-que-2x", kind: "open-question" },
+          { id: "derivada-em-3", kind: "numeric", key: { value: "6" } },
         ],
         "1nt3gr41": [{ id: "regra-da-potencia", kind: "single-choice", key: 1 }],
         b4s3sn1t: [],
