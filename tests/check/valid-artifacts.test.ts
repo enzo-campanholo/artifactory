@@ -30,6 +30,16 @@ function fields(id: string, title: string, subject: string, ...rest: string[]): 
   ];
 }
 
+const listing = [
+  "const a = 1;",
+  "const b = 2;",
+  "const sum = a + b;",
+  "// the product",
+  "const product = a * b;",
+  "console.log(sum, product);",
+  "export { sum };",
+];
+
 const mathAndCode = {
   "artifacts/movimento-uniforme/index.mdx": artifact(
     fields("m0v1ment", "Movimento uniforme", "Mecânica"),
@@ -55,6 +65,20 @@ const mathAndCode = {
       "```text start=10",
       "push 3",
       "print",
+      "```",
+      "",
+      "```ts {3, 5-6}",
+      ...listing,
+      "```",
+      "",
+      "```ts",
+      ...listing,
+      "```",
+      "",
+      "```text start=0 {0}",
+      "push 2",
+      "push 3",
+      "add",
       "```",
       "",
       '<Stepper lines={["0", "1-"]}>',
@@ -1012,7 +1036,53 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
           ["10", "push 3"],
           ["11", "print"],
         ],
+        ...[1, 2].map(() => listing.map((text, index) => [String(index + 1), text])),
+        [
+          ["0", "push 2"],
+          ["1", "push 3"],
+          ["2", "add"],
+        ],
       ]);
+    });
+
+    it("marks the lines a fence's `{…}` names, by the number the page shows, and greys none in a fence without it", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      expect(
+        [...page.querySelectorAll("main pre")]
+          .filter((pre) => pre.closest("artifact-stepper") === null)
+          .map((pre) => [
+            pre.hasAttribute("data-marks"),
+            [...pre.querySelectorAll("code > .line:not([data-off])")].map((line) =>
+              line.getAttribute("data-line"),
+            ),
+          ]),
+      ).toEqual([
+        [false, ["1", "2"]],
+        [false, ["0", "1"]],
+        [false, ["10", "11"]],
+        [true, ["3", "5", "6"]],
+        [false, ["1", "2", "3", "4", "5", "6", "7"]],
+        [true, ["0"]],
+      ]);
+    });
+
+    it("writes a block marked with `{…}` as it writes the same block without it, but for the marks", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      const [marked, unmarked] = [...page.querySelectorAll("main pre")]
+        .filter((pre) => pre.textContent.startsWith(listing[0] ?? ""))
+        .map((pre) => pre.cloneNode(true) as Element);
+      expect(marked?.querySelectorAll("[data-off]")).toHaveLength(4);
+      for (const line of marked?.querySelectorAll("[data-off]") ?? []) {
+        line.removeAttribute("data-off");
+      }
+      marked?.removeAttribute("data-marks");
+      expect(marked?.outerHTML).toBe(unmarked?.outerHTML);
     });
 
     it("steps and prints a one-block Stepper's lines by the number the page shows, from the fence's `start`", async () => {

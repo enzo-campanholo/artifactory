@@ -51,6 +51,17 @@ export function area(radius: number): number {
 }
 ```
 
+Code that points at some of its lines marks them with `{…}`, and the prose names them, since the marks are only seen: here line 2, which keeps its comment in ink, and lines 4 to 5, the first only a comment:
+
+```ts {2, 4-5}
+export function ringArea(outer: number, inner: number): number {
+  const disc = Math.PI * outer ** 2; // the whole disc
+  const hole = Math.PI * inner ** 2;
+  // take the hole away
+  return disc - hole;
+}
+```
+
 Code with a line too long for the column scrolls inside its rules:
 
 ```ts

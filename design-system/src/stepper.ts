@@ -40,18 +40,25 @@ export function steppedFigure(svg: string): { svg: string; count: number } {
 }
 
 const codeBlock = /<pre\b/g;
+const markedBlock = /<pre\b[^>]*\sdata-marks\b/;
 const codeLine = /<span class="line(?: [^"]*)?" data-line="(\d+)"/g;
 
+// The block marks lines as `rich-content.css` greys them, with its lines outside the step `data-off`.
 export function steppedCode(
   html: string,
   lines: string[],
 ): { html: string; linesOfStep: number[][] } {
   if (html.match(codeBlock)?.length !== 1)
     throw componentError("Stepper", "put exactly one fenced code block inside `<Stepper lines>`");
+  if (markedBlock.test(html))
+    throw componentError(
+      "Stepper",
+      "its code block marks lines with `{…}`, but a one-block Stepper marks them itself, step by step, with `lines`: take `{…}` off the fence",
+    );
   const shown = [...html.matchAll(codeLine)].map(([, line]) => Number(line));
   const linesOfStep = lines.map((list) => listed(list, shown[0] ?? 1, shown.at(-1) ?? 0, "lines"));
   return {
-    html: html.replace(codeLine, (lineTag, line: string) => {
+    html: html.replace(codeBlock, "<pre data-marks").replace(codeLine, (lineTag, line: string) => {
       const steps = linesOfStep.flatMap((stepLines, index) =>
         stepLines.includes(Number(line)) ? [index + 1] : [],
       );

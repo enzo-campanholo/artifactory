@@ -69,11 +69,13 @@ Rule `math`. Before writing math, read [math.md](math.md).
 
 ## Code blocks
 
-Rules `code-language` and `code-start`.
+Rules `code-language`, `code-start` and `code-marks`.
 
 - Give each fence its language in lowercase, as Shiki names it: ` ```ts `, ` ```python `, ` ```bash `, or ` ```text ` for plain text. A language Shiki doesn't know fails.
 - Lines are numbered from 1. When the source numbers its lines from something else, such as a listing whose addresses start at 0, give the fence `start` after the language, ` ```pascal start=0 `, and keep the source's numbers: never renumber the listing, and never write the numbers into the code. `start` takes a whole number from 0; anything else (`start=-1`, `start=x`, `start=1.5`, `start=01`, a bare `start`) fails at the fence as `code-start`.
 - Every line reference counts the number the page shows, from `start`: a one-block Stepper's `lines` and a Stage step's `lines` both name the block's first line `0` under `start=0`.
+- To point at some lines of a plain block, mark them with `{…}` in the fence, after the language and beside any `start`: ` ```ts {3, 5-6} `, ` ```pascal start=0 {0-2} `. It takes the Stepper `lines` grammar, `3`, `3-5`, `3-` (to the end) or `1-2, 6`, and counts the number the page shows, from `start`. The marked lines stay in ink and the rest turn grey, on screen and in print. The marks are visual only, and screen readers hear the block as without them, so the prose around the block names the lines it points at ("lines 3, 5 and 6 …"). A line the block doesn't have, counted from its `start`, or a list the grammar refuses, fails at the fence as `code-marks`.
+- `{…}` is for a plain block only: a one-block `<Stepper lines>` and a Stage mark their code's lines themselves, step by step, so a fence inside either with `{…}` fails as that component's `build` error.
 - Math is never a fence: write ` ```math ` blocks as `$$…$$`.
 
 ## Diagrams and figures

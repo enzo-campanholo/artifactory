@@ -20,3 +20,16 @@ This is design-system work: do it in a local session with impeccable (`design-sy
 - [ ] The `artifact` skill points agents who are showing code that changes between steps to this form, not a figure Stepper.
 - [ ] The catalog shows a Stepper with one code block per step, with one block using `start` and the steps marking what changed.
 - [ ] Shared parts: `StepControls.astro` and `stepper.ts` reach every Stepper form, and `rich-content.css` reaches every `pre`. On their catalog pages, check that a D2 Stepper, a figure Stepper and the one-block code Stepper still step, announce and print, with the same evidence as the new form.
+
+## Comments
+
+### 2026-11-09: where 03 left a block's marks
+
+From code display 03's implementation:
+
+- **What a marked block looks like in the built HTML.** A fence with `{…}` builds as `<pre data-marks …>`, with `data-off` on each `span.line` it doesn't mark; marked lines carry nothing extra. A fence without `{…}` has neither. Both are written by the `shownLines` hast plugin in `src/rich-content.ts`, which keeps `{ code, first, marked }` per fence in `ctx.data.fences`.
+- **The look is one rule.** `rich-content.css` greys `pre[data-marks] > code > .line[data-off]` (through `--code-line-colour`, which every line maps Shiki's token variables through, so one declaration greys a whole line) and sets the other lines' numbers in ink at the frame's strong weight, with GrayText in forced colours. It applies in every medium, so a block-per-step Stepper's blocks print with their marks unless the Stepper's print says otherwise.
+- **The one-block Stepper opts into the same rule.** `steppedCode` in `stepper.ts` adds `data-marks` to its `pre`, and the element's `data-off` toggling does the rest. Its print block resets `.stepper-code .line` (`--code-line-colour: initial` and the number back to grey at normal weight), because its steps are listed under the code. That reset is scoped to `.stepper-code`: if the new form's blocks sit inside `.stepper-code` too, scope the reset to the one-block form, or the blocks lose their marks in print.
+- **The refusal.** `steppedCode` refuses a `pre[data-marks]` (a fence with `{…}`) with "its code block marks lines with `{…}`, but a one-block Stepper marks them itself, step by step, with `lines`". It runs only for the `lines` form, after the one-block count check, so the block-per-step form must branch before it.
+- **Announcements.** The element reads the lit lines from `.stepper-code .line` without `data-off`. For a step whose block has no `{…}`, no line is `data-off`, so reading it unchanged would announce every line: the ticket wants the step number and caption alone there, so check `pre[data-marks]` first.
+- The Stage refuses `{…}` the same way, in `Stage.astro`'s problems list.

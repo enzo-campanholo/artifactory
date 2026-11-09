@@ -50,6 +50,15 @@ const mathAndCode = {
       "```",
       "",
     ]),
+    ...["{5}", "start=5 {4}", "{3, a}"].flatMap((marks) => [
+      `\`\`\`python ${marks}`,
+      "a = 1",
+      "b = 2",
+      "c = a + b",
+      "print(c)",
+      "```",
+      "",
+    ]),
   ]),
   "artifacts/quimica/index.mdx": artifact(fields("qu1m1ca1", "Química", "Física"), [
     "Texto $x^{2$.",
@@ -411,6 +420,9 @@ describe("a repo whose artifacts break math, code, diagram, link, question ID, s
       "artifacts/fisica/index.mdx:28:11 error code-start: `start=1.5` must give the number of the block's first line, a whole number from 0, such as `start=0` (artifact skill: Code blocks)",
       "artifacts/fisica/index.mdx:32:11 error code-start: `start` must give the number of the block's first line, a whole number from 0, such as `start=0` (artifact skill: Code blocks)",
       "artifacts/fisica/index.mdx:36:11 error code-start: `start=01` must give the number of the block's first line, a whole number from 0, such as `start=0` (artifact skill: Code blocks)",
+      'artifacts/fisica/index.mdx:40:11 error code-marks: `{5}` must list numbers from 1 to 4, such as "2", "2-4", "2-" or "1-2, 5" (artifact skill: Code blocks)',
+      'artifacts/fisica/index.mdx:47:19 error code-marks: `{4}` must list numbers from 5 to 8, such as "6", "6-8", "6-" or "5-6, 9" (artifact skill: Code blocks)',
+      'artifacts/fisica/index.mdx:54:11 error code-marks: `{3, a}` must list numbers from 1 to 4, such as "2", "2-4", "2-" or "1-2, 5" (artifact skill: Code blocks)',
       "artifacts/quimica/index.mdx:9:12 error math: Temml can't render this math: Expected '}', got 'EOF' (artifact skill: Math)",
     ]);
   });
@@ -576,6 +588,69 @@ describe("a one-block Stepper whose `lines` name a line its `start=0` block does
     expect(run.summary).toEqual([
       "pnpm check: 1 failure",
       'artifacts/pilha/index.mdx:11:1 error build: Stepper: lines "4" must list numbers from 0 to 3, such as "1", "1-3", "1-" or "0-1, 4" (artifact skill: Build failures)',
+    ]);
+  });
+});
+
+describe.each([
+  {
+    component: "a one-block Stepper",
+    tag: ['<Stepper lines={["1", "2"]}>'],
+    failure:
+      "Stepper: its code block marks lines with `{…}`, but a one-block Stepper marks them itself, step by step, with `lines`: take `{…}` off the fence",
+  },
+  {
+    component: "a Stage",
+    tag: [
+      "<Stage",
+      '  build="conta"',
+      '  choose={{ label: "Começar em", options: ["A"] }}',
+      '  prompt="Escolha onde começar."',
+      ">",
+    ],
+    failure:
+      "Stage: its code block marks lines with `{…}`, but a Stage marks them itself, step by step, with `lines`: take `{…}` off the fence",
+  },
+])("$component whose code block marks lines with `{…}`", ({ tag, failure }) => {
+  let repo: FixtureRepo;
+  let run: CheckRun;
+
+  beforeAll(async () => {
+    const component = tag[0]?.slice(1).split(/[ >]/, 1)[0] ?? "";
+    repo = await createFixtureRepo({
+      "artifacts/pilha/index.mdx": artifact(fields("p1lha001", "Pilha", "Computação"), [
+        `import ${component} from "@artifactory/design-system/${component.toLowerCase()}";`,
+        "",
+        "Uma pilha soma dois números.",
+        "",
+        ...tag,
+        "",
+        "```text {1}",
+        "push 2",
+        "print",
+        "```",
+        "",
+        `</${component}>`,
+      ]),
+      ...(component === "Stage" && {
+        "artifacts/pilha/conta.build.ts": [
+          'import { defineBuild } from "@artifactory/design-system/stage-build";',
+          "",
+          'export default defineBuild({ steps: () => [{ say: "Conta." }] });',
+          "",
+        ].join("\n"),
+      }),
+    });
+    run = await repo.check(["--artifacts-only"]);
+  }, checkTimeout);
+
+  afterAll(() => repo.remove());
+
+  it("fails the build at the component, which marks its lines itself", () => {
+    expect(run.exitCode).toBe(1);
+    expect(run.summary).toEqual([
+      "pnpm check: 1 failure",
+      `artifacts/pilha/index.mdx:13:1 error build: ${failure} (artifact skill: Build failures)`,
     ]);
   });
 });
