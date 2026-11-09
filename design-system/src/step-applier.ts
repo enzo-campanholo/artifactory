@@ -48,7 +48,7 @@ export function stageNodes(stage: ParentNode): StageNodes {
 export interface Written {
   parts: { name: string; takes: Mark[] }[];
   tables: { columns: string[]; rows: string[][] }[];
-  codeLineCounts: number[];
+  codeLineNumbers: number[][];
 }
 
 const textOf = (element: Element) => element.textContent.trim();
@@ -69,7 +69,9 @@ export function writtenContent({ parts, tables, code }: StageNodes): Written {
       columns: header.map(textOf),
       rows: rows.map((cells) => cells.map(textOf)),
     })),
-    codeLineCounts: code.map((lines) => lines.length),
+    codeLineNumbers: code.map((lines) =>
+      lines.map((line) => Number(line.getAttribute("data-line"))),
+    ),
   };
 }
 
@@ -231,19 +233,19 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
   const lines = new Map<number, Mark>();
   let running: number | undefined;
   const lineMarks = marked("lines", markedLines);
-  const [lineCount, ...otherBlocks] = written.codeLineCounts;
-  if (lineMarks.length > 0 && (lineCount === undefined || otherBlocks.length > 0)) {
+  const [lineNumbers, ...otherBlocks] = written.codeLineNumbers;
+  if (lineMarks.length > 0 && (lineNumbers === undefined || otherBlocks.length > 0)) {
     const blocks =
-      lineCount === undefined
+      lineNumbers === undefined
         ? "no code block"
-        : `${String(written.codeLineCounts.length)} code blocks`;
+        : `${String(written.codeLineNumbers.length)} code blocks`;
     problems.push(
       `has \`lines\`, but the Stage holds ${blocks}: \`lines\` marks the lines of exactly one`,
     );
-  } else if (lineCount !== undefined) {
+  } else if (lineNumbers !== undefined) {
+    const lineCount = lineNumbers.length;
     for (const [name, mark] of lineMarks) {
-      const line = Number(name);
-      if (/^[1-9]\d*$/.test(name) && line <= lineCount) lines.set(line, mark);
+      if (lineNumbers.map(String).includes(name)) lines.set(Number(name), mark);
       else {
         problems.push(
           `marks the line \`${name}\`, which the code doesn't have: it has ${String(lineCount)} ${lineCount === 1 ? "line" : "lines"}`,

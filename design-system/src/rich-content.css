@@ -31,7 +31,6 @@
     font-variation-settings: "MONO" 1;
     line-height: var(--line-height-body);
     tab-size: 2;
-    counter-reset: code-line;
 
     @media print {
       white-space: pre-wrap;
@@ -40,8 +39,7 @@
   }
 
   pre > code > .line::before {
-    counter-increment: code-line;
-    content: counter(code-line);
+    content: attr(data-line);
     display: inline-block;
     inline-size: 2.4em;
     color: var(--color-text-muted);

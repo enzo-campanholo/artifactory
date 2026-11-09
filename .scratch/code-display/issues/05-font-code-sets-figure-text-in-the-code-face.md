@@ -15,3 +15,9 @@ This is design-system work: do it in a local session with impeccable (`design-sy
 - [ ] The `artifact` skill's figure guidance (the **Text** bullet in its figure pitfalls) says to use `font-code` for code, identifiers and instructions in a figure, and the heading face otherwise.
 - [ ] The catalog shows a figure using `font-code`.
 - [ ] Shared part: `figure-colours.css` reaches `Figure`, figure Steppers and the Stage's drawing. Check a Stage drawing on its catalog page, which shouldn't change, with the same evidence as the `Figure`.
+
+## Comments
+
+### 2026-11-09: what 01 changed near this ticket
+
+From code display 01's implementation: the figure Stepper's `data-step` lists are now parsed by `numberList` in `design-system/src/number-lists.ts` (through `listed` in `stepper.ts`), with the same results and failures as before. `figure-colours.css` and the figure Stepper's markup and styles are unchanged, so this ticket starts from the same figure rendering.

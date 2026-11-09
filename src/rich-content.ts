@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { satteri } from "@astrojs/markdown-satteri";
 import type { AstroIntegration } from "astro";
 import { defineHastPlugin, defineMdastPlugin, type MdastVisitorContext, type Point } from "satteri";
-import { bundledLanguages, isSpecialLang } from "shiki";
+import { bundledLanguages, isSpecialLang, type ShikiTransformer } from "shiki";
 import { buildFailures } from "./build-failures.ts";
 import { positionAt, type Report } from "./check-failure.ts";
 import { diagrams } from "./diagrams.ts";
@@ -23,7 +23,7 @@ export function richContent(): AstroIntegration {
               mdastPlugins: [mathAndCode(root, report)],
               hastPlugins: [tableScrollers],
             }),
-            shikiConfig: { theme: "css-variables" },
+            shikiConfig: { theme: "css-variables", transformers: [shownLineNumbers] },
           },
           vite: { plugins: [diagrams(root, report)] },
         });
@@ -31,6 +31,15 @@ export function richContent(): AstroIntegration {
     },
   };
 }
+
+// Each code line carries the number the page shows for it, which the design system's gutter,
+// Stepper and Stage all read.
+const shownLineNumbers: ShikiTransformer = {
+  name: "artifactory-shown-line-numbers",
+  line(node, line) {
+    node.properties["data-line"] = String(line);
+  },
+};
 
 // A named group gives the scroller's tab stop a name without adding every table to the page's
 // landmarks, as a region would.

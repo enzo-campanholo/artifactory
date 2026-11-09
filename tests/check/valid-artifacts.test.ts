@@ -774,6 +774,23 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       for (const colour of colours) expect(colour).toMatch(/^var\(--[\w-]+\)$/);
     });
 
+    it("gives each code line the number the page shows for it, from 1", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      const code = page.querySelector('pre[data-language="python"] > code');
+      expect(
+        [...(code?.querySelectorAll(":scope > .line") ?? [])].map((line) => [
+          line.getAttribute("data-line"),
+          line.textContent,
+        ]),
+      ).toEqual([
+        ["1", "def area(r):"],
+        ["2", "    return 3.14 * r ** 2"],
+      ]);
+    });
+
     it("wraps each table in a group Tab reaches, named in the artifact's main language", async () => {
       for (const [slug, expected] of [
         ["movimento-uniforme", [["group", "Tabela", "0", "t (s)"]]],

@@ -14,3 +14,9 @@ Blocked by: [Code display 02](../../code-display/issues/02-a-fence-starts-its-li
 - [ ] Every existing Stage shows the same steps: the existing check tests pass unchanged, and the catalog's Stage page and the two Stages of the sample artifact, `rsa-from-scratch`, step as before (checked in a browser, as the browser-verification doc says).
 - [ ] Shared parts: this changes the Stage element and the check's Stage runner, which reach every Stage, and the build module's types, which reach every build; no shared part from `CODING_STANDARDS.md`'s list changes. The ticket's closing comment names what was checked.
 - [ ] Docs in the same commit: the `Stage` doc comment's build part says `steps` gets the content as written; `pnpm components` regenerates `COMPONENTS.md`; the `artifact` skill's Stage reference (`stage.md`) describes the argument and the main language it carries, and `rules.md` › Custom builds › "Missing a control or a mark?" lists that a Stage hands its build its content.
+
+## Comments
+
+### 2026-11-09: the shown number is already in the content as written
+
+From code display 01's implementation: `writtenContent` in `design-system/src/step-applier.ts` now reads each code line's shown number from its `data-line` attribute (`Written.codeLineNumbers`, one list per block), on the page and in the check's Stage runs alike. Key the content's code lines by those numbers rather than by position, and they follow `start` once code display 02 lands.

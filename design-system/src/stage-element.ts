@@ -46,7 +46,7 @@ const target = 44;
 class ArtifactStage extends HTMLElement {
   #build: Promise<Build<string | Typed> | undefined> = Promise.resolve(undefined);
   #nodes: StageNodes = { parts: [], tables: [], code: [] };
-  #written: Written = { parts: [], tables: [], codeLineCounts: [] };
+  #written: Written = { parts: [], tables: [], codeLineNumbers: [] };
   #asWritten = new Map<Element, Node[]>();
   #rowToCopy: Element | undefined;
   #stepRows: Element[] = [];
@@ -281,8 +281,9 @@ class ArtifactStage extends HTMLElement {
       if (mark === undefined) part.removeAttribute("data-mark");
       else part.setAttribute("data-mark", mark);
     });
+    const lineNumbers = this.#written.codeLineNumbers.flat();
     this.#nodes.code.flat().forEach((line, index) => {
-      const mark = shown?.lines.get(index + 1);
+      const mark = shown?.lines.get(lineNumbers[index] ?? 0);
       if (mark === undefined) line.removeAttribute("data-mark");
       else line.setAttribute("data-mark", mark);
     });
