@@ -11,3 +11,12 @@ Blocked by: 02
 - [ ] The catalog has a MEPA page, linked from the catalog's index, whose short program uses every instruction MEPA covers so far, in a pt-BR Stage and an English Stage, each with its tables as written. It steps through both in a browser, with each language's sentences, the reversed and dashed lines and the strong cells showing.
 - [ ] Catalog work runs through impeccable in a local session, as `design-system/CLAUDE.md` says.
 - [ ] Shared parts: the page uses the Stage as it is; no shared part changes.
+
+### 2026-11-09: what 02 leaves for the Machines section and the catalog
+
+From machine trace 02's implementation:
+
+- MEPA is `design-system/src/machines/mepa.ts`, exported as `./machines/mepa`. Its doc comment is the module's leading `/** … */`, before the imports, and already holds what an artifact agent needs: the instructions, both tables as written in pt-BR and English, the marks and the notes. The generator can take it as written and add the import line. `tsconfig.builds.json` includes `design-system/src/machines/*.ts`, so every machine type-checks under the builds' settings even before a build imports it.
+- The general layer's types (`Machine`, `Parsed`, `Moved`, `View`, `Said`) and the number formatting (`shownNumber`, `spokenNumber`) are in `design-system/src/machine.ts`, which isn't a package export: artifact agents see only `trace`, documented in the build section from `stage-build.ts`.
+- The build section's intro (`scripts/component-reference.ts`) already says a build may import the machines and that a trace's default export is `trace(machine, notes)`.
+- Fixtures that run today: `tests/check/valid-artifacts.test.ts` › `machineTrace` (pt-BR, every instruction 02 covers, the memory rows written out of order) and `tests/check/artifact-checks.test.ts` › `stack-machine` (English headers). The catalog's program can start from the first.

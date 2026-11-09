@@ -645,7 +645,7 @@ With `input`:
 
 ### The build: `@artifactory/design-system/stage-build`
 
-A build file imports only this module. Its default export is `defineBuild({ steps(choice) { … } })` with `choose`, or `defineBuild<{ a: number; b: number }>({ steps(input) { … } })` with `input`.
+A build file imports only this module and the machines under `@artifactory/design-system/machines/`. Its default export is `defineBuild({ steps(choice) { … } })` with `choose`, or `defineBuild<{ a: number; b: number }>({ steps(input) { … } })` with `input`, or, for a machine the design system holds, `trace(machine, notes)`.
 
 #### `Mark`
 
@@ -752,6 +752,26 @@ content as written second, typed `Content`, without a type of its own.
 
 ```ts
 function defineBuild<Input extends string | Typed = string>(build: Build<Input>): Build<Input>;
+```
+
+#### `trace`
+
+A build that traces a machine the design system holds, such as MEPA
+(`@artifactory/design-system/machines/mepa`), on the owner's input: the build's whole default
+export, `export default trace(mepa, { reads: ["x", "y"], … })`. The machine reads its program
+from the Stage's content as written (MEPA's from the code block), so the program is written
+once, and says each step in the artifact's main language. `notes` are the program's own data,
+keyed by address, in the artifact's language, never read from the code's comments: `reads`
+names the Stage's fields in the order the machine reads them, exactly the Stage's fields, or
+`pnpm check` fails as `build-input`. Each machine's entry lists its other notes and its tables.
+
+The first step shows the starting state, then one step follows per step of the machine until it
+halts, at most 200 in all, as for any build: a run past them is refused, so keep runs short
+through the fields' bounds. Every cell whose text changed since the step before is `strong`. A
+fault, such as a division by zero, refuses the run, naming the line and the fault.
+
+```ts
+function trace<Program, State, Notes, const Reads extends string>(machine: Machine<Program, State, Notes>, notes: NoInfer<Notes> & { reads: readonly Reads[] }): Build<Record<Reads, number>>;
 ```
 
 ## Statement

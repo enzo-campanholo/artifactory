@@ -57,11 +57,25 @@ export function buildInputFailures(root: string, stages: StagedBuild[]): Failure
         message:
           expected === undefined
             ? `\`steps\` takes \`${takes}\`, but the Stage's options give it text: write \`defineBuild\` without a type`
-            : `\`steps\` takes \`${takes}\`, but the Stage's fields give it \`${expected}\`: write \`defineBuild<${expected}>\``,
+            : `\`steps\` takes \`${takes}\`, but the Stage's fields give it \`${expected}\`: ${
+                tracesAMachine(checker, build)
+                  ? "name exactly the Stage's fields in `reads`"
+                  : `write \`defineBuild<${expected}>\``
+              }`,
         skillSection: "Custom builds",
       },
     ];
   });
+}
+
+// A machine trace takes its input type from its `reads`, which is what to fix.
+function tracesAMachine(checker: typescript.TypeChecker, build: typescript.Expression): boolean {
+  if (!typescript.isCallExpression(build)) return false;
+  const callee = checker.getSymbolAtLocation(build.expression);
+  if (callee === undefined) return false;
+  const declared =
+    (callee.flags & typescript.SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(callee) : callee;
+  return declared.name === "trace";
 }
 
 function inputOf(

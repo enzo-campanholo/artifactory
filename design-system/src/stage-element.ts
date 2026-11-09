@@ -23,6 +23,9 @@ const texts = {
     typedTooMany: (most: number) =>
       `That takes more than ${String(most)} steps. Try other numbers.`,
     typedFailed: "The steps for these numbers couldn't be worked out. Try other numbers.",
+    fault: (line: number, fault: string) => `Line ${String(line)}: ${fault}.`,
+    retry: "Choose another option.",
+    typedRetry: "Try other numbers.",
     refusedNumber: (name: string, min: number, max: number) =>
       `Type a whole number from ${withMinus(min)}\u00a0to\u00a0${withMinus(max)} for ${name}.`,
   },
@@ -33,6 +36,9 @@ const texts = {
     failed: "Não foi possível montar os passos desta opção. Escolha outra opção.",
     typedTooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Tente outros números.`,
     typedFailed: "Não foi possível montar os passos para esses números. Tente outros números.",
+    fault: (line: number, fault: string) => `Linha ${String(line)}: ${fault}.`,
+    retry: "Escolha outra opção.",
+    typedRetry: "Tente outros números.",
     refusedNumber: (name: string, min: number, max: number) =>
       `Digite um número inteiro de ${withMinus(min)}\u00a0a\u00a0${withMinus(max)} para ${name}.`,
   },
@@ -219,12 +225,15 @@ class ArtifactStage extends HTMLElement {
         : runBuild(build, input, this.#written, mainLanguage(this));
     if ("refused" in run) {
       const typed = typeof input !== "string";
+      const texts = this.#texts;
       this.#refuse(
         run.refused === "too-many"
-          ? (typed ? this.#texts.typedTooMany : this.#texts.tooMany)(run.most)
-          : typed
-            ? this.#texts.typedFailed
-            : this.#texts.failed,
+          ? (typed ? texts.typedTooMany : texts.tooMany)(run.most)
+          : run.refused === "fault"
+            ? `${texts.fault(run.line, run.fault[mainLanguage(this)])} ${typed ? texts.typedRetry : texts.retry}`
+            : typed
+              ? texts.typedFailed
+              : texts.failed,
       );
       return;
     }

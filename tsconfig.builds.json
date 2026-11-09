@@ -1,6 +1,10 @@
 {
   "extends": "astro/tsconfigs/strictest",
-  "include": ["artifacts/*/*.build.ts", "design-system/catalog/*.build.ts"],
+  "include": [
+    "artifacts/*/*.build.ts",
+    "design-system/catalog/*.build.ts",
+    "design-system/src/machines/*.ts"
+  ],
   "exclude": [],
   "compilerOptions": {
     "erasableSyntaxOnly": true,

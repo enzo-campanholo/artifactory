@@ -1,7 +1,13 @@
-import type { Build, CodeLine, Content, Mark, Typed, WrittenTable } from "./stage-build.ts";
-
-// More steps than this is no longer a walkthrough.
-const mostSteps = 200;
+import {
+  MachineFault,
+  mostSteps,
+  type Build,
+  type CodeLine,
+  type Content,
+  type Mark,
+  type Typed,
+  type WrittenTable,
+} from "./stage-build.ts";
 
 // What each mark changes in a drawn part, after the Stage's styles for the marks and the colour
 // classes in figure-colours.css: `muted` and `reversed` swap the colours `-text`, `-accent` and
@@ -103,6 +109,7 @@ export type Run =
   | { refused: "not-a-list" }
   | { refused: "no-steps" }
   | { refused: "too-many"; most: number }
+  | { refused: "fault"; line: number; fault: MachineFault["fault"] }
   | { refused: "problems"; problems: StepProblem[] };
 
 export interface Field {
@@ -181,6 +188,9 @@ export function runBuild<Input extends string | Typed>(
     });
     return problems.length > 0 ? { refused: "problems", problems } : { steps: shown };
   } catch (error) {
+    if (error instanceof MachineFault) {
+      return { refused: "fault", line: error.line, fault: error.fault };
+    }
     return { refused: "threw", error };
   }
 }
