@@ -59,6 +59,9 @@ function mountMatching() {
             <button type="submit" class="question-check" aria-disabled="true">Check</button>
           </div>
         </fieldset>
+        <div class="question-explanation" hidden>
+          <p>Locals live in the call's frame, on the stack; new allocates on the heap, and globals sit in the data area.</p>
+        </div>
         <div class="question-recovery" hidden></div>
       </form>
     </artifact-matching>`;
@@ -82,6 +85,7 @@ function mountMatching() {
     choose,
     check: part(".question-check"),
     status: part(".question-status"),
+    explanation: part(".question-explanation"),
     recovery: part(".question-recovery"),
     markOf: (id: ItemId) => part(`#q-${id} .matching-item-mark`),
     radiosOf: (id: ItemId) => [...rowOf(id).querySelectorAll("input")],
@@ -403,4 +407,90 @@ test("the stopping point and Next question go to an item's row and name it by it
   next?.click();
   expect(location.hash).toBe("#q-new-object");
   expect(document.activeElement).toBe(rowOf("new-object"));
+});
+
+test("the explanation stays hidden while any item is open or saving, and shows once the last item locks, with focus left on the status", async () => {
+  const { box, check, choose, explanation, status } = await loadedMatching(seededTransport());
+  expect(explanation.hidden).toBe(true);
+  choose("global-variable", 2);
+  choose("local-variable", 4);
+  choose("new-object", 4);
+  check.focus();
+
+  check.click();
+
+  expect(box.dataset.status).toBe("saving");
+  expect(explanation.hidden).toBe(true);
+  await vi.waitFor(() => {
+    expect(box.dataset.status).toBe("saved");
+  });
+  expect(explanation.hidden).toBe(false);
+  expect(document.activeElement).toBe(status);
+});
+
+test("the explanation shows from the device copy as soon as the store starts, and from the server once it loads", async () => {
+  openPage(neverChecked, [capital, ...itemQuestions], [everyItemAnswered]);
+  expect(mountMatching().explanation.hidden).toBe(false);
+  document.body.innerHTML = "";
+
+  const { explanation } = await loadedMatching(seededTransport([everyItemAnswered]));
+
+  expect(explanation.hidden).toBe(false);
+});
+
+test("Start over hides the explanation again", async () => {
+  const { store, explanation } = await loadedMatching(seededTransport([everyItemAnswered]));
+  expect(explanation.hidden).toBe(false);
+
+  store.answers.startOver();
+
+  expect(explanation.hidden).toBe(true);
+});
+
+test("an item added to an answered set hides the explanation until that item locks too", async () => {
+  const answeredBefore = attemptWith([
+    ["global-variable", 2, "right"],
+    ["local-variable", 4, "wrong"],
+  ]);
+  const { check, choose, explanation, rowOf } = await loadedMatching(
+    seededTransport([answeredBefore]),
+  );
+  expect(explanation.hidden).toBe(true);
+  choose("new-object", 4);
+
+  check.click();
+
+  await vi.waitFor(() => {
+    expect(rowOf("new-object").dataset.status).toBe("saved");
+  });
+  expect(explanation.hidden).toBe(false);
+});
+
+test("the explanation stays hidden while an item isn't saved, and shows once it is", async () => {
+  const memory = seededTransport();
+  let failing = true;
+  const transport: Transport = {
+    load: (id) => memory.load(id),
+    save: (id, attemptId, given) =>
+      failing && given.questionId === "local-variable"
+        ? Promise.resolve({ outcome: "failed" })
+        : memory.save(id, attemptId, given),
+  };
+  const { box, check, choose, explanation, recovery } = await loadedMatching(transport);
+  choose("global-variable", 2);
+  choose("local-variable", 3);
+  choose("new-object", 4);
+
+  check.click();
+
+  await vi.waitFor(() => {
+    expect(box.dataset.status).toBe("not-saved");
+  });
+  expect(explanation.hidden).toBe(true);
+  failing = false;
+  recovery.querySelector("button")?.click();
+  await vi.waitFor(() => {
+    expect(box.dataset.status).toBe("saved");
+  });
+  expect(explanation.hidden).toBe(false);
 });

@@ -47,8 +47,11 @@ class Matching extends QuestionBox {
   }
 
   // A row's mark shows only once its answer is locked, so nothing singles out the right letter
-  // before. Restored marks aren't read out, as a restored status isn't.
+  // before. Restored marks aren't read out, as a restored status isn't. The explanation is the
+  // set's, so it waits for every item to lock.
   protected override answersShown(shown: readonly (ShownAnswer | undefined)[]): void {
+    const explanation = this.querySelector<HTMLElement>(":scope > form > .question-explanation");
+    if (explanation !== null) explanation.hidden = !shown.every(locked);
     const text = inPageLanguage(this, labels);
     this.#itemRows.forEach((row, index) => {
       const answer = shown[index];

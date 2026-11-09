@@ -205,8 +205,16 @@ option may be right for any number of items, or for none; when each option shoul
 say so in the prompt, since the page doesn't enforce it. For one question, use `SingleChoice`.
 
 Write the prompt, then the options as one numbered list, then a blank line, `---`, another blank
-line and the items as one bulleted list, which ends the matching. Options and items are one
-paragraph each of inline text, math and code:
+line and the items as one bulleted list. Options and items are one paragraph each of inline
+text, math and code.
+
+Then, optionally, a blank line, a second `---`, another blank line and one explanation for the
+whole set: why each item takes its option, with the reasons against likely wrong choices in its
+prose ("um objeto criado com `new` não fica na pilha, porque …"). It can hold paragraphs, math,
+code, lists and figures. It shows, under the heading "Explicação" / "Explanation" after the item
+rows, only once every item locks, right or wrong. It reasons about the answers but never teaches
+a fact for the first time, since an owner who skips the questions never reads it, so put every
+fact they must learn in the text too. Write one whenever the source gives a reason:
 
 ```mdx
 import Matching from "@artifactory/design-system/matching";
@@ -225,6 +233,11 @@ Em que área de memória fica cada item?
 - Uma variável global
 - Uma variável local
 - Um objeto criado com `new`
+
+---
+
+Locais vivem no quadro da chamada, na pilha; `new` aloca no heap, e globais ficam na área de
+dados.
 
 </Matching>
 ```

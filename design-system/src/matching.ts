@@ -52,11 +52,20 @@ function countProblems(options: number, items: number, answers: [string, number]
 export function matchingParts(
   html: string,
   answers: Record<string, number>,
-): { prompt: string; options: string[]; items: MatchingItem[] } {
+): {
+  prompt: string;
+  options: string[];
+  items: MatchingItem[];
+  explanation: string | undefined;
+} {
   const parts = splitAtRule(html);
   const question = parts?.before ?? "";
+  const rest = parts?.after ?? "";
+  const itemsAndExplanation = splitAtRule(rest);
+  const itemsPart = itemsAndExplanation?.before ?? rest;
+  const explanation = itemsAndExplanation?.after;
   const options = optionsList.exec(question);
-  const items = itemsList.exec(parts?.after ?? "");
+  const items = itemsList.exec(itemsPart);
   if (
     options === null ||
     items === null ||
@@ -65,8 +74,17 @@ export function matchingParts(
   ) {
     throw componentError("Matching", shape);
   }
-  if ((parts?.after ?? "").slice(items[0].length).trim() !== "") {
-    throw componentError("Matching", "end it with the items' bulleted list: nothing may follow it");
+  if (itemsPart.slice(items[0].length).trim() !== "") {
+    throw componentError(
+      "Matching",
+      "after the items' bulleted list, write only a blank line, `---`, another blank line and the explanation",
+    );
+  }
+  if (explanation === "") {
+    throw componentError(
+      "Matching",
+      "write the explanation after the second `---`, or leave out that `---`",
+    );
   }
   const optionTexts = inlineParts(options[1] ?? "");
   const itemTexts = inlineParts(items[1] ?? "");
@@ -77,5 +95,6 @@ export function matchingParts(
     prompt: question.slice(0, options.index),
     options: optionTexts,
     items: keys.map(([id, key], index) => ({ id, key, text: itemTexts[index] ?? "" })),
+    explanation,
   };
 }

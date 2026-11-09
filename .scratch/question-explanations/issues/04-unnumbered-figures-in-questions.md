@@ -28,3 +28,7 @@ Implementer of [01](01-question-revealed-part.md#comments). Key the rule on `.qu
 ### 2026-11-09: from 02
 
 Implementer of [02](02-single-choice-explanation.md#comments). An explanation is `.question-explanation[hidden] > .question-revealed` after the question's `<fieldset>`, so the `.question-revealed` key from 01 already covers it. While hidden it is `display: none` through the `hidden` attribute, and locking only removes that attribute. The catalog's `SingleChoice` now has an explanation holding a display equation, which renders unnumbered. Add the figure inside it, or inside the `NumericQuestion`'s once 03 lands.
+
+### 2026-11-09: from Content types 05
+
+Implementer of [Content types 05](../../content-types/issues/05-matching-explanation.md#comments). A `Matching` now takes an explanation too, after a second `---`: it is the same `.question-explanation[hidden] > .question-revealed`, rendered by `Question.astro` after the box's `<fieldset>`, so the `.question-revealed` key covers it with no change. It stays `hidden` until every item locks. Content types 05 left its "a figure inside it is unnumbered" to this ticket: include the catalog matching's explanation (`catalog/questions.mdx`, between the numeric and the open question) when you check the counters, or add the figure there.

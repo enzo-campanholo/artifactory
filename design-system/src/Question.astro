@@ -23,8 +23,8 @@ type Props = { id: string; prompt: string } & (
   | {
       kind: "matching";
       lastId: string;
+      explanation?: string | undefined;
       answerKey?: never;
-      explanation?: never;
       modelAnswer?: never;
     }
 );
