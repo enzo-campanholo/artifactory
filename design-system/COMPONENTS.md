@@ -988,7 +988,8 @@ The machines the design system holds. A Stage traces one with a build whose defa
 MEPA, the stack machine Pascal-like languages compile to in Kowaltowski's textbook: the program
 counter `i`, the stack top `s`, the display `D` and the memory `M`. Trace it in a Stage with
 `input` whose content is the listing, a registers table and a memory table, with a build of a
-few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR:
+few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR, laid out as a
+compiler lays out a program: a jump over the subroutines, none here, to the main program's start:
 
 ````mdx
 <Stage
@@ -1009,6 +1010,8 @@ few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR:
 ```text start=0
 INPP
 AMEM 3        ; a, b, h
+DSVS L1       ; salta os procedimentos
+L1: NADA
 LEIT
 ARMZ 0,0
 LEIT
@@ -1030,7 +1033,7 @@ FIM
 
 | Registrador | Valor |
 | ----------- | ----: |
-| i           |    17 |
+| i           |    19 |
 | s           |    −1 |
 | D[0]        |     0 |
 | entrada     |     — |
@@ -1054,17 +1057,19 @@ import mepa from "@artifactory/design-system/machines/mepa";
 
 export default trace(mepa, {
   reads: ["a", "b", "h"],
-  roles: { 1: ["base a", "base b", "altura h"], 2: "lido", 10: "a mais b", 14: "a área" },
-  after: { 16: "As variáveis a, b e h estão liberadas." },
+  labels: { L1: "o início do programa principal" },
+  roles: { 1: ["base a", "base b", "altura h"], 4: "lido", 12: "a mais b", 16: "a área" },
+  after: { 18: "As variáveis a, b e h estão liberadas." },
 });
 ```
 
 The tables as written are what the first example's last step leaves, as for any Stage with
-`input`: `PARA` keeps `i` on its own line, 17; every cell is above `s`, so none shows a role or
+`input`: `PARA` keeps `i` on its own line, 19; every cell is above `s`, so none shows a role or
 `← s`; and M[3] and M[4] keep the last values the stack held there.
 
 **The listing** is the Stage's one code block, fenced ` ```text start=0 `, so address k is the
-line the page shows as k: never type the addresses into it. Each line is an instruction with its
+line the page shows as k: never type the addresses into it. Each line is an optional label
+(`L1:`, a name of letters, digits and `_`, naming that line's address), an instruction with its
 arguments and an optional `; comment`, and the last line is `FIM`:
 
 - `INPP` starts the program: `s` gets −1 and `D[0]` 0.
@@ -1074,17 +1079,24 @@ arguments and an optional `; comment`, and the last line is `FIM`:
 - `CRCT c` pushes the constant c.
 - `SOMA`, `MULT` and `DIVI` replace the two cells at the top with their sum, product or quotient
   (`DIVI` drops the remainder, as Pascal's `div`).
+- `DSVS L` jumps: `i` gets the address of the line labelled `L`. MEPA has no conditional jump
+  yet, so a jump back to an earlier line repeats forever and runs past the Stage's 200 steps.
+- `NADA` does nothing: it marks a place, usually labelled, for a jump to land on.
 - `IMPR` pops the top onto the output, and `PARA` stops the machine.
 
 **Failures**, each a `stage-run` failure of `pnpm check`. A listing the machine can't read is
 refused, naming the line: an instruction MEPA doesn't have ("`PUSH 3` isn't a MEPA
-instruction"), wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers"), a fence
-without `start=0`, `FIM` anywhere but on the last line, and a Stage with no code block or more
-than one. So is a `roles` or `after` note keyed to an address the listing doesn't have. A run is
-refused, naming the line, when it divides by zero, reads with no field left, drops the stack below
-its bottom, runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, reaches a cell below
-`M[0]`, or reaches `FIM`. A table without a column the view writes into fails as any Stage's
-does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
+instruction"), wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers", "`DSVS 3`
+isn't `DSVS L`, with a label"), a jump to a label no line has ("`DSVS L9` jumps to the label
+`L9`, which the listing doesn't have: it has `L1`"), a label on two lines ("the label `L1` is
+already on line 1"), a label with no instruction after it, a fence without `start=0`, `FIM`
+anywhere but on the last line, and a Stage with no code block or more than one. So is a `roles`
+or `after` note keyed to an address the listing doesn't have, and a `labels` note naming a label
+no line has ("`labels` names the label `L2`, which the listing doesn't have: it has `L1`"). A run
+is refused, naming the line, when it divides by zero, reads with no field left, drops the stack
+below its bottom, runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, reaches a
+cell below `M[0]`, or reaches `FIM`. A table without a column the view writes into fails as any
+Stage's does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
 
 **The registers table** has the rows `i`, `s`, `D[0]` and every other `D[k]` the listing names,
 then the input yet to be read and the output, each listing its values in order, `—` when empty.
@@ -1115,7 +1127,10 @@ each step writes is `strong`, even when it already held that value.
 **The lines:** the instruction that ran is `reversed`, and the one `i` points at next is
 `dashed` until the machine stops.
 
-**Notes**, besides `reads`, in the artifact's language: `roles`, by address, the role of the
+**Notes**, besides `reads`, in the artifact's language: `labels`, by label, the place each label
+names (`L1: "o início de main"`), said beside the label when a jump lands there ("Desvia para L1,
+o início de main: i recebe 3.") and when the run passes its `NADA` ("Passa por L1, o início de
+main, e não faz nada."); a label without one is said alone. `roles`, by address, the role of the
 cell that instruction writes (`11: "lido"`), or for an `AMEM n` a list of n roles, one per cell
 it reserves (`1: ["x, global", "y, global"]`). A cell an `ARMZ` writes keeps its role unless the
 note gives one; any other write without one has no role. `after`, by address, a sentence added to

@@ -31,3 +31,12 @@ From machine trace 03's implementation: the catalog's MEPA page (`design-system/
 ### 2026-11-09: where 06's new failures go
 
 From machine trace 04's implementation: a `subroutines` entry on a label `CHPR` never calls, or a call to a missing label, is a problem MEPA's `parse` returns (`{ line, problem }`, `line: undefined` for a note), and the general layer reports it as `stage-run` ("with `x = 7, y = 2`, the machine can't read line 3: …" or "… the machine can't run: …"), once per Stage. `parse`'s loop over `roles` and `after` keys is the place for note checks; 05's comment from 04 has the fixture helpers (`unfitMachineStages` in `tests/check/artifact-checks.test.ts`).
+
+### 2026-11-09: what 05 leaves for calls
+
+From machine trace 05's implementation (`design-system/src/machines/mepa.ts`):
+
+- A listing line is `{ label, read }` (`Line`): `split` takes off the `;` comment and an optional `L1:` label (letters, digits and `_`), and `instruction(written, label, labels)` reads the rest. `parse` collects every label's address first, so a forward jump resolves; a label on two lines and a label with no instruction are already problems.
+- Operands are named per op in `operands` (`DSVS: ["L"]`): `L` is a label, any other name a whole number, and the wrong-arguments problem is built from the names ("`DSVS 3` isn't `DSVS L`, with a label"; for `CHPR: ["L", "n"]` it reads "with a label and 1 whole number"). `DSVS` resolves its label to `{ op, label, to }` at parse time, with "`DSVS L9` jumps to the label `L9`, which the listing doesn't have: it has `L1`" (or "it has no labels"): `CHPR` can reuse that check and wording.
+- `labels` is optional and checked against the listing's labels in `parse` ("`labels` names the label `L2`, which the listing doesn't have: …"); a label without a place name is said alone. `placed(label, name)` gives "L1, o início de main", and `step`'s `name(label)` reads the note: use them for a call's sentence. `roles` and `after` stay keyed by address only.
+- The catalog program now starts `INPP / AMEM 3 / DSVS L1 / L1: NADA`, as a compiler lays out a program with no subroutines, so `DSVS` lands on the next line. Put the subroutine between `DSVS L1` and `L1: NADA`, and the jump will skip it. Every address after line 1 moved by 2: the Stages now open on step 14 (`SOMA` at line 12), the tables as written have `i` 19, and the builds' `roles` keys start at 4 with `after` at 18. The page's prose names the jump and the step.

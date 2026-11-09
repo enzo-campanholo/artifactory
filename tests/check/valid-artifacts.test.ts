@@ -443,7 +443,8 @@ const rewrittenStage = {
 };
 
 // The first example worked by hand: x = −4 and y = 2 leave (−4 + 2) × 2 div 3, which is −1, in
-// M[2] and the output, the stack back below its bottom and every cell freed.
+// M[2] and the output, the stack back below its bottom and every cell freed. In the second, the
+// jump skips printing 9, so x = 6 is stored in M[0], copied to M[1] and printed alone.
 const machineTrace = {
   "artifacts/maquina-de-pilha/index.mdx": artifact(
     fields("m3p4p1l4", "Máquina de pilha", "Cálculo"),
@@ -496,6 +497,47 @@ const machineTrace = {
       "| M[2]   |   −1 |       |      |",
       "",
       "</Stage>",
+      "",
+      "<Stage",
+      '  build="salto"',
+      "  input={{",
+      '    label: "Rodar",',
+      '    fields: [{ name: "x", min: 0, max: 9 }],',
+      "    examples: [{ x: 6 }],",
+      "  }}",
+      '  prompt="Digite x e rode o programa."',
+      ">",
+      "",
+      "```text start=0",
+      "INPP",
+      "AMEM 1",
+      "LEIT",
+      "ARMZ 0,0",
+      "DSVS L1",
+      "CRCT 9",
+      "IMPR",
+      "L1: NADA     ; a cópia",
+      "CRVL 0,0",
+      "IMPR",
+      "DMEM 1",
+      "PARA",
+      "FIM",
+      "```",
+      "",
+      "| Registrador | Valor |",
+      "| ----------- | ----: |",
+      "| i           |    11 |",
+      "| s           |    −1 |",
+      "| D[0]        |     0 |",
+      "| entrada     |     — |",
+      "| saída       |     6 |",
+      "",
+      "| Célula | Dado | Topo |",
+      "| ------ | ---: | ---- |",
+      "| M[0]   |    6 |      |",
+      "| M[1]   |    6 |      |",
+      "",
+      "</Stage>",
     ],
   ),
   "artifacts/maquina-de-pilha/exemplo.build.ts": [
@@ -507,6 +549,13 @@ const machineTrace = {
     '  roles: { 1: ["x, global", "y, global"], 2: "lido", 4: "lido" },',
     '  after: { 14: "As globais x e y estão liberadas." },',
     "});",
+    "",
+  ].join("\n"),
+  "artifacts/maquina-de-pilha/salto.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["x"], labels: { L1: "a cópia de x" } });',
     "",
   ].join("\n"),
 };
