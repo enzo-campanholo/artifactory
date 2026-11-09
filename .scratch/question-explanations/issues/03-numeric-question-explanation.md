@@ -1,6 +1,6 @@
 # 03: A NumericQuestion shows its explanation once its answer locks
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02
 
 Spec: [Question explanations](../spec.md). The decisions are in the map ticket's `## Answer` (`artifact-generation-gaps` 01); don't reopen them.
