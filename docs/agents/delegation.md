@@ -6,6 +6,8 @@ A delegated brief names the ticket, the branch or worktree, the files the child 
 
 A review brief also says who receives the review, who decides on each finding, and how accepted findings reach the implementer: in the implementer's next brief, or appended to the ticket. The child reports completion in its final message.
 
+Before accepting any child's result, run `scripts/heavy --status --json` in the child's worktree. Accept it only when `check.applicability` is `current` for the child's HEAD; [Local evidence](#local-evidence) says what each value means. On any other value, `unknown` from a `--last-passed` run included, resume the child to finish the gate. Resume it even when its final message reports a pass, and leave the gate to the child rather than running it yourself.
+
 ## Ownership
 
 Only the session that started a delegated agent can check, message or stop it (in T3 Code, the thread that called it). Keep each returned ID or link exactly as returned. An error saying it belongs to another session means exactly that: the agent is still running, so leave it to that session. Start new work only for what a child left unfinished, never a duplicate of a task still running.
