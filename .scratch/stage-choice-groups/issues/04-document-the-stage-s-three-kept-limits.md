@@ -1,6 +1,6 @@
 # 04: Document the Stage's three kept limits
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Stage choice groups](../spec.md) › Documented limits, Documentation. Decisions: [Stage controls and drawing](../../artifact-generation-gaps/issues/03-stage-controls-and-drawing.md) › Answer. Each limit was kept on purpose, so this ticket documents it, never lifts it.
