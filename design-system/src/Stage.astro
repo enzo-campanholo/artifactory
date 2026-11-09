@@ -7,7 +7,7 @@ import InlineSvg from "./InlineSvg.astro";
 import StepControls from "./StepControls.astro";
 import { componentError } from "./component-errors.ts";
 import { buildModule } from "./stage-builds.ts";
-import { numberProblem, type Field } from "./step-applier.ts";
+import { numberProblem, type Control, type Field } from "./step-applier.ts";
 
 interface Staged {
   /** The custom build: the name of the `<build>.build.ts` file next to the entry. */
@@ -394,6 +394,7 @@ const props = Astro.props;
 const { build, prompt, figure, alt, beside, caption } = props;
 const choose = "choose" in props ? props.choose : undefined;
 const input = "input" in props ? props.input : undefined;
+const control: Control = input === undefined ? "choose" : "input";
 const [written] = input?.examples ?? [];
 // A catalog page's builds sit in `catalog/`, as an artifact's sit beside its entry.
 const slug = Astro.params.slug;
@@ -445,7 +446,7 @@ const example = (values: Record<string, number>) =>
   (input?.fields ?? []).map(({ name }) => `${name} = ${String(values[name])}`).join(", ");
 ---
 
-<artifact-stage data-build={buildFile} data-module={buildModule(buildFile)}>
+<artifact-stage data-build={buildFile} data-module={buildModule(buildFile)} data-control={control}>
   <figure class="figure stage" data-beside={beside === true ? "" : undefined}>
     <div class="stage-controls" hidden>
       {choose && (
