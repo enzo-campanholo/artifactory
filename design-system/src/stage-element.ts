@@ -6,6 +6,7 @@ import {
   runBuild,
   stageControl,
   stageFields,
+  stageGroups,
   stageNodes,
   writtenContent,
   type Control,
@@ -26,9 +27,9 @@ interface Refused {
   retry: string;
 }
 
-// What a refused run asks the owner to change: the option, or the input, which a Stage with a text
-// field can't call numbers.
-type Retry = "choose" | "numbers" | "text";
+// What a refused run asks the owner to change: the option, the options of several groups, or the
+// input, which a Stage with a text field can't call numbers.
+type Retry = "option" | "options" | "numbers" | "text";
 
 type TextField = Extract<Field, { kind: "text" }>;
 
@@ -72,11 +73,17 @@ const texts = {
     line: (line: number) => `Line ${String(line)}.`,
     fault: (line: number, fault: string) => `Line ${String(line)}: ${fault}.`,
     refused: {
-      choose: {
+      option: {
         tooMany: (most: number) =>
           `That takes more than ${String(most)} steps. Choose another option.`,
         failed: "The steps for this option couldn't be worked out. Choose another option.",
         retry: "Choose another option.",
+      },
+      options: {
+        tooMany: (most: number) =>
+          `That takes more than ${String(most)} steps. Choose other options.`,
+        failed: "The steps for these options couldn't be worked out. Choose other options.",
+        retry: "Choose other options.",
       },
       numbers: {
         tooMany: (most: number) => `That takes more than ${String(most)} steps. Try other numbers.`,
@@ -113,10 +120,15 @@ const texts = {
     line: (line: number) => `Linha ${String(line)}.`,
     fault: (line: number, fault: string) => `Linha ${String(line)}: ${fault}.`,
     refused: {
-      choose: {
+      option: {
         tooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Escolha outra opção.`,
         failed: "Não foi possível montar os passos desta opção. Escolha outra opção.",
         retry: "Escolha outra opção.",
+      },
+      options: {
+        tooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Escolha outras opções.`,
+        failed: "Não foi possível montar os passos destas opções. Escolha outras opções.",
+        retry: "Escolha outras opções.",
       },
       numbers: {
         tooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Tente outros números.`,
@@ -172,7 +184,7 @@ class ArtifactStage extends HTMLElement {
   #nodes: StageNodes = { parts: [], tables: [], code: [], colours: [] };
   #written: Written = { parts: [], tables: [], code: [], colours: [] };
   #control: Control = "choose";
-  #retry: Retry = "choose";
+  #retry: Retry = "option";
   #asWritten = new Map<Element, Node[]>();
   #fades = new Map<Element, Fade>();
   #rowToCopy: Element | undefined;
@@ -185,7 +197,7 @@ class ArtifactStage extends HTMLElement {
     super();
     this.addEventListener("change", (event) => {
       if (event.target instanceof HTMLInputElement && event.target.type === "radio") {
-        void this.#run(event.target.value);
+        this.#runChosen();
       }
     });
     this.addEventListener("submit", (event) => {
@@ -223,7 +235,9 @@ class ArtifactStage extends HTMLElement {
     this.#control = stageControl(this).control;
     this.#retry =
       this.#control === "choose"
-        ? "choose"
+        ? stageGroups(this).length > 0
+          ? "options"
+          : "option"
         : stageFields(this).some(({ kind }) => kind === "text")
           ? "text"
           : "numbers";
@@ -305,12 +319,30 @@ class ArtifactStage extends HTMLElement {
     }
   }
 
-  // A checked option with no run behind it, such as one a refusal left, chooses again.
+  // A checked option with no run behind it, such as one a refusal left, chooses again. Option names
+  // are unique across a Stage's groups, so the part chooses in its own group and leaves the others.
   #chooseInDrawing(choice: string) {
     const option = this.#options.find(({ value }) => value === choice);
     if (option === undefined || (option.checked && this.#steps.length > 0)) return;
     option.checked = true;
-    void this.#run(choice);
+    this.#runChosen();
+  }
+
+  // With several groups the run waits for every group's choice, the prompt holding the line.
+  #runChosen() {
+    const groups = stageGroups(this);
+    if (groups.length === 0) {
+      const option = this.#options.find(({ checked }) => checked);
+      if (option !== undefined) void this.#run(option.value);
+      return;
+    }
+    const chosen: Typed = {};
+    for (const { name, options } of groups) {
+      const option = options.find(({ checked }) => checked);
+      if (option === undefined) return;
+      chosen[name] = option.value;
+    }
+    void this.#run(chosen);
   }
 
   // The first field refused takes the focus back, drawn dashed, with the reason in the step's line.

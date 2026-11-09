@@ -8,8 +8,10 @@ import {
   mainLanguage,
   rowTexts,
   stageControl,
+  stageGroups,
   stageNodes,
   writtenContent,
+  type ChoiceGroup,
   type Control,
   type Shown,
   type Takes,
@@ -59,25 +61,41 @@ async function stagesOnPages(root: string): Promise<StageOnPage[]> {
     for (const element of document.querySelectorAll("artifact-stage")) {
       const file = (element.getAttribute("data-build") ?? "").replace(/^\//, "");
       if (!existsSync(join(root, file))) continue;
-      const { control, takes } = stageControl(element as unknown as Element);
+      const stage = element as unknown as Element;
+      const { control, takes } = stageControl(stage);
+      const groups = stageGroups(stage);
       stages.push({
         file,
         control,
         takes,
         inputs:
-          control === "choose"
-            ? [...element.querySelectorAll(".stage-option input")].map(
-                (input) => input.getAttribute("value") ?? "",
-              )
-            : (JSON.parse(
+          control === "input"
+            ? (JSON.parse(
                 element.querySelector(".stage-input")?.getAttribute("data-examples") ?? "[]",
-              ) as Typed[]),
-        written: writtenContent(stageNodes(element as unknown as Element)),
-        lang: mainLanguage(element as unknown as Element),
+              ) as Typed[])
+            : groups.length > 0
+              ? combinations(groups)
+              : [...element.querySelectorAll(".stage-option input")].map(
+                  (input) => input.getAttribute("value") ?? "",
+                ),
+        written: writtenContent(stageNodes(stage)),
+        lang: mainLanguage(stage),
       });
     }
   }
   return stages;
+}
+
+// Every combination, one option from each group, in the groups' order and each group's options'
+// order, so the first is what the page shows on choosing each group's first option.
+function combinations(groups: ChoiceGroup[]): Typed[] {
+  return groups.reduce<Typed[]>(
+    (chosen, { name, options }) =>
+      chosen.flatMap((before) =>
+        options.map((option) => ({ ...before, [name]: option.getAttribute("value") ?? "" })),
+      ),
+    [{}],
+  );
 }
 
 function runStage(

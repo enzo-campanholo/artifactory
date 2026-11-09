@@ -77,7 +77,8 @@ export interface Step {
 
 /**
  * What the owner typed into a Stage's `input`, by each field's `name`: a number field's whole
- * number, or a text field's text as a `string`, in NFC, `""` for the empty word.
+ * number, or a text field's text as a `string`, in NFC, `""` for the empty word. With a list of
+ * choice groups, the option chosen in each group, by the group's `name`, as a `string`.
  */
 export type Typed = Record<string, number | string>;
 
@@ -123,15 +124,17 @@ export interface Content {
 
 /**
  * A custom build: what turns the owner's choice into steps. With `choose`, `steps` gets the option
- * as text; with `input`, it gets each field's value, typed as `Input`: a number field's whole
- * number as a `number`, a text field's text as a `string`. Either way its second
+ * as text; with a list of choice groups, each group's option by the group's name, typed as
+ * `Input`, each a `string`; with `input`, it gets each field's value, typed as `Input`: a number
+ * field's whole number as a `number`, a text field's text as a `string`. Either way its second
  * argument is the Stage's content as written (`Content`), which a build may leave out.
  */
 export interface Build<Input extends string | Typed = string> {
   /**
-   * Every step for the option the owner chose or the input they typed, in order, at least one
-   * and at most 200. Called again from step 1 whenever they choose again or press Start, with the
-   * content as written each time.
+   * Every step for the option the owner chose, the options of every group, or the input they
+   * typed, in order, at least one and at most 200. Called again from step 1 whenever they choose
+   * again (with groups, once every group has a choice) or press Start, with the content as written
+   * each time.
    */
   steps: (input: Input, content: Content) => Step[];
 }
@@ -140,8 +143,10 @@ export interface Build<Input extends string | Typed = string> {
  * Wraps the build so TypeScript checks it. A `.build.ts` file's default export. With `input`,
  * give the fields' names as its type, a number field's as `number` and a text field's as `string`,
  * `defineBuild<{ a: number; b: number }>({ … })` or `defineBuild<{ w: string; m: number }>({ … })`,
- * so `steps` gets them typed: `pnpm check` fails when they aren't the Stage's fields and kinds. `steps` gets the
- * content as written second, typed `Content`, without a type of its own.
+ * so `steps` gets them typed: `pnpm check` fails when they aren't the Stage's fields and kinds.
+ * With a list of choice groups, give the groups' names, each a `string`,
+ * `defineBuild<{ inicio: string; busca: string }>({ … })`; with one group, leave the type out.
+ * `steps` gets the content as written second, typed `Content`, without a type of its own.
  */
 export function defineBuild<Input extends string | Typed = string>(
   build: Build<Input>,
