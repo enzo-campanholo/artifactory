@@ -1,6 +1,6 @@
 # 06: Lock a question to shoot its explanation
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 03 (Reveal a model answer to shoot what it holds); [Question explanations 02](../../question-explanations/issues/02-single-choice-explanation.md); [Question explanations 03](../../question-explanations/issues/03-numeric-question-explanation.md); [Content types 05](../../content-types/issues/05-matching-explanation.md)
 
 Spec: [What `pnpm look` captures](../spec.md) › Content behind a hidden part
