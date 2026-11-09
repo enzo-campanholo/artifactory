@@ -146,6 +146,7 @@ const questionIds = {
   "artifacts/regras-de-derivacao/index.mdx": artifact(
     fields("r3gr4s01", "Regras de derivação", "Cálculo"),
     [
+      'import Matching from "@artifactory/design-system/matching";',
       'import OpenQuestion from "@artifactory/design-system/open-question";',
       'import SingleChoice from "@artifactory/design-system/single-choice";',
       "",
@@ -177,6 +178,20 @@ const questionIds = {
       "Porque sim.",
       "",
       "</OpenQuestion>",
+      "",
+      '<Matching answers={{ "Regra_do_produto": 1, "regra-da-potencia": 2 }}>',
+      "",
+      "Qual regra deriva cada função?",
+      "",
+      "1. Regra do produto",
+      "2. Regra da potência",
+      "",
+      "---",
+      "",
+      "- $x \\sin x$",
+      "- $x^3$",
+      "",
+      "</Matching>",
     ],
   ),
 };
@@ -443,13 +458,23 @@ describe("a repo whose artifacts break math, code, diagram, link, question ID, s
 
   it("fails at the second question with an ID already used in the artifact", () => {
     expect(linesFor(run, ["regras-de-derivacao"])).toContain(
-      "artifacts/regras-de-derivacao/index.mdx:21:17 error question-id: the question ID `regra-da-potencia` is already used at line 12; give each question in an artifact its own ID (artifact skill: Components)",
+      "artifacts/regras-de-derivacao/index.mdx:22:17 error question-id: the question ID `regra-da-potencia` is already used at line 13; give each question in an artifact its own ID (artifact skill: Components)",
     );
   });
 
   it("fails a question ID that isn't kebab-case, at its id prop", () => {
     expect(linesFor(run, ["regras-de-derivacao"])).toContain(
-      "artifacts/regras-de-derivacao/index.mdx:31:15 error question-id: the question ID `Por_que` isn't lowercase kebab-case (artifact skill: Components)",
+      "artifacts/regras-de-derivacao/index.mdx:32:15 error question-id: the question ID `Por_que` isn't lowercase kebab-case (artifact skill: Components)",
+    );
+  });
+
+  it("fails a matching item's ID by the rules of a question ID, at the entry's start", () => {
+    const lines = linesFor(run, ["regras-de-derivacao"]);
+    expect(lines).toContain(
+      "artifacts/regras-de-derivacao/index.mdx:1:1 error question-id: the question ID `Regra_do_produto` isn't lowercase kebab-case (artifact skill: Components)",
+    );
+    expect(lines).toContain(
+      "artifacts/regras-de-derivacao/index.mdx:1:1 error question-id: the question ID `regra-da-potencia` is already used at line 13; give each question in an artifact its own ID (artifact skill: Components)",
     );
   });
 
@@ -491,7 +516,7 @@ describe("a repo whose artifacts break math, code, diagram, link, question ID, s
   });
 
   it("reports every failure in one run, and nothing else", () => {
-    expect(run.summary[0]).toBe("pnpm check: 55 failures");
+    expect(run.summary[0]).toBe("pnpm check: 57 failures");
   });
 });
 

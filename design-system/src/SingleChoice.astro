@@ -9,7 +9,8 @@ import { singleChoiceParts } from "./single-choice.ts";
  * wrong answer also ticks the right option. The page letters the options a), b), c), so don't
  * letter them yourself. Use it when exactly one option is right and the options can be read side
  * by side. For a computed number, use `NumericQuestion`, since options would let the owner work
- * backwards from them.
+ * backwards from them. When several questions would share the same options, write one `Matching`
+ * instead of repeating them.
  *
  * Write the question first, then the options as one numbered list at its end. Options can hold
  * inline math and code, one paragraph each.

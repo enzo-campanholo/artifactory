@@ -1,42 +1,79 @@
 ---
-import { questionAnchor, questionMarkers } from "./question-markers.ts";
+import { questionAnchor, questionMarkers, questionRangeSlot } from "./question-markers.ts";
 import RevealedPart from "./RevealedPart.astro";
 import type { AutoCheckedKind, Json } from "./scoring.ts";
 
+// A matching's box holds its items' questions, whose rows carry their markers: `id` is its first
+// item's and `lastId` its last item's.
 type Props = { id: string; prompt: string } & (
   | {
       kind: AutoCheckedKind;
       answerKey: Json;
       explanation?: string | undefined;
       modelAnswer?: never;
+      lastId?: never;
     }
-  | { kind: "open-question"; modelAnswer: string; answerKey?: never; explanation?: never }
+  | {
+      kind: "open-question";
+      modelAnswer: string;
+      answerKey?: never;
+      explanation?: never;
+      lastId?: never;
+    }
+  | {
+      kind: "matching";
+      lastId: string;
+      answerKey?: never;
+      explanation?: never;
+      modelAnswer?: never;
+    }
 );
 
 const { props } = Astro;
 const { id, kind, modelAnswer, explanation, prompt } = props;
 const Tag = `artifact-${kind}` as const;
-const markers = questionMarkers(
-  props.kind === "open-question" ? { id, kind } : { id, kind: props.kind, key: props.answerKey },
-);
+const markers =
+  props.kind === "matching"
+    ? {}
+    : questionMarkers(
+        props.kind === "open-question"
+          ? { id, kind }
+          : { id, kind: props.kind, key: props.answerKey },
+      );
 const anchor = questionAnchor(id);
+const rangeId = `${anchor}--range`;
 // Question IDs are kebab-case, so no question's anchor can end in "--prompt".
 const promptId = `${anchor}--prompt`;
 const hints = {
   "single-choice": { en: "Choose one", pt: "Escolha uma" },
   numeric: { en: "Work it out", pt: "Calcule" },
   "open-question": { en: "Answer in your own words", pt: "Responda com suas palavras" },
+  matching: { en: "Match", pt: "Associe" },
 } satisfies Record<Props["kind"], { en: string; pt: string }>;
 const hint = hints[kind];
 ---
 
-<Tag {...markers} class="question" role="group" inert="">
+<Tag
+  {...markers}
+  class="question"
+  role="group"
+  aria-labelledby={props.kind === "matching" ? rangeId : undefined}
+  inert=""
+>
   <form>
     <div class="question-header">
-      <span class="question-number">
-        <span data-lang="en">Question</span>
-        <span data-lang="pt">Questão</span>
-      </span>
+      {props.kind === "matching" ? (
+        <span class="question-number" id={rangeId}>
+          <span data-lang="en">Questions</span>
+          <span data-lang="pt">Questões</span>
+          <Fragment set:html={questionRangeSlot(id, props.lastId)} />
+        </span>
+      ) : (
+        <span class="question-number">
+          <span data-lang="en">Question</span>
+          <span data-lang="pt">Questão</span>
+        </span>
+      )}
       <span class="question-hint" data-hint="open">
         <span data-lang="en">{hint.en}</span>
         <span data-lang="pt">{hint.pt}</span>
