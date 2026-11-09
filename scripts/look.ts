@@ -23,6 +23,7 @@ import {
 type Kind =
   | "stepper-boards"
   | "stepper-lines"
+  | "stepper-blocks"
   | "stepper-figure"
   | "stepper-unknown"
   | "stage-input"
@@ -93,6 +94,13 @@ const kinds: Record<
   "stepper-lines": {
     element: "artifact-stepper",
     marks: [".stepper-code"],
+    stem: "stepper",
+    takeShots: shootStepper,
+    describe: describeStepper,
+  },
+  "stepper-blocks": {
+    element: "artifact-stepper",
+    marks: [".stepper-blocks"],
     stem: "stepper",
     takeShots: shootStepper,
     describe: describeStepper,

@@ -464,6 +464,30 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
           "</Stepper>",
           "",
         ].join("\n"),
+        "artifacts/look-code-blocks/index.mdx": [
+          ...frontmatter("codeblks", "look-code-blocks"),
+          'import Stepper from "@artifactory/design-system/stepper";',
+          "",
+          "## Code rewritten a block at a time",
+          "",
+          '<Stepper captions={["Literal loop.", "Literal sum.", "Literal formula."]}>',
+          "",
+          "```ts",
+          "let total = 0;",
+          "for (let i = 1; i <= n; i++) total += i;",
+          "```",
+          "",
+          "```ts",
+          "const total = sum(range(1, n));",
+          "```",
+          "",
+          "```ts",
+          "const total = (n * (n + 1)) / 2;",
+          "```",
+          "",
+          "</Stepper>",
+          "",
+        ].join("\n"),
         "artifacts/look-nothing/index.mdx": [
           ...frontmatter("nothing1", "look-nothing"),
           "## Prose and plain code",
@@ -498,6 +522,33 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
             "",
             "02-stepper: no drawing and no caption",
             ...printed("02-stepper"),
+          ].join("\n"),
+        );
+        expect(
+          result.report.cases.map(({ id, outcome, captures }) => ({ id, outcome, captures })),
+        ).toEqual(
+          [393, 1920].map((width) => ({
+            id: `look-${String(width)}`,
+            outcome: "captured-awaiting-visual-review",
+            captures: captures(width),
+          })),
+        );
+      },
+      checkTimeout,
+    );
+    it(
+      "shoots a Stepper with one code block per step at every step, printing its captions in place of an alt",
+      async () => {
+        const result = await look(repo, "look-code-blocks");
+        expect(result.exitCode, result.output).toBe(0);
+        const captures = (width: number) =>
+          [1, 2, 3].map((step) => `01-stepper-step-${String(step)}-${String(width)}.png`);
+        expect(result.output).toContain(
+          [
+            '01-stepper: no drawing; captions, one per step: "Literal loop.", "Literal sum.", "Literal formula."',
+            ...[...captures(393), ...captures(1920)].map(
+              (file) => `  .look/look-code-blocks/${file}`,
+            ),
           ].join("\n"),
         );
         expect(
