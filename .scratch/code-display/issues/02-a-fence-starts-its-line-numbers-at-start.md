@@ -19,3 +19,15 @@ This is design-system work: do it in a local session with impeccable (`design-sy
 - [ ] The `artifact` skill's **Code blocks** section documents `start` and its failure. It tells agents to use `start` when the source numbers its lines from something other than 1, and to keep the source's numbers rather than renumbering. This lands in the same commit as the check change.
 - [ ] The catalog shows a plain block with `start=0`.
 - [ ] Shared part: `rich-content.css` and the Markdown fence reading reach every code block, so check a one-block Stepper and a Stage with code on their catalog pages, each with a `start` block, with the same evidence as the plain block.
+
+## Comments
+
+### 2026-11-09: where 01 left the shown number
+
+From code display 01's implementation:
+
+- The number lives in one place: the `shownLineNumbers` Shiki transformer in `src/rich-content.ts` writes it as `data-line` on each `span.line`. Its `line(node, line)` hook gets the line's position from 1; `this.options.meta` holds the fence's info string after the language, so reading `start` there and adding `start - 1` is the whole numbering change. Satteri hands `meta` to Shiki for `.md` and `.mdx` alike.
+- The gutter (`rich-content.css`, `content: attr(data-line)`), the one-block Stepper (`steppedCode` in `stepper.ts` reads the `data-line` it matches; the element's announcement reads `line.dataset.line`) and the Stage (`writtenContent` in `step-applier.ts` gives `codeLineNumbers`, the shown numbers per block; the element paints marks by them) need no change for `start`.
+- The Stepper already parses `lines` against the block's first and last shown numbers, so its range check follows `start` by itself. Its message comes from `numberList` in `design-system/src/number-lists.ts`, `must list numbers from ${first} to ${last}, …`, which already names the real range. The examples in it (`"2", "2-4", "2-" or "1-2, 5"`) stay fixed text: decide whether they should follow `first`.
+- The Stage's check accepts a `lines` key only when it is exactly one of the block's shown numbers as text (so `"01"` stays refused). Its message still says "it has N lines": that is the wording to change to name the range.
+- `codeLine` in `stepper.ts` matches `<span class="line…" data-line="N"`, the order Shiki writes. A transformer that adds attributes before `data-line` would need it widened.
