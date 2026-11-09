@@ -48,7 +48,7 @@ Each workflow ends with the shared steps under [Finishing](#finishing). An artif
 ### Revise
 
 1. Edit the entry and its files in place, following [A good study artifact](#a-good-study-artifact) and each section of [rules.md](rules.md) that bears on what you change. Keep `id`, the slug and `published` as they are, so the owner's answers stay attached. Follow the question ID rule under [Components](rules.md#components).
-2. Finish: look (if a diagram, figure or `Stage` changed), check, publish, watch CI, reply.
+2. Finish: look (if a diagram, figure, `Stepper` or `Stage` changed), check, publish, watch CI, reply.
 
 ### Publish a draft
 
@@ -63,7 +63,9 @@ Before starting one, read [lifecycle.md](lifecycle.md): each has its own steps a
 
 ### Look
 
-For every new or changed diagram, figure and `Stage` (its build included), run `pnpm look <slug>`. It builds the site and screenshots each `Diagram`, `Figure`, diagram or figure `Stepper` (every step) and `Stage` at 393 px (a phone) and 1920 px (a 1080p screen) into `.look/<slug>/`. Each shot is the item alone, as wide as it sits on the page, so the 1920 px shots are the text column's width, not the screen's. Above each item's files it prints the item's number, its kind, the number its caption shows (`Figure 2.1`) and its `alt`. Cite a figure or Stage in the prose by that printed number. Open every PNG and compare it with its `alt`: labels overlapping or cut off, text too small at 393 px, a drawing far wider than it is tall, a step that shows the wrong part, a mark that doesn't read at 393 px. Fix and look again, until every screenshot matches its `alt` and reads well at both widths.
+For every new or changed diagram, figure, `Stepper` and `Stage` (its build included), run `pnpm look <slug>`. It builds the site and screenshots each `Diagram`, `Figure`, `Stepper` (figure, D2 or code, at every step) and `Stage` at 393 px (a phone) and 1920 px (a 1080p screen), in the light theme, into `.look/<slug>/`. Each shot is the item alone, as wide as it sits on the page, so the 1920 px shots are the text column's width, not the screen's. Above each item's files it prints the item's number, its kind, the number its caption shows (`Figure 2.1`) and its `alt`. Code has no `alt`, so for a code `Stepper` it prints the captions, one per step, in its place ("no caption" when it has none). Cite a figure or Stage in the prose by that printed number. Open every PNG and compare it with its `alt`, or a code step with its caption: labels overlapping or cut off, text too small at 393 px, a drawing far wider than it is tall, a step that shows the wrong part or highlights the wrong lines, a mark that doesn't read at 393 px. Fix and look again, until every screenshot matches its `alt` or caption and reads well at both widths.
+
+Look doesn't shoot plain code blocks, tables or questions: read them in the source, and `pnpm check` catches what goes wrong in them. Nor does it shoot dark mode or print, which are checked on the design system's catalog.
 
 Look also writes `.look/<slug>/results.json` and a `contact-sheet.html` that helps find shots; judge the original PNGs. `captured-awaiting-visual-review` means a person still has to look, never a visual pass. Failed assertions, unavailable Chromium and unsupported capabilities aren't passes either.
 

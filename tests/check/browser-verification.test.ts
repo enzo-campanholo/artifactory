@@ -425,3 +425,81 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     );
   },
 );
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look Stepper evidence",
+  () => {
+    let repo: FixtureRepo;
+    const code = ["```ts", "const radius = 2;", "const area = radius * radius;", "```"];
+    beforeAll(async () => {
+      repo = await createFixtureRepo({
+        "artifacts/look-code-stepper/index.mdx": [
+          "---",
+          "id: codestp1",
+          "title: look-code-stepper",
+          "subject: Artifactory",
+          "lang: en",
+          "published: 2026-10-25",
+          "---",
+          "",
+          'import Stepper from "@artifactory/design-system/stepper";',
+          "",
+          "## Code read a line at a time",
+          "",
+          '<Stepper lines={["1", "2"]} captions={["Literal radius.", "Literal area."]}>',
+          "",
+          ...code,
+          "",
+          "</Stepper>",
+          "",
+          '<Stepper lines={["1", "2"]}>',
+          "",
+          ...code,
+          "",
+          "</Stepper>",
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    it(
+      "shoots a one-block code Stepper at every step, printing its captions in place of an alt",
+      async () => {
+        const result = await repo.run("pnpm", ["look", "look-code-stepper"]);
+        const report = JSON.parse(
+          await readFile(join(repo.root, ".look/look-code-stepper/results.json"), "utf8"),
+        ) as { cases: { id: string; outcome: string; captures: string[] }[] };
+        expect(result.exitCode, result.output).toBe(0);
+        const captures = (width: number) =>
+          ["01-stepper", "02-stepper"].flatMap((name) =>
+            [1, 2].map((step) => `${name}-step-${String(step)}-${String(width)}.png`),
+          );
+        const printed = (name: string) =>
+          [...captures(393), ...captures(1920)]
+            .filter((file) => file.startsWith(name))
+            .map((file) => `  .look/look-code-stepper/${file}`);
+        expect(result.output).toContain(
+          [
+            '01-stepper: no drawing; captions, one per step: "Literal radius.", "Literal area."',
+            ...printed("01-stepper"),
+            "",
+            "02-stepper: no drawing and no caption",
+            ...printed("02-stepper"),
+          ].join("\n"),
+        );
+        expect(
+          report.cases.map(({ id, outcome, captures }) => ({ id, outcome, captures })),
+        ).toEqual(
+          [393, 1920].map((width) => ({
+            id: `look-${String(width)}`,
+            outcome: "captured-awaiting-visual-review",
+            captures: captures(width),
+          })),
+        );
+      },
+      checkTimeout,
+    );
+  },
+);

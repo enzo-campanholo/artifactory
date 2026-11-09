@@ -20,10 +20,18 @@ import {
   type BrowserReport,
 } from "./browser-session.ts";
 
-const diagramsAndFiguresSelector =
-  "main figure.diagram, main figure.figure, main artifact-stepper:has(.stepper-boards, .stepper-figure)";
+// Items are selected by element, never by what they hold, so a new Stepper form can't drop out of
+// the shots unseen. A Stage's frame is also a `figure.figure`, so it's left out to count it once.
+const itemSelector =
+  "main :is(artifact-stepper, artifact-stage, figure.diagram, figure.figure):not(artifact-stage > figure)";
 type Kind =
-  "diagram" | "figure" | "stepper-boards" | "stepper-figure" | "stage-choose" | "stage-input";
+  | "diagram"
+  | "figure"
+  | "stepper-boards"
+  | "stepper-figure"
+  | "stepper-lines"
+  | "stage-choose"
+  | "stage-input";
 
 interface Item {
   element: ElementHandle;
@@ -59,6 +67,7 @@ const kinds: Record<
   figure: { stem: "figure", shoot: shootOnce, describe: describeDrawing },
   "stepper-boards": { stem: "stepper", shoot: shootStepper, describe: describeDrawing },
   "stepper-figure": { stem: "stepper", shoot: shootStepper, describe: describeDrawing },
+  "stepper-lines": { stem: "stepper", shoot: shootStepper, describe: describeCaptions },
   "stage-choose": { stem: "stage-choose", shoot: shootStage, describe: describeDrawing },
   "stage-input": { stem: "stage-input", shoot: shootStage, describe: describeDrawing },
 };
@@ -107,7 +116,7 @@ try {
     colorScheme: "light",
     reducedMotion: "reduce",
     storage: "fresh-context",
-    target: diagramsAndFiguresSelector,
+    target: itemSelector,
   });
   test.outcome = "unavailable";
   test.assertions.push({
@@ -130,7 +139,7 @@ try {
       colorScheme: "light",
       reducedMotion: "reduce",
       storage: "fresh-context",
-      target: diagramsAndFiguresSelector,
+      target: itemSelector,
     });
     report.cases.push(test);
     const context = await session.browser.createBrowserContext();
@@ -139,7 +148,7 @@ try {
       await preparePage(page, test.requested);
       await ready(page, test);
       assertCase(test, "fresh theme storage", null, test.observed.storedTheme);
-      const elements = await page.$$(diagramsAndFiguresSelector);
+      const elements = await page.$$(itemSelector);
       if (elements.length === 0) test.outcome = "not-applicable";
       for (const [index, element] of elements.entries()) {
         const item = await resolveItem(element, index);
@@ -164,7 +173,7 @@ try {
   await session.close();
   await writeReport(folder, report);
 }
-if (screenshots.size === 0) console.log(`\npnpm look: ${entry} has no diagrams or figures`);
+if (screenshots.size === 0) console.log(`\npnpm look: ${entry} has nothing for look to shoot`);
 else {
   const widths = lookViewports.map(({ width }) => `${String(width)} px`).join(" and ");
   console.log(`\npnpm look: ${entry} at ${widths} wide`);
@@ -183,13 +192,16 @@ process.exitCode = report.cases.some((test) =>
   ? 1
   : 0;
 
-async function resolveItem(element: ElementHandle, index: number): Promise<Item> {
-  const kind = await element.evaluate((node): Kind =>
-    node.matches(".stepper")
-      ? node.querySelector(".stepper-boards") === null
-        ? "stepper-figure"
-        : "stepper-boards"
-      : node.matches(".stage")
+// A Stage is shot by its frame, which holds its caption and number.
+async function resolveItem(selected: ElementHandle, index: number): Promise<Item> {
+  const kind = await selected.evaluate((node): Kind =>
+    node.matches("artifact-stepper")
+      ? node.querySelector(".stepper-boards") !== null
+        ? "stepper-boards"
+        : node.querySelector(".stepper-code") !== null
+          ? "stepper-lines"
+          : "stepper-figure"
+      : node.matches("artifact-stage")
         ? node.querySelector(".stage-input") === null
           ? "stage-choose"
           : "stage-input"
@@ -197,7 +209,22 @@ async function resolveItem(element: ElementHandle, index: number): Promise<Item>
           ? "diagram"
           : "figure",
   );
+  const element = kind.startsWith("stage-")
+    ? ((await selected.$(":scope > figure")) ?? selected)
+    : selected;
   return { element, kind, name: `${String(index + 1).padStart(2, "0")}-${kinds[kind].stem}` };
+}
+
+// Code has no `alt`, so a code Stepper's captions say what each step shows.
+function describeCaptions({ element }: Item): Promise<string> {
+  return element.evaluate((node) => {
+    const captions = [...node.querySelectorAll(".stepper-captions > p")].map(
+      (caption) => `"${caption.textContent.replace(/\s+/g, " ").trim()}"`,
+    );
+    return captions.length === 0
+      ? "no drawing and no caption"
+      : `no drawing; captions, one per step: ${captions.join(", ")}`;
+  });
 }
 
 // A Stage of code or tables has no drawing, so no `alt`: its caption says what it shows.
