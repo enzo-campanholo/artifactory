@@ -69,9 +69,11 @@ Rule `math`. Before writing math, read [math.md](math.md).
 
 ## Code blocks
 
-Rule `code-language`.
+Rules `code-language` and `code-start`.
 
 - Give each fence its language in lowercase, as Shiki names it: ` ```ts `, ` ```python `, ` ```bash `, or ` ```text ` for plain text. A language Shiki doesn't know fails.
+- Lines are numbered from 1. When the source numbers its lines from something else, such as a listing whose addresses start at 0, give the fence `start` after the language, ` ```pascal start=0 `, and keep the source's numbers: never renumber the listing, and never write the numbers into the code. `start` takes a whole number from 0; anything else (`start=-1`, `start=x`, `start=1.5`, `start=01`, a bare `start`) fails at the fence as `code-start`.
+- Every line reference counts the number the page shows, from `start`: a one-block Stepper's `lines` and a Stage step's `lines` both name the block's first line `0` under `start=0`.
 - Math is never a fence: write ` ```math ` blocks as `$$…$$`.
 
 ## Diagrams and figures
@@ -100,7 +102,7 @@ Rules `build-import`, `build-input`, `TS…` in a `.build.ts` file and `stage-ru
 
 - **Write one only when no component can do the job.** A fixed sequence of steps is a `Stepper`. Anything that asks the owner something and records the answer is a question component, next to the Stage if need be: a build never records answers and keeps nothing after a reload.
 - **The second time, propose a component.** Before writing a build that does the same job as one already in `artifacts/` (the same job by what the owner does with it, not the same topic), stop and propose a design system component to the owner instead, showing what the two builds share and how they differ. If the owner says "not yet", write the build, and put a comment at the top of both builds saying so, each linking the other, so the next agent proposes again with three cases.
-- **Missing a control or a mark?** Propose the Stage addition to the owner rather than working around it: no fake options, no code in a table, no marks drawn into the SVG by hand. The Stage today takes `choose` or typed whole numbers (`input`), and marks the drawing's parts, the tables' rows and cells, and the code block's lines, and rewrites the rows of its one table (`body`). With `beside` it sets its tables beside its drawing on a wide screen: set it sparingly, only where a step's marks and its rows must be seen together, as `COMPONENTS.md`'s "Beside the drawing" says.
+- **Missing a control or a mark?** Propose the Stage addition to the owner rather than working around it: no fake options, no code in a table, no marks drawn into the SVG by hand. The Stage today takes `choose` or typed whole numbers (`input`), and marks the drawing's parts, the tables' rows and cells, and the code block's lines, and rewrites the rows of its one table (`body`). It hands its build the content as written, the code block's lines and the tables' rows, and the artifact's main language, so the build reads a program from the content rather than repeating it. With `beside` it sets its tables beside its drawing on a wide screen: set it sparingly, only where a step's marks and its rows must be seen together, as `COMPONENTS.md`'s "Beside the drawing" says.
 - **Before writing a build, read [stage.md](stage.md):** its imports, types, typed input, code lines, table rows, marks and every failure the check gives a build.
 
 ## HTML

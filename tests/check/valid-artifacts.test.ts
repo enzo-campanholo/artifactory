@@ -34,6 +34,8 @@ const mathAndCode = {
   "artifacts/movimento-uniforme/index.mdx": artifact(
     fields("m0v1ment", "Movimento uniforme", "Mecânica"),
     [
+      'import Stepper from "@artifactory/design-system/stepper";',
+      "",
       "A velocidade média é $v_{\\text{média}} = \\frac{\\Delta s}{\\Delta t}$ e a entrada custa R\\$ 5.",
       "",
       "$$",
@@ -44,6 +46,27 @@ const mathAndCode = {
       "def area(r):",
       "    return 3.14 * r ** 2",
       "```",
+      "",
+      "```text start=0",
+      "push 2",
+      "add",
+      "```",
+      "",
+      "```text start=10",
+      "push 3",
+      "print",
+      "```",
+      "",
+      '<Stepper lines={["0", "1-"]}>',
+      "",
+      "```text start=0",
+      "push 2",
+      "push 3",
+      "add",
+      "print",
+      "```",
+      "",
+      "</Stepper>",
       "",
       "| t (s) | x (m) |",
       "| ----- | ----- |",
@@ -774,21 +797,60 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       for (const colour of colours) expect(colour).toMatch(/^var\(--[\w-]+\)$/);
     });
 
-    it("gives each code line the number the page shows for it, from 1", async () => {
+    it("gives each code line the number the page shows for it, from the fence's `start` or else from 1", async () => {
       const page = new new Window().DOMParser().parseFromString(
         await builtPage("movimento-uniforme"),
         "text/html",
       ) as unknown as Document;
-      const code = page.querySelector('pre[data-language="python"] > code');
       expect(
-        [...(code?.querySelectorAll(":scope > .line") ?? [])].map((line) => [
+        [...page.querySelectorAll("main pre > code")]
+          .filter((code) => code.closest("artifact-stepper") === null)
+          .map((code) =>
+            [...code.querySelectorAll(":scope > .line")].map((line) => [
+              line.getAttribute("data-line"),
+              line.textContent,
+            ]),
+          ),
+      ).toEqual([
+        [
+          ["1", "def area(r):"],
+          ["2", "    return 3.14 * r ** 2"],
+        ],
+        [
+          ["0", "push 2"],
+          ["1", "add"],
+        ],
+        [
+          ["10", "push 3"],
+          ["11", "print"],
+        ],
+      ]);
+    });
+
+    it("steps and prints a one-block Stepper's lines by the number the page shows, from the fence's `start`", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      const stepper = page.querySelector("artifact-stepper");
+      expect(
+        [...(stepper?.querySelectorAll(".stepper-code .line") ?? [])].map((line) => [
           line.getAttribute("data-line"),
-          line.textContent,
+          line.getAttribute("data-in-steps"),
         ]),
       ).toEqual([
-        ["1", "def area(r):"],
-        ["2", "    return 3.14 * r ** 2"],
+        ["0", "1"],
+        ["1", "2"],
+        ["2", "2"],
+        ["3", "2"],
       ]);
+      expect(
+        [...(stepper?.querySelectorAll(".stepper-steps > li") ?? [])].map((step) =>
+          [step.querySelector(".stepper-step-number"), step.querySelector('[data-lang="pt"]')]
+            .map((part) => part?.textContent)
+            .join(" "),
+        ),
+      ).toEqual(["1 (linha 0)", "2 (linhas 1–3)"]);
     });
 
     it("wraps each table in a group Tab reaches, named in the artifact's main language", async () => {

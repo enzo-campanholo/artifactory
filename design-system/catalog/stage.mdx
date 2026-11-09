@@ -145,6 +145,42 @@ def collatz(n):
 
 </div>
 
+## Code numbered from 0
+
+A listing whose source numbers its lines from 0, such as a stack machine's addresses, keeps them with `start=0`, and a step's `lines` name the lines by those numbers. The catalog script pressed Start on a = 2, b = 3 and stays on step 1: line 0, the first, is reversed, and the step is announced as "Step 1 of 4. Line 0. …".
+
+<div data-catalog-run="start" data-catalog-step="1">
+
+<Stage
+  build="sum-listing"
+  input={{
+    label: "Run with",
+    fields: [
+      { name: "a", min: 0, max: 99 },
+      { name: "b", min: 0, max: 99 },
+    ],
+    examples: [{ a: 2, b: 3 }],
+  }}
+  prompt="Type two numbers and press Start."
+  caption="A four-instruction listing that adds a and b, one instruction per step."
+>
+
+```text start=0
+push a
+push b
+add
+print
+```
+
+| Name    | Value |
+| ------- | ----: |
+| stack   |     — |
+| printed |     5 |
+
+</Stage>
+
+</div>
+
 ## A table that grows
 
 A step's `body` replaces the rows of the Stage's one table, so a teste de mesa, the trace of a program written by hand, gains a row each time the loop runs. Each new row copies the last row as written, so it keeps the table's alignment and type, and the step's marks land on the rows `body` wrote. The catalog script pressed Start on n = 4 and stepped to step 6, the second pass: the row `2` is new, its f just written in bold, while n still shows 3 until line 5 runs. Going back drops the row again, and print and the page without JavaScript show the rows as written, the first example's result.

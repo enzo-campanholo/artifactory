@@ -216,7 +216,8 @@ interface Typed extends Staged {
  *
  * **Code.** Write the code as one fenced code block between the Stage's tags, with its language,
  * as anywhere else: it keeps its highlighting and line numbers, so never put code in a table. A
- * step marks its lines with `lines`, by number from 1 as the page numbers them. Mark the line the
+ * step marks its lines with `lines`, by the number the page shows for each: from 1, or from the
+ * fence's `start`, so under ` ```pascal start=0 ` the first line is 0. Mark the line the
  * step runs `reversed`, and only that one: the Stage draws it as a bar of ink across the code's
  * whole width, even where a long line scrolls sideways, and announces the step as "Passo 3 de 9.
  * Linha 3. …". A step with no `reversed` line is announced without one. The other marks work on
@@ -339,6 +340,16 @@ interface Typed extends Staged {
  * header unique among the Stage's tables, since a name that matches more than one fails the
  * check. A part and a row may share a name: `parts` marks only the drawing, and `rows` only the
  * tables.
+ *
+ * **The content as written reaches the build.** `steps` gets it as its second argument, typed
+ * `Content`: `code`, each code block's lines in order, each with the number the page shows
+ * (`line`) and its plain text (`text`); `tables`, each table's headers (`columns`) and rows as
+ * written (`rows`), as plain text and found as `rows` and `cells` find them, even in a run that
+ * gives `body`; and `lang`, the artifact's main language, `"pt-BR"` or `"en"`, to say the steps
+ * in. Read a program from the code block, or a table's starting values, rather than writing them
+ * again in the build: `steps({ a, b }, { code: [listing = []] })` takes the first block's lines.
+ * The page and `pnpm check` hand every run the same content, a fresh copy each time, so a run may
+ * change its own. A build that doesn't need it leaves the argument out.
  *
  * **Beside the drawing.** A Stage sets its tables under its drawing. Set `beside` only where the
  * owner must see a step's marks and its table's rows together to follow the step, such as a graph

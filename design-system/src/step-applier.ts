@@ -1,4 +1,4 @@
-import type { Build, Mark, Typed } from "./stage-build.ts";
+import type { Build, CodeLine, Content, Mark, Typed, WrittenTable } from "./stage-build.ts";
 
 // More steps than this is no longer a walkthrough.
 const mostSteps = 200;
@@ -47,8 +47,8 @@ export function stageNodes(stage: ParentNode): StageNodes {
 
 export interface Written {
   parts: { name: string; takes: Mark[] }[];
-  tables: { columns: string[]; rows: string[][] }[];
-  codeLineNumbers: number[][];
+  tables: WrittenTable[];
+  code: CodeLine[][];
 }
 
 const textOf = (element: Element) => element.textContent.trim();
@@ -69,8 +69,11 @@ export function writtenContent({ parts, tables, code }: StageNodes): Written {
       columns: header.map(textOf),
       rows: rows.map((cells) => cells.map(textOf)),
     })),
-    codeLineNumbers: code.map((lines) =>
-      lines.map((line) => Number(line.getAttribute("data-line"))),
+    code: code.map((lines) =>
+      lines.map((line) => ({
+        line: Number(line.getAttribute("data-line")),
+        text: line.textContent,
+      })),
     ),
   };
 }
@@ -124,15 +127,35 @@ export function numberProblem(
   return value < min || value > max ? "out-of-bounds" : undefined;
 }
 
+// The Stage says its own lines in the language of the nearest `lang`, and hands builds the same.
+export function mainLanguage(stage: Element): Content["lang"] {
+  const lang = stage.closest("[lang]")?.getAttribute("lang") ?? "en";
+  return lang.startsWith("pt") ? "pt-BR" : "en";
+}
+
+// Each run gets its own copy, so a build that changes the content it was given changes neither
+// the next run's nor what the step applier finds rows and columns in.
+function contentAsWritten({ tables, code }: Written, lang: Content["lang"]): Content {
+  return {
+    lang,
+    code: code.map((lines) => lines.map(({ line, text }) => ({ line, text }))),
+    tables: tables.map(({ columns, rows }) => ({
+      columns: [...columns],
+      rows: rows.map((cells) => [...cells]),
+    })),
+  };
+}
+
 // A build is the artifact agent's code, cast or not, so what it returns is checked here, where the
 // page and the check both run it.
 export function runBuild<Input extends string | Typed>(
   build: Build<Input>,
   input: Input,
   written: Written,
+  lang: Content["lang"],
 ): Run {
   try {
-    const steps: unknown = build.steps(input);
+    const steps: unknown = build.steps(input, contentAsWritten(written, lang));
     if (!Array.isArray(steps)) return { refused: "not-a-list" };
     if (steps.length === 0) return { refused: "no-steps" };
     if (steps.length > mostSteps) return { refused: "too-many", most: mostSteps };
@@ -233,24 +256,20 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
   const lines = new Map<number, Mark>();
   let running: number | undefined;
   const lineMarks = marked("lines", markedLines);
-  const [lineNumbers, ...otherBlocks] = written.codeLineNumbers;
+  const [lineNumbers, ...otherBlocks] = written.code.map((lines) => lines.map(({ line }) => line));
   if (lineMarks.length > 0 && (lineNumbers === undefined || otherBlocks.length > 0)) {
     const blocks =
-      lineNumbers === undefined
-        ? "no code block"
-        : `${String(written.codeLineNumbers.length)} code blocks`;
+      lineNumbers === undefined ? "no code block" : `${String(written.code.length)} code blocks`;
     problems.push(
       `has \`lines\`, but the Stage holds ${blocks}: \`lines\` marks the lines of exactly one`,
     );
   } else if (lineNumbers !== undefined) {
-    const lineCount = lineNumbers.length;
+    const [first, last] = [String(lineNumbers[0]), String(lineNumbers.at(-1))];
+    const range = first === last ? `only line ${first}` : `lines ${first} to ${last}`;
     for (const [name, mark] of lineMarks) {
       if (lineNumbers.map(String).includes(name)) lines.set(Number(name), mark);
-      else {
-        problems.push(
-          `marks the line \`${name}\`, which the code doesn't have: it has ${String(lineCount)} ${lineCount === 1 ? "line" : "lines"}`,
-        );
-      }
+      else
+        problems.push(`marks the line \`${name}\`, which the code doesn't have: it has ${range}`);
     }
     const reversed = [...lines].flatMap(([line, mark]) => (mark === "reversed" ? [line] : []));
     if (reversed.length > 1) {

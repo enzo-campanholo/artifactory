@@ -57,6 +57,15 @@ export function annulusArea(outerRadius: number, innerRadius: number): number {
 }
 ```
 
+Code whose source numbers its lines from 0, such as a stack machine's listing, keeps those numbers with `start=0`:
+
+```text start=0
+push 2
+push 3
+add
+print
+```
+
 So does a table too wide for the column:
 
 | Trial | t (s) | x (m) | v (m/s) | a (m/s²) | F (N) | E (J) |
@@ -267,6 +276,22 @@ A code walkthrough:
 export function area(radius: number): number {
   return Math.PI * radius ** 2;
 }
+```
+
+</Stepper>
+
+A walkthrough of code numbered from 0, its steps naming the lines by the numbers shown:
+
+<Stepper
+  lines={["0-1", "2", "3"]}
+  captions={["Push the two numbers.", "Add them, leaving their sum.", "Print the sum."]}
+>
+
+```text start=0
+push 2
+push 3
+add
+print
 ```
 
 </Stepper>

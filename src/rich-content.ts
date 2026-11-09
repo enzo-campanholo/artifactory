@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { satteri } from "@astrojs/markdown-satteri";
 import type { AstroIntegration } from "astro";
 import { defineHastPlugin, defineMdastPlugin, type MdastVisitorContext, type Point } from "satteri";
-import { bundledLanguages, isSpecialLang, type ShikiTransformer } from "shiki";
+import { bundledLanguages, isSpecialLang } from "shiki";
 import { buildFailures } from "./build-failures.ts";
 import { positionAt, type Report } from "./check-failure.ts";
 import { diagrams } from "./diagrams.ts";
@@ -21,9 +21,9 @@ export function richContent(): AstroIntegration {
             processor: satteri({
               features: { math: true, rawHtml: true },
               mdastPlugins: [mathAndCode(root, report)],
-              hastPlugins: [tableScrollers],
+              hastPlugins: [tableScrollers, shownLineNumbers],
             }),
-            shikiConfig: { theme: "css-variables", transformers: [shownLineNumbers] },
+            shikiConfig: { theme: "css-variables" },
           },
           vite: { plugins: [diagrams(root, report)] },
         });
@@ -32,14 +32,54 @@ export function richContent(): AstroIntegration {
   };
 }
 
+// A fence's `start=N` in its info string, after the language: the number its first line shows.
+const startInInfo = /(?<=^|\s)start(?:=(\S*))?(?=\s|$)/;
+
+function fenceStart(info: string): { written: string; first: number | undefined } | undefined {
+  const found = startInInfo.exec(info);
+  if (found === null) return undefined;
+  const value = found[1] ?? "";
+  const first = /^(?:0|[1-9]\d*)$/.test(value) ? Number(value) : undefined;
+  return {
+    written: found[0],
+    first: first !== undefined && Number.isSafeInteger(first) ? first : undefined,
+  };
+}
+
+declare module "satteri" {
+  interface DataMap {
+    // Each fence's code and the number its first line shows, in the document's order.
+    fenceStarts: { code: string; first: number }[];
+  }
+}
+
 // Each code line carries the number the page shows for it, which the design system's gutter,
-// Stepper and Stage all read.
-const shownLineNumbers: ShikiTransformer = {
+// Stepper and Stage all read. Satteri hands Shiki no info string once raw HTML is on, as math
+// needs, so a Shiki transformer can't see `start`: the code visitor keeps each fence's start in
+// the document's data, and this plugin, which runs after highlighting, finds a block's by its code.
+const shownLineNumbers = defineHastPlugin({
   name: "artifactory-shown-line-numbers",
-  line(node, line) {
-    node.properties["data-line"] = String(line);
+  element: {
+    filter: ["pre"],
+    visit(pre, ctx) {
+      const code = pre.children.find(
+        (child) => child.type === "element" && child.tagName === "code",
+      );
+      if (code === undefined) return;
+      const fences = ctx.data.fenceStarts ?? [];
+      const text = ctx.textContent(code);
+      const index = fences.findIndex((fence) => fence.code === text);
+      const [fence] = index === -1 ? [] : fences.splice(index, 1);
+      let shown = fence?.first ?? 1;
+      for (const line of code.type === "element" ? code.children : []) {
+        if (line.type !== "element" || !String(line.properties.class).split(" ").includes("line"))
+          continue;
+        ctx.setProperty(line, "data-line", String(shown));
+        shown += 1;
+      }
+    },
   },
-};
+});
 
 // A named group gives the scroller's tab stop a name without adding every table to the page's
 // landmarks, as a region would.
@@ -104,18 +144,32 @@ function mathAndCode(root: string, report: Report) {
     math: (node, ctx) =>
       node.position && renderMathNode(node.value, true, node.position.start, ctx),
     code(node, ctx) {
-      const { lang, position } = node;
-      if (lang == null || Object.hasOwn(bundledLanguages, lang) || isSpecialLang(lang) || !position)
-        return;
+      const { lang, meta, position } = node;
+      const start = fenceStart(meta ?? "");
+      (ctx.data.fenceStarts ??= []).push({ code: node.value, first: start?.first ?? 1 });
+      if (!position) return;
       const fenceLine = ctx.source.slice(position.start.offset).split("\n", 1)[0] ?? "";
-      report({
-        file: fileOf(ctx),
-        line: position.start.line,
-        column: position.start.column + Math.max(0, fenceLine.indexOf(lang)),
-        ruleId: "code-language",
-        message: `\`${lang}\` is not a code language Shiki knows`,
-        skillSection: "Code blocks",
-      });
+      const atFence = (ruleId: string, written: string, from: number, message: string) => {
+        report({
+          file: fileOf(ctx),
+          line: position.start.line,
+          column: position.start.column + Math.max(0, fenceLine.indexOf(written, from)),
+          ruleId,
+          message,
+          skillSection: "Code blocks",
+        });
+      };
+      if (lang != null && !Object.hasOwn(bundledLanguages, lang) && !isSpecialLang(lang)) {
+        atFence("code-language", lang, 0, `\`${lang}\` is not a code language Shiki knows`);
+      }
+      if (start !== undefined && start.first === undefined) {
+        atFence(
+          "code-start",
+          start.written,
+          fenceLine.indexOf(meta ?? ""),
+          `\`${start.written}\` must give the number of the block's first line, a whole number from 0, such as \`start=0\``,
+        );
+      }
     },
   });
 }
