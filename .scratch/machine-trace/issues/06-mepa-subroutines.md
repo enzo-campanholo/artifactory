@@ -1,6 +1,6 @@
 # 06: MEPA subroutines
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 05
 
 **What to build:** a MEPA program can call subroutines, and the memory table shows each activation record as a reader of a subroutine-call artifact needs it: every parameter and the return value by role, with their offsets in the record. `CHPR`, `ENPR` and `RTPR` run, the `subroutines` note gives each called label its parameters (first to last) and whether it returns a value, and the display rows `D[k]` follow the calls. This completes every instruction the private copy's three builds use ([Machine trace](../spec.md) › Notes and MEPA).
