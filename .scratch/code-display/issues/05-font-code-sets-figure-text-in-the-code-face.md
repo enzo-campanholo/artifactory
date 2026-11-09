@@ -45,3 +45,5 @@ Implementer, impeccable-gaps-implementation pass, through impeccable in a local 
 **Shared parts reached and checked.** `figure-colours.css` reaches `Figure`, figure Steppers (screen and printed copies) and the Stage's drawing; all three checked above, the Stage unchanged.
 
 **Left undone.** Nothing here. Printed steppers 02 owns recording the printed-step evidence; a note on it says what was already seen.
+
+2026-11-09: review fix (Glossary, commit dd018a2): `COMPONENTS.md`'s "Code in figures" said `font-code` "combines with a colour class", a term `GLOSSARY.md` lists under _Avoid_ (for Swatch), next to the swatch rules. It now reads "combines with one of the classes above", the fill and stroke classes listed just before it.

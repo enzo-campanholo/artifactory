@@ -73,3 +73,5 @@ Implementer, impeccable-gaps-implementation pass. **Result:** `choose` takes a l
 **Shared parts:** the option rows, their spacing and the click shortcut live in `Stage.astro` and `stage-element.ts` and reach only the Stage. `StepControls.astro` is unchanged.
 
 **Left undone:** `pnpm look` doesn't run a several-group Stage yet: it clicks the first option only, so the run never starts and the case fails as not run. That's [03](03-look-shoots-the-first-option-of-every-group.md), which has a note.
+
+2026-11-09: review fix (Spec a2, commit dd018a2): `COMPONENTS.md`'s "The build" preamble (written by `scripts/component-reference.ts`) named only one-group `choose`, typed `input` and `trace`. It now gives the list form too, `defineBuild<{ inicio: string; busca: string }>({ steps(chosen) { … } })`, and the typed example shows a text field (`{ a: number; w: string }`). `pnpm components` was rerun.

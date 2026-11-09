@@ -44,3 +44,5 @@ Spec: [Content types](../spec.md) › Behaviour: the proposition, and its Docume
 **Shared parts.** `statements.ts` changed and reaches `Statement`, `Proof` and `Ref`: all three are checked above, a theorem's proof and citation beside the proposition's, with the same evidence. `statement-blocks.css` didn't change. The italic rule stays in `Statement.astro`.
 
 **Left undone.** Nothing.
+
+2026-11-09: review fix (Standards smell 5, commit dd018a2): `escapedAttribute` and its inverse were copied between `statements.ts` and `question-markers.ts` (there called `attributeValue`). Both must escape as Astro does, so a fix to one must reach the other. They now live once in `design-system/src/html-attributes.ts` as `escapedAttribute`/`unescapedAttribute`. Built HTML is unchanged.

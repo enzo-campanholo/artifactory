@@ -81,3 +81,5 @@ Implementer of this ticket, impeccable-gaps-implementation pass.
 **Shared parts:** none of `CODING_STANDARDS.md`'s shared parts changed. The change stays inside the Stage (`Stage.astro`, `stage-element.ts`, `step-applier.ts`, `stage-build.ts`) and `build-input`; it reaches every Stage with `input` and every build's types, which the before/after capture and the unchanged valid fixtures cover.
 
 **Left undone:** nothing in this ticket. The NFC failure for examples is 03's, and the page's refusal of text is 04's; notes are on both.
+
+2026-11-09: review fix (Spec a1, commit dd018a2): the spec's "`reads` may name text fields like number fields" now holds at the shared trace layer: a machine names the kind it reads, and a text field reaches one that reads text. MEPA reads numbers, so its `reads` naming a text field fails `build-input` with a hint that says so. Decisions and tests are on [machine trace 02](../../machine-trace/issues/02-trace-a-mepa-program-without-jumps-or-calls.md).
