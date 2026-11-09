@@ -1,6 +1,6 @@
 # 01: The Stage hands every build its content as written
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: [Code display 02](../../code-display/issues/02-a-fence-starts-its-line-numbers-at-start.md)
 
 **What to build:** a custom build's `steps` gets a second argument: the Stage's content as written. It holds the code block's lines, each keyed by the number the page shows (line 0 is the first under `start=0`) with its plain text, and each table's headers and rows as plain text, found as a step's `rows` and `cells` find them. Every build gets it, on the page and in `pnpm check`'s runs, from the same reading of the content the step applier already makes, so a build sees the same content in both places. Along with the content, the build gets the artifact's main language (pt-BR or English), on the page and in the check alike, so a build can say its steps in it, as 02's narration does. A build that ignores either is unchanged. This is what lets a program be written once, in the Stage's content ([Machine trace](../spec.md) › The Stage hands builds their content).
