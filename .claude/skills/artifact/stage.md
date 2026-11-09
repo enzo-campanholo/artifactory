@@ -23,10 +23,10 @@ The rules for a `Stage`'s `<build>.build.ts`, after the [Custom builds](rules.md
 
 ## Look
 
-A `Stage` (kind `stage-choose`, or `stage-input` for typed input) is shot as written, then at every step of its first option, or of its first example, which Look runs by pressing Start on the fields as written:
+A `Stage` (kind `stage-choose`, or `stage-input` for typed input) is shot as written, then at every step of its first option, of the run on the first option of every group, which Look chooses in the groups' order, or of its first example, which Look runs by pressing Start on the fields as written:
 
 - A Stage inside a model answer or explanation is revealed first, and named, as [Look](SKILL.md#look) says for any item there.
-- Only the first option or example is shot; `pnpm check` runs the others. Put the one worth looking at first in `choose.options` or `input.examples`.
-- Under the Stage, Look prints what it ran and its count of steps (`first option A, 5 steps`, `first example a = 48, b = 18, 5 steps`), or the refusal it got.
+- Only the first option, the first option of every group, or the first example is shot; `pnpm check` runs the others. Put the one worth looking at first in `choose.options`, in each group's `options`, or in `input.examples`.
+- Under the Stage, Look prints what it ran and its count of steps (`first option A, 5 steps`, `first options inicio = A, busca = largura, 5 steps`, `first example a = 48, b = 18, 5 steps`), or the refusal it got.
 - Compare each step's shot with the step's line as well as the `alt`. A Stage without `figure` has no `alt`: Look prints its caption instead, so compare its shots with the caption and the step's line.
-- Look asserts the current step and advancement after each action; a stuck control fails rather than producing repeated shots labelled as different steps.
+- Look asserts each option it chooses is selected, then the current step and advancement after each action; a stuck control fails rather than producing repeated shots labelled as different steps.

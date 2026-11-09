@@ -625,33 +625,53 @@ async function shootStepper(shooting: Shooting): Promise<Shots> {
   };
 }
 
-// Only the first option or example is shot: `pnpm check` runs the others. The fields open filled
-// with the first example, so Start runs it.
+// Only the first option of every group, or the first example, is shot: `pnpm check` runs the
+// others, and its first combination is these first options. The fields open filled with the first
+// example, so Start runs it; a run with choice groups starts once every group has its option.
 async function shootStage(shooting: Shooting): Promise<Shots> {
   const { page, test, item, width } = shooting;
   const { element, name } = item;
   const asWritten = `${name}-as-written-${String(width)}.png`;
   await shootAlone(shooting, asWritten);
   const prompt = await element.$eval(".stage-say", (say) => say.textContent);
-  const fields = await element.$$eval(".stage-field input", (nodes) =>
-    nodes.map((node) => ({ name: node.name, value: node.value })),
+  const control = await element.evaluate((node) =>
+    node.closest("artifact-stage")?.getAttribute("data-control"),
   );
-  const control = required(
-    test,
-    `${name}: Stage action exists`,
-    await element.$(fields.length === 0 ? ".stage-option input" : ".stage-start"),
-  );
-  assertCase(
-    test,
-    `${name}: Stage action available`,
-    true,
-    await control.evaluate((node) => !node.matches(":disabled") && !node.closest("[inert]")),
-  );
-  const first =
-    fields.length === 0
-      ? `first option ${await control.evaluate((node) => (node as HTMLInputElement).value)}`
-      : `first example ${fields.map(({ name, value }) => `${name} = ${value}`).join(", ")}`;
-  await control.click();
+  const actions: { group: string; action: ElementHandle }[] = [];
+  let first: string;
+  if (control === "input") {
+    const fields = await element.$$eval(".stage-field input", (nodes) =>
+      nodes.map((node) => ({ name: node.name, value: node.value })),
+    );
+    first = `first example ${fields.map(({ name, value }) => `${name} = ${value}`).join(", ")}`;
+    actions.push({
+      group: "",
+      action: required(test, `${name}: Stage action exists`, await element.$(".stage-start")),
+    });
+  } else {
+    const chosen: string[] = [];
+    for (const choice of await element.$$(".stage-choice")) {
+      const group = await choice.evaluate((node) => node.getAttribute("data-group") ?? "");
+      const action = required(
+        test,
+        `${name}: Stage action exists${group === "" ? "" : ` in ${group}`}`,
+        await choice.$(".stage-option input"),
+      );
+      const option = await action.evaluate((node) => (node as HTMLInputElement).value);
+      chosen.push(group === "" ? option : `${group} = ${option}`);
+      actions.push({ group, action });
+    }
+    first = `${actions.length === 1 ? "first option" : "first options"} ${chosen.join(", ")}`;
+  }
+  for (const { group, action } of actions) {
+    assertCase(
+      test,
+      `${name}: Stage action available${group === "" ? "" : ` in ${group}`}`,
+      true,
+      await action.evaluate((node) => !node.matches(":disabled") && !node.closest("[inert]")),
+    );
+    await action.click();
+  }
   const completed = () =>
     element.evaluate(
       (node, prompt) =>
@@ -670,13 +690,16 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
     )
     .catch(() => undefined);
   assertCase(test, `${name}: Stage ran or explicitly refused`, true, await completed());
-  if (fields.length === 0)
-    assertCase(
-      test,
-      `${name}: requested option selected`,
-      true,
-      await control.evaluate((node) => (node as HTMLInputElement).checked),
-    );
+  if (control !== "input")
+    for (const { group, action } of actions)
+      assertCase(
+        test,
+        group === ""
+          ? `${name}: requested option selected`
+          : `${name}: first option of ${group} selected`,
+        true,
+        await action.evaluate((node) => (node as HTMLInputElement).checked),
+      );
   const steps = await element.$eval("p.stage-counter", (counter) =>
     counter.hidden ? 0 : Number(counter.querySelector(".stage-count")?.textContent),
   );

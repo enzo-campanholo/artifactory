@@ -394,11 +394,108 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
           "",
         ].join("\n");
       }
+      for (const [slug, id] of [
+        ["look-groups", "groups01"],
+        ["look-groups-refused", "groupsrf"],
+      ] as const) {
+        files[`artifacts/${slug}/index.mdx`] = [
+          ...frontmatter(id, slug),
+          'import Stage from "@artifactory/design-system/stage";',
+          "",
+          "## Two choice groups",
+          "",
+          '<Stage build="search" choose={[{name:"start",label:"Start at",options:["A","B"]},{name:"search",label:"Search",options:["breadth","depth"]}]} prompt="Choose a vertex and a search." caption="Literal two-group Stage evidence.">',
+          "",
+          "| Vertex |",
+          "| --- |",
+          "| A |",
+          "",
+          "</Stage>",
+          "",
+        ].join("\n");
+        files[`artifacts/${slug}/search.build.ts`] = [
+          'import { defineBuild } from "@artifactory/design-system/stage-build";',
+          slug === "look-groups-refused"
+            ? 'export default defineBuild<{ start: string; search: string }>({ steps() { throw new Error("Literal deliberate refusal"); } });'
+            : "export default defineBuild<{ start: string; search: string }>({ steps: ({ start, search }) => [{ say: `From ${start}.` }, { say: `By ${search}.` }] });",
+          "",
+        ].join("\n");
+      }
+      files["artifacts/look-typed/index.mdx"] = [
+        ...frontmatter("typed001", "look-typed"),
+        'import Stage from "@artifactory/design-system/stage";',
+        "",
+        "## Typed input",
+        "",
+        '<Stage build="sum" input={{label:"Add two numbers",fields:[{name:"a",min:0,max:99},{name:"b",min:0,max:99}],examples:[{a:4,b:2}]}} prompt="Type a and b, then press Start." caption="Literal typed Stage evidence.">',
+        "",
+        "| Sum |",
+        "| --- |",
+        "| 6 |",
+        "",
+        "</Stage>",
+        "",
+      ].join("\n");
+      files["artifacts/look-typed/sum.build.ts"] = [
+        'import { defineBuild } from "@artifactory/design-system/stage-build";',
+        "export default defineBuild<{ a: number; b: number }>({ steps: ({ a, b }) => [{ say: `Take ${String(a)}.` }, { say: `Add ${String(b)}.` }] });",
+        "",
+      ].join("\n");
       repo = await createFixtureRepo(files);
     });
     afterAll(async () => {
       await repo.remove();
     });
+    it.each([
+      {
+        slug: "look-groups",
+        stem: "01-stage-choose",
+        groups: ["start", "search"],
+        outcome: "captured-awaiting-visual-review",
+        printed: /^ {2}first options start = A, search = breadth, 2 steps$/m,
+        shots: ["step-1", "step-2"],
+      },
+      {
+        slug: "look-groups-refused",
+        stem: "01-stage-choose",
+        groups: ["start", "search"],
+        outcome: "refused",
+        printed:
+          /^ {2}first options start = A, search = breadth, refused: .*Choose other options\.$/m,
+        shots: ["refused"],
+      },
+      {
+        slug: "look-typed",
+        stem: "01-stage-input",
+        groups: [],
+        outcome: "captured-awaiting-visual-review",
+        printed: /^ {2}first example a = 4, b = 2, 2 steps$/m,
+        shots: ["step-1", "step-2"],
+      },
+    ])(
+      "shoots the run on the first option of every group, or the first example, and prints it: $slug",
+      async ({ slug, stem, groups, outcome, printed, shots }) => {
+        const result = await look(repo, slug);
+        expect(result.exitCode, result.output).toBe(0);
+        expect(result.stdout).toMatch(printed);
+        for (const test of result.report.cases) {
+          const width = test.id === "look-393" ? "393" : "1920";
+          expect(test.outcome).toBe(outcome);
+          expect(test.assertions.filter((assertion) => !assertion.passed)).toEqual([]);
+          for (const group of groups)
+            expect(test.assertions).toContainEqual(
+              expect.objectContaining({
+                name: `${stem}: first option of ${group} selected`,
+                passed: true,
+              }),
+            );
+          expect(test.captures).toEqual(
+            ["as-written", ...shots].map((shot) => `${stem}-${shot}-${width}.png`),
+          );
+        }
+      },
+      checkTimeout,
+    );
     it.each(["look-equal-prompt", "look-stuck", "look-refused"])(
       "records all Stage steps or an explicit failure/refusal through pnpm look: %s",
       async (slug) => {
