@@ -1,6 +1,6 @@
 # 03: Matching
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02 (Let one question box hold several questions)
 
 Spec: [Content types](../spec.md) › Behaviour: the matching (Writing one, How it looks, Checking), Documentation and Shared parts. Its explanation is 05; the source position of an item ID's failure is 04.
