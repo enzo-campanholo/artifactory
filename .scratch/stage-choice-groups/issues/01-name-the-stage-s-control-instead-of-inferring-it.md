@@ -1,6 +1,6 @@
 # 01: Name the Stage's control instead of inferring it from the input's type
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Stage choice groups](../spec.md). A prefactor: no behaviour changes.
