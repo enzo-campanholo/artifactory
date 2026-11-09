@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140">
+  <circle cx="100" cy="70" r="60" class="fill-tint stroke-text" stroke-width="2" />
+  <path d="M100 70H160" class="stroke-accent" stroke-width="2" />
+  <circle cx="100" cy="70" r="3" class="fill-text" />
+  <text x="130" y="63" text-anchor="middle" font-size="12">3 cm</text>
+</svg>

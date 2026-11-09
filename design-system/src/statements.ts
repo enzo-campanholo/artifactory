@@ -1,14 +1,24 @@
+import { escapedAttribute, unescapedAttribute } from "./html-attributes.ts";
+
+// `ptOf` is "of" in Portuguese, agreeing with the label's gender: "Demonstração do Teorema 2.1" but
+// "Demonstração da Proposição 3.2".
 const labels = {
-  definition: { en: "Definition", pt: "Definição" },
-  theorem: { en: "Theorem", pt: "Teorema" },
-  lemma: { en: "Lemma", pt: "Lema" },
-  corollary: { en: "Corollary", pt: "Corolário" },
-  example: { en: "Example", pt: "Exemplo" },
+  definition: { en: "Definition", pt: "Definição", ptOf: "da" },
+  theorem: { en: "Theorem", pt: "Teorema", ptOf: "do" },
+  proposition: { en: "Proposition", pt: "Proposição", ptOf: "da" },
+  lemma: { en: "Lemma", pt: "Lema", ptOf: "do" },
+  corollary: { en: "Corollary", pt: "Corolário", ptOf: "do" },
+  example: { en: "Example", pt: "Exemplo", ptOf: "do" },
 };
 
 type StatementKind = keyof typeof labels;
 
-export const claims: ReadonlySet<StatementKind> = new Set(["theorem", "lemma", "corollary"]);
+export const claims: ReadonlySet<StatementKind> = new Set([
+  "theorem",
+  "proposition",
+  "lemma",
+  "corollary",
+]);
 
 export function isClaim(kind: StatementKind): boolean {
   return claims.has(kind);
@@ -21,15 +31,6 @@ export function statementAnchor(statementId: string): string {
 
 function escapedText(text: string): string {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
-// As Astro writes attribute values, so the frame reads a slot's ID the way it reads a marker's.
-function escapedAttribute(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
-}
-
-function unescapedAttribute(written: string): string {
-  return written.replaceAll("&quot;", '"').replaceAll("&amp;", "&");
 }
 
 function bilingual({ en, pt }: { en: string; pt: string }, after = ""): string {
@@ -67,6 +68,7 @@ export function statementParts({
       id: statementAnchor(id),
       "data-statement-id": id,
       "data-statement-kind": kind,
+      ...(isClaim(kind) ? { "data-statement-claim": "" } : {}),
       ...(solution === undefined
         ? {}
         : { "data-statement-solution": (shown ? "shown" : "empty") satisfies Solution }),
@@ -249,7 +251,7 @@ function withInserted(content: string, insertions: { at: number; text: string }[
 }
 
 // A proof right after its statement is marked so it stands closer to it. Any other proof of a claim
-// gets " do Teorema 2.1" in its opening slot.
+// gets " do Teorema 2.1" or " da Proposição 3.2" in its opening slot.
 function proofReferences(
   proofs: ScannedProof[],
   statements: Map<string, NumberedStatement>,
@@ -263,7 +265,7 @@ function proofReferences(
       {
         at: opening,
         text:
-          ` ${bilingual({ en: "of", pt: "do" })} ` +
+          ` ${bilingual({ en: "of", pt: labels[proven.kind].ptOf })} ` +
           `<a href="#${escapedAttribute(statementAnchor(of))}">${bilingual(labels[proven.kind], number)}</a>`,
       },
     ];

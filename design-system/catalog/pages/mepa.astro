@@ -1,0 +1,18 @@
+---
+import CatalogLayout from "../CatalogLayout.astro";
+import Mepa, { getHeadings } from "../mepa.mdx";
+---
+
+<CatalogLayout
+  title="MEPA"
+  about="The stack machine MEPA traced on a short program that uses every instruction it covers, a function call with parameters and a return value included, in a pt-BR Stage and an English Stage, each stepped inside the call, where the ran line is reversed, the next one dashed, the changed cells strong and the record shows its roles and offsets."
+  headings={getHeadings()}
+>
+  <Mepa />
+</CatalogLayout>
+
+<script>
+  import { runCatalogStages } from "../stage-runs.ts";
+
+  await runCatalogStages();
+</script>

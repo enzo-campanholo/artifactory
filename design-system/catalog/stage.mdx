@@ -1,5 +1,7 @@
 import Stage from "../src/Stage.astro";
 import graph from "./prim-graph.svg?raw";
+import colouring from "./colouring.svg?raw";
+import greedyColouring from "./greedy-colouring.svg?raw";
 
 ## Before a choice
 
@@ -52,6 +54,33 @@ Started at A and stepped to step 3, where B joins the tree. B is reversed, the c
 </Stage>
 
 </div>
+
+## Choice groups
+
+Two choices in one Stage: the start vertex and the search, each a labelled row of options, one under the other in the order written, and each its own radio group, so the arrow keys move within a row only. Neither opens chosen: the step's line holds the prompt and the counter stays hidden until both rows have a choice, and changing either afterwards runs again from step 1. A vertex in the drawing chooses the start, as with one row, while the search stays a row of options; option names are unique across the rows, so a vertex never chooses in the wrong one. Without JavaScript and in print the Stage shows the content as written, with no option named.
+
+<Stage
+  build="graph-search"
+  choose={[
+    { name: "start", label: "Start at", options: ["A", "B", "C", "D", "E"] },
+    { name: "search", label: "Search", options: ["breadth-first", "depth-first"] },
+  ]}
+  prompt="Choose a vertex and a search to start."
+  figure={graph}
+  alt="A graph of five vertices, A to E, joined by seven edges."
+  beside
+  caption="A breadth-first or depth-first search from the vertex chosen."
+>
+
+| Vertex | Order | Parent |
+| ------ | ----: | ------ |
+| A      |     — | —      |
+| B      |     — | —      |
+| C      |     — | —      |
+| D      |     — | —      |
+| E      |     — | —      |
+
+</Stage>
 
 ## Typed input
 
@@ -107,6 +136,56 @@ The catalog script typed 10000 for b, out of its bounds, and pressed Start. The 
 
 </div>
 
+## Typed text
+
+A field with `kind: "text"` takes a word, here over the alphabet a and b, up to 12 symbols. It is set in the code face, where every symbol is one character wide, and it is as wide as 12 symbols and one more. The field opens filled with the first example, aabba, and Start hands the build the text as typed, in NFC, untrimmed. The examples include the empty word, an empty field. Without JavaScript and in print, the line in the fields' place names the first example's word bare in the code face, "Accepts w? w = aabba", and the empty word as ε.
+
+<Stage
+  build="even-bs"
+  input={{
+    label: "Accepts w?",
+    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],
+    examples: [{ w: "aabba" }, { w: "" }, { w: "bbb" }],
+  }}
+  prompt="Type a word and press Start."
+  caption="An automaton that accepts the words with an even number of b's."
+>
+
+| Variable | Value |
+| -------- | ----- |
+| read     | aabba |
+| state    | q0    |
+| accepts  | yes   |
+
+</Stage>
+
+## Refusing a word
+
+The catalog script typed abc for w, whose c is outside the alphabet, and pressed Start. The field is drawn dashed, as a refused number's is, the step's line states the field's whole rule rather than the symbol that broke it, and the table is back as written. A word one symbol too long still shows whole, and pasted text is never cut short. In a Stage with a text field, a run past 200 steps or one that fails asks for another input, "Try another input.", where a number-only Stage asks for other numbers.
+
+<div data-catalog-type="w=abc">
+
+<Stage
+  build="even-bs-refused"
+  input={{
+    label: "Accepts w?",
+    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],
+    examples: [{ w: "aabba" }],
+  }}
+  prompt="Type a word and press Start."
+  caption="An automaton that accepts the words with an even number of b's."
+>
+
+| Variable | Value |
+| -------- | ----- |
+| read     | aabba |
+| state    | q0    |
+| accepts  | yes   |
+
+</Stage>
+
+</div>
+
 ## Code, mid-run
 
 A Stage traces a function line by line on its one fenced code block, highlighted as anywhere else. The catalog script pressed Start on n = 6 and stepped to step 5, where the first pass halves n. Line 5, the line running, is reversed: a bar across the code's whole width, even where the long line 7 scrolls sideways. The `if` that just decided is strong, the `while` it tests again after this pass is dashed, and the `else` branch it didn't take is muted. The step is announced as "Step 5 of 36. Line 5. …".
@@ -140,6 +219,42 @@ def collatz(n):
 | -------- | ----: |
 | n        |     1 |
 | steps    |     8 |
+
+</Stage>
+
+</div>
+
+## Code numbered from 0
+
+A listing whose source numbers its lines from 0, such as a stack machine's addresses, keeps them with `start=0`, and a step's `lines` name the lines by those numbers. The catalog script pressed Start on a = 2, b = 3 and stays on step 1: line 0, the first, is reversed, and the step is announced as "Step 1 of 4. Line 0. …".
+
+<div data-catalog-run="start" data-catalog-step="1">
+
+<Stage
+  build="sum-listing"
+  input={{
+    label: "Run with",
+    fields: [
+      { name: "a", min: 0, max: 99 },
+      { name: "b", min: 0, max: 99 },
+    ],
+    examples: [{ a: 2, b: 3 }],
+  }}
+  prompt="Type two numbers and press Start."
+  caption="A four-instruction listing that adds a and b, one instruction per step."
+>
+
+```text start=0
+push a
+push b
+add
+print
+```
+
+| Name    | Value |
+| ------- | ----: |
+| stack   |     — |
+| printed |     5 |
 
 </Stage>
 
@@ -179,5 +294,41 @@ def factorial(n):
 | 3     |   1 |  24 |
 
 </Stage>
+
+</div>
+
+## A colouring, mid-run
+
+A Stage's drawing coloured as written, as a Figure's is: each vertex filled with its colour's swatch and labelled on a plate with its name, `colours={["R", "G", "Y"]}`. Started at E and stepped to step 2, every mark sits on a coloured vertex: A, being checked, is reversed, its hatching under ink and its label in the ground on an ink plate; its unchecked neighbours B and D are strong, outlined at 4 with bold labels; C, not yet reached, is dashed; and E, already checked, is muted, its hatching, outline and label grey. Every vertex chooses on click, and on a device that hovers, the vertex under the pointer wipes its hatching's ground grey and keeps its lines, except A, which is reversed.
+
+<div data-catalog-run="E" data-catalog-step="2">
+
+<Stage
+  build="colouring-check"
+  choose={{ label: "Start at", options: ["A", "B", "C", "D", "E"] }}
+  prompt="Choose a vertex to start checking from."
+  figure={colouring}
+  alt="A house of five vertices: E at the roof's top has colour R; A and B under it have G and Y; C under B has G and D under A has Y."
+  colours={["R", "G", "Y"]}
+  caption="Checking a colouring vertex by vertex."
+/>
+
+</div>
+
+## A greedy colouring, mid-run
+
+A Stage whose drawing is uncoloured as written, every vertex on the ground with an empty label, and whose build colours it step by step with `colours`, `colours={["R", "G", "Y"]}`. Each step names every colour it shows, so going back takes a colour away again. Started at E and stepped to step 8, D tries R: D, provisional, is dashed with R's hatching and its label; C, whose R rules it out, is reversed, with the edge between them strong; A, D's other coloured neighbour, is strong; and E and B, coloured but not D's neighbours, are muted. When motion is allowed, a vertex's hatching cross-fades into the next over 0.2s. Without JavaScript and in print, the drawing is uncoloured, as written. Every vertex chooses on click, and on a device that hovers, the vertex under the pointer wipes its ground grey, its hatching's lines kept.
+
+<div data-catalog-run="E" data-catalog-step="8">
+
+<Stage
+  build="greedy-colouring"
+  choose={{ label: "Start at", options: ["A", "B", "C", "D", "E"] }}
+  prompt="Choose a vertex to start colouring from."
+  figure={greedyColouring}
+  alt="A house of five vertices, none coloured yet: E at the roof's top, A and B under it, C under B and D under A."
+  colours={["R", "G", "Y"]}
+  caption="A greedy colouring, vertex by vertex: each takes the first colour no coloured neighbour has."
+/>
 
 </div>

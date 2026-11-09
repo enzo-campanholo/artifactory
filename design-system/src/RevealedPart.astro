@@ -1,0 +1,45 @@
+---
+interface Props {
+  heading: { en: string; pt: string };
+  content: string;
+  tabindex?: "-1";
+}
+
+const { heading, content, tabindex } = Astro.props;
+---
+
+<div class="question-revealed" tabindex={tabindex}>
+  <p class="question-revealed-heading">
+    <span data-lang="en">{heading.en}</span>
+    <span data-lang="pt">{heading.pt}</span>
+  </p>
+  <div class="question-revealed-content" set:html={content} />
+</div>
+
+<style is:global>
+  @layer components {
+    .question-revealed {
+      padding-block-start: var(--inset);
+      border-block-start: var(--rule) solid var(--color-text);
+    }
+
+    .question-revealed-heading {
+      margin: 0 0 0.125rem;
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-caption);
+      font-weight: var(--font-weight-frame-strong);
+      line-height: var(--line-height-frame);
+    }
+
+    .question-revealed-content {
+      > :first-child {
+        margin-block-start: 0;
+      }
+
+      > :last-child {
+        margin-block-end: 0;
+      }
+    }
+  }
+</style>

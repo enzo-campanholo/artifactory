@@ -30,10 +30,22 @@ function fields(id: string, title: string, subject: string, ...rest: string[]): 
   ];
 }
 
+const listing = [
+  "const a = 1;",
+  "const b = 2;",
+  "const sum = a + b;",
+  "// the product",
+  "const product = a * b;",
+  "console.log(sum, product);",
+  "export { sum };",
+];
+
 const mathAndCode = {
   "artifacts/movimento-uniforme/index.mdx": artifact(
     fields("m0v1ment", "Movimento uniforme", "Mecânica"),
     [
+      'import Stepper from "@artifactory/design-system/stepper";',
+      "",
       "A velocidade média é $v_{\\text{média}} = \\frac{\\Delta s}{\\Delta t}$ e a entrada custa R\\$ 5.",
       "",
       "$$",
@@ -44,6 +56,60 @@ const mathAndCode = {
       "def area(r):",
       "    return 3.14 * r ** 2",
       "```",
+      "",
+      "```text start=0",
+      "push 2",
+      "add",
+      "```",
+      "",
+      "```text start=10",
+      "push 3",
+      "print",
+      "```",
+      "",
+      "```ts {3, 5-6}",
+      ...listing,
+      "```",
+      "",
+      "```ts",
+      ...listing,
+      "```",
+      "",
+      "```text start=0 {0}",
+      "push 2",
+      "push 3",
+      "add",
+      "```",
+      "",
+      '<Stepper lines={["0", "1-"]}>',
+      "",
+      "```text start=0",
+      "push 2",
+      "push 3",
+      "add",
+      "print",
+      "```",
+      "",
+      "</Stepper>",
+      "",
+      '<Stepper captions={["Empilha.", "Soma.", "Imprime."]}>',
+      "",
+      "```text start=0",
+      "push 2",
+      "push 3",
+      "```",
+      "",
+      "```pascal {2}",
+      "x := 2;",
+      "x := x + 3;",
+      "writeln(x);",
+      "```",
+      "",
+      "```ts",
+      "console.log(2 + 3);",
+      "```",
+      "",
+      "</Stepper>",
       "",
       "| t (s) | x (m) |",
       "| ----- | ----- |",
@@ -419,6 +485,704 @@ const rewrittenStage = {
   ].join("\n"),
 };
 
+// "aabba" has two b's, so the automaton ends in q0 and accepts it. The second Stage opens on the
+// empty word, which it reads as ε, with no symbol read.
+const wordStage = {
+  "artifacts/automato-par/index.mdx": artifact(fields("aut0mat0", "Autômato par", "Cálculo"), [
+    'import Stage from "@artifactory/design-system/stage";',
+    "",
+    "<Stage",
+    '  build="automato"',
+    "  input={{",
+    '    label: "Aceita w?",',
+    '    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],',
+    '    examples: [{ w: "aabba" }, { w: "" }, { w: "bbbb" }, { w: "b" }],',
+    "  }}",
+    '  prompt="Digite uma palavra e comece."',
+    '  caption="Um autômato que aceita as palavras com um número par de b."',
+    ">",
+    "",
+    "| Variável | Valor |",
+    "| -------- | ----- |",
+    "| lido     | aabba |",
+    "| estado   | q0    |",
+    "| aceita   | sim   |",
+    "",
+    "</Stage>",
+    "",
+    "<Stage",
+    '  build="tamanho"',
+    "  input={{",
+    '    label: "Contar |w|",',
+    "    fields: [",
+    '      { name: "w", label: "a palavra w", kind: "text", alphabet: ["0", "1"], minLength: 0, maxLength: 8 },',
+    "    ],",
+    '    examples: [{ w: "" }, { w: "0110" }],',
+    "  }}",
+    '  prompt="Digite uma palavra e comece."',
+    ">",
+    "",
+    "| Variável | Valor |",
+    "| -------- | ----: |",
+    "| lido     |     ε |",
+    "| tamanho  |     0 |",
+    "",
+    "</Stage>",
+  ]),
+  // `COMPONENTS.md`'s Stage entry shows this build, as written here, so the reference's own passes.
+  "artifacts/automato-par/automato.build.ts": [
+    'import { defineBuild, type CellChange, type Step } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild<{ w: string }>({",
+    "  steps(input) {",
+    "    const symbols = [...input.w];",
+    '    let state = "q0";',
+    '    const values = (read: number, accepts = "—"): CellChange[] => [',
+    '      { row: "lido", column: "Valor", text: read === 0 ? "ε" : symbols.slice(0, read).join("") },',
+    '      { row: "estado", column: "Valor", text: state },',
+    '      { row: "aceita", column: "Valor", text: accepts },',
+    "    ];",
+    '    const steps: Step[] = [{ say: "Começa em q0, sem ter lido nada.", cells: values(0) }];',
+    "    symbols.forEach((symbol, index) => {",
+    "      const from = state;",
+    '      if (symbol === "b") state = state === "q0" ? "q1" : "q0";',
+    "      steps.push({",
+    "        say: `Lê ${symbol}: de ${from} vai a ${state}.`,",
+    '        rows: { estado: "strong" },',
+    "        cells: values(index + 1),",
+    "      });",
+    "    });",
+    '    const accepts = state === "q0";',
+    "    steps.push({",
+    "      say:",
+    "        symbols.length === 0",
+    '          ? "A palavra vazia acaba em q0: aceita."',
+    '          : `A palavra acaba em ${state}: ${accepts ? "aceita" : "rejeita"}.`,',
+    '      rows: { aceita: "reversed" },',
+    '      cells: values(symbols.length, accepts ? "sim" : "não"),',
+    "    });",
+    "    return steps;",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+  "artifacts/automato-par/tamanho.build.ts": [
+    'import { defineBuild, type CellChange } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild<{ w: string }>({",
+    "  steps({ w }) {",
+    "    const symbols = [...w];",
+    "    const values = (read: number): CellChange[] => [",
+    '      { row: "lido", column: "Valor", text: read === 0 ? "ε" : symbols.slice(0, read).join("") },',
+    '      { row: "tamanho", column: "Valor", text: String(read) },',
+    "    ];",
+    "    return [",
+    '      { say: "Ainda não leu nenhum símbolo.", cells: values(0) },',
+    "      ...symbols.map((symbol, index) => ({ say: `Lê ${symbol}.`, cells: values(index + 1) })),",
+    "    ];",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+};
+
+// The code points of "olá mundo" sum to 1023 (111, 108, 225, 32, 109, 117, 110, 100 and 111), and
+// 1023 = 146 × 7 + 1, so h is 1.
+const textAndNumberStage = {
+  "artifacts/hash-modular/index.mdx": artifact(fields("h4shm0d7", "Hash modular", "Cálculo"), [
+    'import Stage from "@artifactory/design-system/stage";',
+    "",
+    "<Stage",
+    '  build="hash"',
+    "  input={{",
+    '    label: "Calcular h(t, m)",',
+    "    fields: [",
+    '      { name: "t", kind: "text", maxLength: 40 },',
+    '      { name: "m", min: 1, max: 997 },',
+    "    ],",
+    '    examples: [{ t: "olá mundo", m: 7 }, { t: "", m: 7 }, { t: "fim ", m: 2 }],',
+    "  }}",
+    '  prompt="Digite um texto e um módulo e comece."',
+    ">",
+    "",
+    "| Variável | Valor     |",
+    "| -------- | --------- |",
+    "| t        | olá mundo |",
+    "| lidos    | 9         |",
+    "| soma     | 1023      |",
+    "| h        | 1         |",
+    "",
+    "</Stage>",
+  ]),
+  "artifacts/hash-modular/hash.build.ts": [
+    'import { defineBuild, type CellChange, type Step } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild<{ t: string; m: number }>({",
+    "  steps({ t, m }) {",
+    "    const symbols = [...t];",
+    "    let sum = 0;",
+    '    const values = (read: number, h = "—"): CellChange[] => [',
+    '      { row: "t", column: "Valor", text: t },',
+    '      { row: "lidos", column: "Valor", text: String(read) },',
+    '      { row: "soma", column: "Valor", text: String(sum) },',
+    '      { row: "h", column: "Valor", text: h },',
+    "    ];",
+    '    const steps: Step[] = [{ say: "A soma começa em 0.", cells: values(0) }];',
+    "    symbols.forEach((symbol, index) => {",
+    "      sum += symbol.codePointAt(0) ?? 0;",
+    "      steps.push({",
+    "        say: `Soma o código do símbolo ${String(index + 1)}: ${String(sum)}.`,",
+    "        cells: values(index + 1),",
+    "      });",
+    "    });",
+    "    steps.push({",
+    "      say: `h é o resto de ${String(sum)} por ${String(m)}, ${String(sum % m)}.`,",
+    '      rows: { h: "reversed" },',
+    "      cells: values(symbols.length, String(sum % m)),",
+    "    });",
+    "    return steps;",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+};
+
+// A star from B: breadth-first and depth-first visit it in the same order from B, and differently
+// from A or C, which every combination of the two groups runs.
+const groupsStage = {
+  "artifacts/busca-em-grafo/index.mdx": artifact(fields("bu5c4gr4", "Busca em grafo", "Grafos"), [
+    'import Stage from "@artifactory/design-system/stage";',
+    'import caminho from "./caminho.svg?raw";',
+    "",
+    "<Stage",
+    '  build="busca"',
+    "  choose={[",
+    '    { name: "inicio", label: "Começar em", options: ["A", "B", "C"] },',
+    '    { name: "busca", label: "Buscar em", options: ["largura", "profundidade"] },',
+    "  ]}",
+    '  prompt="Escolha um vértice e uma busca para começar."',
+    "  figure={caminho}",
+    '  alt="Um caminho de três vértices, A, B e C."',
+    ">",
+    "",
+    "| Vértice | Ordem |",
+    "| ------- | ----: |",
+    "| A       |     — |",
+    "| B       |     — |",
+    "| C       |     — |",
+    "",
+    "</Stage>",
+  ]),
+  "artifacts/busca-em-grafo/caminho.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">',
+    '  <g data-part="A"><circle cx="20" cy="30" r="12" class="fill-surface stroke-text" /></g>',
+    '  <g data-part="B"><circle cx="100" cy="30" r="12" class="fill-surface stroke-text" /></g>',
+    '  <g data-part="C"><circle cx="180" cy="30" r="12" class="fill-surface stroke-text" /></g>',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/busca-em-grafo/busca.build.ts": [
+    'import { defineBuild, type Step } from "@artifactory/design-system/stage-build";',
+    "",
+    "const neighbours: Record<string, string[]> = { A: ['B'], B: ['A', 'C'], C: ['B'] };",
+    "",
+    "export default defineBuild<{ inicio: string; busca: string }>({",
+    "  steps({ inicio, busca }) {",
+    "    const order: string[] = [];",
+    "    const waiting = [inicio];",
+    "    while (waiting.length > 0) {",
+    "      const vertex = (busca === 'largura' ? waiting.shift() : waiting.pop()) ?? inicio;",
+    "      if (order.includes(vertex)) continue;",
+    "      order.push(vertex);",
+    "      waiting.push(...(neighbours[vertex] ?? []));",
+    "    }",
+    "    return order.map((vertex, index): Step => ({",
+    "      say: `Visita ${vertex}, o ${String(index + 1)}º da busca em ${busca}.`,",
+    "      parts: { [vertex]: 'reversed' },",
+    "      cells: order",
+    "        .slice(0, index + 1)",
+    "        .map((visited, at) => ({ row: visited, column: 'Ordem', text: String(at + 1) })),",
+    "    }));",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+};
+
+const steppedFigures = {
+  "artifacts/orbita/index.mdx": artifact(fields("0rb1t4s1", "Órbita", "Mecânica"), [
+    'import Stepper from "@artifactory/design-system/stepper";',
+    'import quadro from "./quadro.svg?raw";',
+    'import orbita from "./orbita.svg?raw";',
+    'import troca from "./troca.svg?raw";',
+    "",
+    '<Stepper figure={quadro} alt="Um quadrado, depois um círculo dentro dele." captions={["O quadrado.", "O círculo."]} />',
+    "",
+    '<Stepper figure={orbita} alt="Um ponto dando a volta num centro, apontado por uma seta." />',
+    "",
+    '<Stepper figure={troca} alt="Um ponto que pula para a direita." captions={["Antes.", "Depois."]} />',
+  ]),
+  "artifacts/orbita/quadro.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">',
+    '  <rect x="4" y="4" width="32" height="32" class="fill-tint stroke-text" />',
+    '  <circle data-step="2-" cx="20" cy="20" r="8" class="fill-text" />',
+    '  <circle data-step="1, 2" cx="20" cy="20" r="2" class="fill-surface" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/orbita/orbita.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">',
+    "  <defs>",
+    '    <marker id="seta" viewBox="0 0 6 6" refX="6" refY="3" markerWidth="6" markerHeight="6" orient="auto">',
+    '      <path d="M0 0 L6 3 L0 6 z" class="fill-text" />',
+    "    </marker>",
+    "  </defs>",
+    '  <circle id="centro" cx="30" cy="30" r="4" class="fill-text" />',
+    '  <line x1="2" y1="2" x2="26" y2="26" marker-end="url(#seta)" class="stroke-text" />',
+    '  <circle data-step="1" cx="50" cy="30" r="3" class="fill-text" />',
+    '  <circle data-step="2" cx="30" cy="50" r="3" class="fill-text" />',
+    '  <circle data-step="3" cx="10" cy="30" r="3" class="fill-text" />',
+    '  <use data-step="2-" href="#centro" x="0" y="0" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/orbita/troca.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20">',
+    '  <circle data-step="1" cx="10" cy="10" r="4" class="fill-text" />',
+    '  <circle data-step="2" cx="20" cy="10" r="4" class="fill-text" />',
+    '  <text x="2" y="4">pilha</text>',
+    '  <text data-step="1" x="10" y="18" class="font-code">push</text>',
+    '  <text data-step="2" x="20" y="18" class="font-code">pop</text>',
+    "</svg>",
+    "",
+  ].join("\n"),
+};
+
+const colouring = {
+  "artifacts/coloracao/index.mdx": artifact(fields("c0l0r4c4", "Coloração", "Grafos"), [
+    'import Figure from "@artifactory/design-system/figure";',
+    'import Stage from "@artifactory/design-system/stage";',
+    'import hexagono from "./hexagono.svg?raw";',
+    'import aresta from "./aresta.svg?raw";',
+    'import marcas from "./marcas.svg?raw";',
+    'import vazio from "./vazio.svg?raw";',
+    "",
+    '<Figure src={hexagono} alt="Seis vértices, um de cada cor, de 1 a 6." />',
+    "",
+    "Uma aresta da cor Vm liga um vértice da cor Az a um vértice sem cor.",
+    "",
+    '<Figure src={aresta} alt="Um vértice Az, ligado por uma aresta Vm a um vértice sem cor." colours={["Az", "Vm"]} />',
+    "",
+    '<Figure src={hexagono} alt="Os mesmos seis vértices outra vez." />',
+    "",
+    "<Stage",
+    '  build="cores"',
+    '  choose={{ label: "Começar em", options: ["1", "2"] }}',
+    '  prompt="Escolha um vértice para começar."',
+    "  figure={hexagono}",
+    '  alt="Seis vértices, um de cada cor, de 1 a 6."',
+    ">",
+    "",
+    "| Vértice | Cor |",
+    "| ------- | --: |",
+    "| 1       |   1 |",
+    "| 2       |   2 |",
+    "",
+    "</Stage>",
+    "",
+    "<Stage",
+    '  build="marcas"',
+    '  choose={{ label: "Começar em", options: ["a"] }}',
+    '  prompt="Escolha um vértice para começar."',
+    "  figure={marcas}",
+    '  alt="Um vértice Az, ligado por uma aresta Vm a uma região Vm."',
+    '  colours={["Az", "Vm"]}',
+    "/>",
+    "",
+    "<Stage",
+    '  build="pinta"',
+    '  choose={{ label: "Começar em", options: ["a"] }}',
+    '  prompt="Escolha um vértice para começar."',
+    "  figure={vazio}",
+    '  alt="Um vértice a, ligado por uma aresta ab a uma região b, todos sem cor."',
+    '  colours={["Az", "Vm"]}',
+    "/>",
+  ]),
+  "artifacts/coloracao/vazio.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60">',
+    '  <g data-part="ab">',
+    '    <line x1="30" y1="30" x2="170" y2="30" class="stroke-text" stroke-width="2" />',
+    '    <text x="100" y="30" data-swatch=""></text>',
+    "  </g>",
+    '  <g data-part="a">',
+    '    <circle cx="30" cy="30" r="22" class="fill-surface stroke-text" stroke-width="2" />',
+    '    <text x="30" y="30" data-swatch=""></text>',
+    "  </g>",
+    '  <g data-part="b">',
+    '    <rect x="170" y="8" width="44" height="44" class="fill-surface" />',
+    '    <text x="192" y="30" data-swatch=""></text>',
+    "  </g>",
+    "</svg>",
+    "",
+  ].join("\n"),
+  // The colour is computed as a `number`, and b, drawn without an outline or a colour, takes
+  // `dashed` on the step that colours it.
+  "artifacts/coloracao/pinta.build.ts": [
+    'import { defineBuild } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild({",
+    "  steps(start) {",
+    "    const vm: number = [start, start].length;",
+    "    return [",
+    "      { say: 'O vértice a fica Az.', colours: { a: 1 }, parts: { a: 'reversed' } },",
+    "      {",
+    "        say: 'A aresta ab e a região b ficam Vm.',",
+    "        colours: { a: 1, ab: vm, b: vm },",
+    "        parts: { b: 'dashed' },",
+    "      },",
+    "      { say: 'O vértice a volta a ficar sem cor.', colours: { a: null, ab: vm, b: vm } },",
+    "    ];",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+  "artifacts/coloracao/marcas.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60">',
+    '  <g data-part="ab">',
+    '    <line x1="30" y1="30" x2="170" y2="30" class="stroke-text" stroke-width="2" />',
+    '    <text x="100" y="30" data-swatch="2">Vm</text>',
+    "  </g>",
+    '  <g data-part="a">',
+    '    <circle cx="30" cy="30" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" />',
+    '    <text x="30" y="30" data-swatch="1">Az</text>',
+    "  </g>",
+    '  <g data-part="b">',
+    '    <rect x="170" y="8" width="44" height="44" class="fill-swatch-2" />',
+    '    <text x="192" y="30" data-swatch="2">Vm</text>',
+    "  </g>",
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/coloracao/marcas.build.ts": [
+    'import { defineBuild } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild({",
+    "  steps: () =>",
+    '    (["strong", "dashed", "muted", "reversed"] as const).map((mark) => ({',
+    "      say: `O vértice a, a aresta ab e a região b ficam ${mark}.`,",
+    "      parts: { a: mark, ab: mark, b: mark },",
+    "    })),",
+    "});",
+    "",
+  ].join("\n"),
+  "artifacts/coloracao/hexagono.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 60">',
+    ...[1, 2, 3, 4, 5, 6].map((swatch) => {
+      const x = String(swatch * 45 - 15);
+      return [
+        `  <g data-part="${String(swatch)}">`,
+        `    <circle cx="${x}" cy="30" r="22" class="fill-swatch-${String(swatch)} stroke-text" stroke-width="2" />`,
+        `    <text x="${x}" y="30" data-swatch="${String(swatch)}">${String(swatch)}</text>`,
+        "  </g>",
+      ].join("\n");
+    }),
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/coloracao/aresta.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">',
+    "  <g>",
+    '    <line x1="30" y1="30" x2="170" y2="30" class="stroke-text" stroke-width="2" />',
+    '    <text x="100" y="30" data-swatch="2">Vm</text>',
+    "  </g>",
+    "  <g>",
+    '    <circle cx="30" cy="30" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" />',
+    '    <text x="30" y="30" data-swatch="1">Az</text>',
+    "  </g>",
+    '  <circle cx="170" cy="30" r="22" class="fill-surface stroke-text" stroke-width="2" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/coloracao/cores.build.ts": [
+    'import { defineBuild } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild({",
+    "  steps: (start) => [{ say: `Começa no vértice ${start}.`, parts: { [start]: 'strong' } }],",
+    "});",
+    "",
+  ].join("\n"),
+};
+
+// The first example worked by hand: x = −4 and y = 2 leave (−4 + 2) × 2 div 3, which is −1, in
+// M[2] and the output, the stack back below its bottom and every cell freed. In the second, the
+// jump skips printing 9, so x = 6 is stored in M[0], copied to M[1] and printed alone.
+// `divisao` calls div(7, 2): the return value is reserved in M[2], a and b copied to M[3] and M[4],
+// CHPR keeps the return address 18 and the level 1 in M[5] and M[6], and ENPR keeps D[1], which has
+// no value yet, in M[7] and sets D[1] to 8, so a sits at offset −5 and the return value at −6.
+// The quotient 3 goes from M[8] to M[2], RTPR gives D[1] back its lack of value, returns to 18 and
+// leaves s on M[2], and IMPR prints it, leaving s on the globals. `dobro` stops inside dobro(6),
+// with its record live: base D[1] = 6, so M[1] to M[6] are offsets −5 to 0, and d = 12.
+const machineTrace = {
+  "artifacts/maquina-de-pilha/index.mdx": artifact(
+    fields("m3p4p1l4", "Máquina de pilha", "Cálculo"),
+    [
+      'import Stage from "@artifactory/design-system/stage";',
+      "",
+      "<Stage",
+      '  build="exemplo"',
+      "  input={{",
+      '    label: "Rodar",',
+      '    fields: [{ name: "x", min: -9, max: 9 }, { name: "y", min: -9, max: 9 }],',
+      "    examples: [{ x: -4, y: 2 }, { x: 4, y: 5 }],",
+      "  }}",
+      '  prompt="Digite x e y e rode o programa."',
+      ">",
+      "",
+      "```text start=0",
+      "INPP",
+      "AMEM 2       ; x e y",
+      "LEIT",
+      "ARMZ 0,0",
+      "LEIT",
+      "ARMZ 0,1",
+      "CRVL 0,0",
+      "CRVL 0,1",
+      "SOMA",
+      "CRCT 2",
+      "MULT",
+      "CRCT 3",
+      "DIVI",
+      "IMPR",
+      "DMEM 2",
+      "PARA",
+      "FIM",
+      "```",
+      "",
+      "| Registrador | Valor |",
+      "| ----------- | ----: |",
+      "| i           |    15 |",
+      "| s           |    −1 |",
+      "| D[0]        |     0 |",
+      "| entrada     |     — |",
+      "| saída       |    −1 |",
+      "",
+      "| Célula | Dado | Papel | Topo |",
+      "| ------ | ---: | ----- | ---- |",
+      "| M[0]   |   −4 |       |      |",
+      "| M[1]   |    2 |       |      |",
+      "| M[3]   |    3 |       |      |",
+      "| M[2]   |   −1 |       |      |",
+      "",
+      "</Stage>",
+      "",
+      "<Stage",
+      '  build="salto"',
+      "  input={{",
+      '    label: "Rodar",',
+      '    fields: [{ name: "x", min: 0, max: 9 }],',
+      "    examples: [{ x: 6 }],",
+      "  }}",
+      '  prompt="Digite x e rode o programa."',
+      ">",
+      "",
+      "```text start=0",
+      "INPP",
+      "AMEM 1",
+      "LEIT",
+      "ARMZ 0,0",
+      "DSVS L1",
+      "CRCT 9",
+      "IMPR",
+      "L1: NADA     ; a cópia",
+      "CRVL 0,0",
+      "IMPR",
+      "DMEM 1",
+      "PARA",
+      "FIM",
+      "```",
+      "",
+      "| Registrador | Valor |",
+      "| ----------- | ----: |",
+      "| i           |    11 |",
+      "| s           |    −1 |",
+      "| D[0]        |     0 |",
+      "| entrada     |     — |",
+      "| saída       |     6 |",
+      "",
+      "| Célula | Dado | Topo |",
+      "| ------ | ---: | ---- |",
+      "| M[0]   |    6 |      |",
+      "| M[1]   |    6 |      |",
+      "",
+      "</Stage>",
+      "",
+      "<Stage",
+      '  build="divisao"',
+      "  input={{",
+      '    label: "Rodar",',
+      '    fields: [{ name: "x", min: 0, max: 9 }, { name: "y", min: 1, max: 9 }],',
+      "    examples: [{ x: 7, y: 2 }],",
+      "  }}",
+      '  prompt="Digite x e y e rode o programa."',
+      ">",
+      "",
+      "```text start=0",
+      "INPP",
+      "AMEM 2       ; x e y",
+      "DSVS L1",
+      "L2: ENPR 1   ; div(a, b)",
+      "CRVL 1,-5",
+      "CRVL 1,-4",
+      "DIVI",
+      "ARMZ 1,-6",
+      "RTPR 1,2",
+      "L1: NADA",
+      "LEIT",
+      "ARMZ 0,0",
+      "LEIT",
+      "ARMZ 0,1",
+      "AMEM 1",
+      "CRVL 0,0",
+      "CRVL 0,1",
+      "CHPR L2,1",
+      "IMPR",
+      "PARA",
+      "FIM",
+      "```",
+      "",
+      "| Registrador | Valor |",
+      "| ----------- | ----: |",
+      "| i           |    19 |",
+      "| s           |     1 |",
+      "| D[0]        |     0 |",
+      "| D[1]        |     ? |",
+      "| entrada     |     — |",
+      "| saída       |     3 |",
+      "",
+      "| Célula | Dado | Papel     | Desl. | Topo |",
+      "| ------ | ---: | --------- | ----: | ---- |",
+      "| M[0]   |    7 | x, global |       |      |",
+      "| M[1]   |    2 | y, global |       | ← s  |",
+      "| M[2]   |    3 |           |       |      |",
+      "| M[3]   |    7 |           |       |      |",
+      "| M[4]   |    2 |           |       |      |",
+      "| M[5]   |   18 |           |       |      |",
+      "| M[6]   |    1 |           |       |      |",
+      "| M[7]   |    ? |           |       |      |",
+      "| M[8]   |    3 |           |       |      |",
+      "| M[9]   |    2 |           |       |      |",
+      "",
+      "</Stage>",
+      "",
+      "<Stage",
+      '  build="dobro"',
+      "  input={{",
+      '    label: "Rodar",',
+      '    fields: [{ name: "x", min: 0, max: 9 }],',
+      "    examples: [{ x: 6 }],",
+      "  }}",
+      '  prompt="Digite x e rode o programa."',
+      ">",
+      "",
+      "```text start=0",
+      "INPP",
+      "AMEM 1       ; x",
+      "DSVS L1",
+      "L2: ENPR 1   ; dobro(a)",
+      "AMEM 1       ; d",
+      "CRVL 1,-4",
+      "CRCT 2",
+      "MULT",
+      "ARMZ 1,0",
+      "CRVL 1,0",
+      "ARMZ 1,-5",
+      "PARA         ; para antes de retornar",
+      "DMEM 1",
+      "RTPR 1,1",
+      "L1: NADA",
+      "LEIT",
+      "ARMZ 0,0",
+      "AMEM 1",
+      "CRVL 0,0",
+      "CHPR L2,1",
+      "IMPR",
+      "PARA",
+      "FIM",
+      "```",
+      "",
+      "| Registrador | Valor |",
+      "| ----------- | ----: |",
+      "| i           |    11 |",
+      "| s           |     6 |",
+      "| D[0]        |     0 |",
+      "| D[1]        |     6 |",
+      "| entrada     |     — |",
+      "| saída       |     — |",
+      "",
+      "| Célula | Dado | Papel               | Desl. | Topo |",
+      "| ------ | ---: | ------------------- | ----: | ---- |",
+      "| M[0]   |    6 | x, global           |       |      |",
+      "| M[1]   |   12 | valor de retorno    |    −5 |      |",
+      "| M[2]   |    6 | parâmetro a         |    −4 |      |",
+      "| M[3]   |   20 | endereço de retorno |    −3 |      |",
+      "| M[4]   |    1 | nível 1             |    −2 |      |",
+      "| M[5]   |    ? | D[1] guardado       |    −1 |      |",
+      "| M[6]   |   12 | d                   |     0 | ← s  |",
+      "| M[7]   |   12 |                     |       |      |",
+      "| M[8]   |    2 |                     |       |      |",
+      "",
+      "</Stage>",
+    ],
+  ),
+  "artifacts/maquina-de-pilha/exemplo.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    "export default trace(mepa, {",
+    '  reads: ["x", "y"],',
+    '  roles: { 1: ["x, global", "y, global"], 2: "lido", 4: "lido" },',
+    '  after: { 14: "As globais x e y estão liberadas." },',
+    "});",
+    "",
+  ].join("\n"),
+  "artifacts/maquina-de-pilha/salto.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["x"], labels: { L1: "a cópia de x" } });',
+    "",
+  ].join("\n"),
+  "artifacts/maquina-de-pilha/divisao.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    "export default trace(mepa, {",
+    '  reads: ["x", "y"],',
+    '  labels: { L1: "o início de main", L2: "o início de div" },',
+    '  subroutines: { L2: { params: ["a", "b"], returns: true } },',
+    "  roles: {",
+    '    1: ["x, global", "y, global"],',
+    '    14: ["valor de retorno"],',
+    '    15: "parâmetro a",',
+    '    16: "parâmetro b",',
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+  "artifacts/maquina-de-pilha/dobro.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    "export default trace(mepa, {",
+    '  reads: ["x"],',
+    '  labels: { L2: "o início de dobro" },',
+    '  subroutines: { L2: { params: ["a"], returns: true } },',
+    '  roles: { 1: ["x, global"], 4: ["d"], 17: ["valor de retorno"], 18: "parâmetro a" },',
+    "});",
+    "",
+  ].join("\n"),
+};
+
 const renamedTwiceAndBack = {
   "artifacts/derivadas/index.mdx": artifact(
     fields("d3r1v4d4", "Derivadas", "Cálculo", "formerSlugs: [derivadas-velhas]"),
@@ -553,6 +1317,34 @@ const statementsAndCitations = {
     "</Statement>",
     "",
     'O <Ref to="seno" /> usa um teorema já provado.',
+    "",
+    "## Médias",
+    "",
+    '<Statement kind="proposition" id="media" name="Média">',
+    "",
+    "A média de $f'$ em $(a, b)$ é a inclinação da secante.",
+    "",
+    "</Statement>",
+    "",
+    '<Proof of="media">',
+    "",
+    'É o <Ref to="valor-medio" /> lido como média.',
+    "",
+    "</Proof>",
+    "",
+    '<Statement kind="proposition" id="limitada">',
+    "",
+    "Uma derivada limitada por $M$ dá $|f(b) - f(a)| \\le M(b - a)$.",
+    "",
+    "</Statement>",
+    "",
+    'A <Ref to="limitada" /> controla a variação.',
+    "",
+    '<Proof of="limitada">',
+    "",
+    "A inclinação da secante é $f'(c)$, e $|f'(c)| \\le M$.",
+    "",
+    "</Proof>",
   ]),
   "artifacts/mean-value/index.mdx": artifact(
     ["id: m34nv4lu", "title: Mean value", "subject: Cálculo", "lang: en", "published: 2026-10-15"],
@@ -618,6 +1410,34 @@ const statementsAndCitations = {
       'Its derivative is positive on (0, 1), so by <Ref to="sign" /> every secant over it rises.',
       "",
       "</Statement>",
+      "",
+      "## Averages",
+      "",
+      '<Statement kind="proposition" id="average" name="Average slope">',
+      "",
+      "The average of $f'$ over $(a, b)$ is the secant's slope.",
+      "",
+      "</Statement>",
+      "",
+      '<Proof of="average">',
+      "",
+      "Read the mean value theorem as an average.",
+      "",
+      "</Proof>",
+      "",
+      '<Statement kind="proposition" id="bounded">',
+      "",
+      "A derivative bounded by $M$ gives $|f(b) - f(a)| \\le M(b - a)$.",
+      "",
+      "</Statement>",
+      "",
+      '<Ref to="bounded" /> limits how far $f$ moves.',
+      "",
+      '<Proof of="bounded">',
+      "",
+      "The secant's slope is $f'(c)$, and $|f'(c)| \\le M$.",
+      "",
+      "</Proof>",
     ],
   ),
   "artifacts/arvores/index.mdx": artifact(fields("4rv0r3s0", "Árvores", "Grafos"), [
@@ -695,6 +1515,12 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ...secondStage,
       ...typedStage,
       ...rewrittenStage,
+      ...wordStage,
+      ...textAndNumberStage,
+      ...groupsStage,
+      ...machineTrace,
+      ...steppedFigures,
+      ...colouring,
       ...renamedTwiceAndBack,
       ...statementsAndCitations,
       ...draft,
@@ -774,6 +1600,162 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       for (const colour of colours) expect(colour).toMatch(/^var\(--[\w-]+\)$/);
     });
 
+    it("gives each code line the number the page shows for it, from the fence's `start` or else from 1", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      expect(
+        [...page.querySelectorAll("main pre > code")]
+          .filter((code) => code.closest("artifact-stepper") === null)
+          .map((code) =>
+            [...code.querySelectorAll(":scope > .line")].map((line) => [
+              line.getAttribute("data-line"),
+              line.textContent,
+            ]),
+          ),
+      ).toEqual([
+        [
+          ["1", "def area(r):"],
+          ["2", "    return 3.14 * r ** 2"],
+        ],
+        [
+          ["0", "push 2"],
+          ["1", "add"],
+        ],
+        [
+          ["10", "push 3"],
+          ["11", "print"],
+        ],
+        ...[1, 2].map(() => listing.map((text, index) => [String(index + 1), text])),
+        [
+          ["0", "push 2"],
+          ["1", "push 3"],
+          ["2", "add"],
+        ],
+      ]);
+    });
+
+    it("marks the lines a fence's `{…}` names, by the number the page shows, and greys none in a fence without it", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      expect(
+        [...page.querySelectorAll("main pre")]
+          .filter((pre) => pre.closest("artifact-stepper") === null)
+          .map((pre) => [
+            pre.hasAttribute("data-marks"),
+            [...pre.querySelectorAll("code > .line:not([data-off])")].map((line) =>
+              line.getAttribute("data-line"),
+            ),
+          ]),
+      ).toEqual([
+        [false, ["1", "2"]],
+        [false, ["0", "1"]],
+        [false, ["10", "11"]],
+        [true, ["3", "5", "6"]],
+        [false, ["1", "2", "3", "4", "5", "6", "7"]],
+        [true, ["0"]],
+      ]);
+    });
+
+    it("writes a block marked with `{…}` as it writes the same block without it, but for the marks", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      const [marked, unmarked] = [...page.querySelectorAll("main pre")]
+        .filter((pre) => pre.textContent.startsWith(listing[0] ?? ""))
+        .map((pre) => pre.cloneNode(true) as Element);
+      expect(marked?.querySelectorAll("[data-off]")).toHaveLength(4);
+      for (const line of marked?.querySelectorAll("[data-off]") ?? []) {
+        line.removeAttribute("data-off");
+      }
+      marked?.removeAttribute("data-marks");
+      expect(marked?.outerHTML).toBe(unmarked?.outerHTML);
+    });
+
+    it("steps and prints a one-block Stepper's lines by the number the page shows, from the fence's `start`", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      const stepper = page.querySelector("artifact-stepper");
+      expect(
+        [...(stepper?.querySelectorAll(".stepper-code .line") ?? [])].map((line) => [
+          line.getAttribute("data-line"),
+          line.getAttribute("data-in-steps"),
+        ]),
+      ).toEqual([
+        ["0", "1"],
+        ["1", "2"],
+        ["2", "2"],
+        ["3", "2"],
+      ]);
+      expect(
+        [...(stepper?.querySelectorAll(".stepper-steps > li") ?? [])].map((step) =>
+          [step.querySelector(".stepper-step-number"), step.querySelector('[data-lang="pt"]')]
+            .map((part) => part?.textContent)
+            .join(" "),
+        ),
+      ).toEqual(["1 (linha 0)", "2 (linhas 1–3)"]);
+    });
+
+    it("puts each of a Stepper's code blocks in its own step, under its number and caption, with its own numbers and marks", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      const stepper = page.querySelectorAll("artifact-stepper")[1];
+      expect(stepper?.getAttribute("data-count")).toBe("3");
+      expect(stepper?.querySelector(".stepper-code")).toBeNull();
+      expect(
+        [...(stepper?.querySelectorAll("[data-in-steps]:has(> pre)") ?? [])].map((step) => {
+          const pre = step.querySelector(":scope > pre");
+          return {
+            step: step.getAttribute("data-in-steps"),
+            shown: !step.hasAttribute("data-off"),
+            heading: step.querySelector(":scope > .stepper-step")?.textContent,
+            marks: pre?.hasAttribute("data-marks"),
+            lines: [...(pre?.querySelectorAll("code > .line") ?? [])].map((line) => [
+              line.getAttribute("data-line"),
+              line.hasAttribute("data-off") ? "grey" : "ink",
+            ]),
+          };
+        }),
+      ).toEqual([
+        {
+          step: "1",
+          shown: true,
+          heading: "1. Empilha.",
+          marks: false,
+          lines: [
+            ["0", "ink"],
+            ["1", "ink"],
+          ],
+        },
+        {
+          step: "2",
+          shown: false,
+          heading: "2. Soma.",
+          marks: true,
+          lines: [
+            ["1", "grey"],
+            ["2", "ink"],
+            ["3", "grey"],
+          ],
+        },
+        {
+          step: "3",
+          shown: false,
+          heading: "3. Imprime.",
+          marks: false,
+          lines: [["1", "ink"]],
+        },
+      ]);
+    });
+
     it("wraps each table in a group Tab reaches, named in the artifact's main language", async () => {
       for (const [slug, expected] of [
         ["movimento-uniforme", [["group", "Tabela", "0", "t (s)"]]],
@@ -828,6 +1810,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       expect(hiddenGroups).toHaveLength(6);
       expect(page).toContain("início");
       expect(page).toContain('class="fill-tint stroke-accent"');
+      expect(page, "a page whose drawings use no swatches").not.toContain("<pattern");
     });
 
     it("lays diagrams out with ELK unless the D2 file chooses another engine", async () => {
@@ -873,6 +1856,199 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ]);
     });
 
+    it("gives each drawing that uses swatches its hatchings, a Stage's also muted, wiped and both for its marks and hover, which its swatches reach and no other drawing on the page repeats", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("coloracao"),
+        "text/html",
+      ) as unknown as Document;
+      const ids = [...page.querySelectorAll("[id]")].map((element) => element.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      const drawings = [...page.querySelectorAll('svg[role="img"]')];
+      expect(drawings).toHaveLength(6);
+      for (const drawing of drawings) {
+        const hatchings = [...drawing.outerHTML.matchAll(/url\(#([^)]+)\)/g)].map(([, id]) => id);
+        const states = drawing.closest(".stage-figure") === null ? 1 : 4;
+        expect(new Set(hatchings).size).toBe(6 * states);
+        for (const id of hatchings) {
+          expect(drawing.querySelector(`pattern[id="${id ?? ""}"]`)).not.toBeNull();
+        }
+      }
+    });
+
+    it("draws each colour label on a square ground plate centred on it, in a Stage as wide as the longest name a step can give it", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("coloracao"),
+        "text/html",
+      ) as unknown as Document;
+      const labels = [...page.querySelectorAll("text[data-swatch]")];
+      expect(labels.map((label) => label.textContent)).toEqual([
+        ...["1", "2", "3", "4", "5", "6"],
+        ...["Vm", "Az"],
+        ...["1", "2", "3", "4", "5", "6"],
+        ...["1", "2", "3", "4", "5", "6"],
+        ...["Vm", "Az", "Vm"],
+        ...["", "", ""],
+      ]);
+      expect(
+        labels.slice(-3).map((label) => label.previousElementSibling?.getAttribute("width")),
+      ).toEqual(["24", "24", "24"]);
+      for (const label of labels) {
+        const plate = label.previousElementSibling;
+        const side = Number(plate?.getAttribute("width"));
+        expect(plate?.tagName.toLowerCase()).toBe("rect");
+        expect(plate?.getAttribute("class")).toBe("fill-surface");
+        expect(Number(plate?.getAttribute("height"))).toBe(side);
+        expect(side).toBeGreaterThan(0);
+        expect(Number(plate?.getAttribute("x")) + side / 2).toBe(Number(label.getAttribute("x")));
+        expect(Number(plate?.getAttribute("y")) + side / 2).toBe(Number(label.getAttribute("y")));
+      }
+    });
+
+    describe("figure Steppers in print", () => {
+      async function steppers(): Promise<Element[]> {
+        const page = new new Window().DOMParser().parseFromString(
+          await builtPage("orbita"),
+          "text/html",
+        ) as unknown as Document;
+        return [...page.querySelectorAll("artifact-stepper")];
+      }
+
+      // A printed step is a copy of the drawing that no screen reader meets, under its own heading.
+      function printedSteps(stepper: Element | undefined) {
+        return [...(stepper?.querySelectorAll("svg") ?? [])]
+          .filter((svg) => !svg.hasAttribute("role") && svg.closest("button") === null)
+          .map((svg) => ({
+            svg,
+            heading: svg.parentElement?.querySelector(":scope > .stepper-step")?.textContent,
+          }));
+      }
+
+      function part(element: Element): string {
+        if (element.localName === "use") return "use";
+        const x = element.getAttribute("cx") ?? element.getAttribute("x1");
+        const y = element.getAttribute("cy") ?? element.getAttribute("y1");
+        return `${element.localName} ${x ?? ""},${y ?? ""}`;
+      }
+
+      function shownParts(svg: Element): string[] {
+        return [...svg.querySelectorAll("circle, line, use")]
+          .filter((element) => element.closest("[data-off]") === null)
+          .map(part);
+      }
+
+      function references(svg: Element): string[] {
+        return [svg, ...svg.querySelectorAll("*")].flatMap((element) =>
+          element.getAttributeNames().flatMap((name) => {
+            const value = element.getAttribute(name) ?? "";
+            if (name === "href" || name === "xlink:href")
+              return value.startsWith("#") ? [value.slice(1)] : [];
+            return [...value.matchAll(/url\(#([^)]+)\)/g)].map(([, id = ""]) => id);
+          }),
+        );
+      }
+
+      it("prints a figure whose parts all reach its last step once, with its captions listed under it", async () => {
+        const [quadro] = await steppers();
+        expect(printedSteps(quadro)).toEqual([]);
+        expect(
+          [...(quadro?.querySelectorAll(".stepper-steps > li") ?? [])].map((step) =>
+            [step.querySelector(".stepper-step-number"), step.querySelector('[data-lang="pt"]')]
+              .map((part) => part?.textContent)
+              .join(" "),
+          ),
+        ).toEqual(["1. O quadrado.", "2. O círculo."]);
+      });
+
+      it("prints every step of a figure with a part that leaves, each with that step's parts and the unstepped ones, in the drawing's full frame, under its number and caption", async () => {
+        const [, orbita, troca] = await steppers();
+        expect(
+          printedSteps(orbita).map(({ svg, heading }) => ({
+            heading,
+            frame: svg.getAttribute("viewBox"),
+            parts: shownParts(svg),
+          })),
+        ).toEqual([
+          {
+            heading: "1. ",
+            frame: "0 0 60 60",
+            parts: ["circle 30,30", "line 2,2", "circle 50,30"],
+          },
+          {
+            heading: "2. ",
+            frame: "0 0 60 60",
+            parts: ["circle 30,30", "line 2,2", "circle 30,50", "use"],
+          },
+          {
+            heading: "3. ",
+            frame: "0 0 60 60",
+            parts: ["circle 30,30", "line 2,2", "circle 10,30", "use"],
+          },
+        ]);
+        expect(
+          printedSteps(troca).map(({ svg, heading }) => ({ heading, parts: shownParts(svg) })),
+        ).toEqual([
+          { heading: "1. Antes.", parts: ["circle 10,10"] },
+          { heading: "2. Depois.", parts: ["circle 20,10"] },
+        ]);
+        for (const stepper of [orbita, troca]) {
+          expect(stepper?.querySelector(".stepper-steps")).toBeNull();
+        }
+      });
+
+      it("sets a figure's code-face labels in the code face in every printed step, beside its other labels in the frame face", async () => {
+        const [, , troca] = await steppers();
+        expect(
+          printedSteps(troca).map(({ svg }) => ({
+            wrapper: svg.parentElement?.classList.contains("figure"),
+            labels: [...svg.querySelectorAll("text")]
+              .filter((text) => text.closest("[data-off]") === null)
+              .map((text) => `${text.textContent} ${text.getAttribute("class") ?? "frame"}`),
+          })),
+        ).toEqual([
+          { wrapper: true, labels: ["pilha frame", "push font-code"] },
+          { wrapper: true, labels: ["pilha frame", "pop font-code"] },
+        ]);
+      });
+
+      it("gives every printed step ids of its own, which its markers and uses resolve to", async () => {
+        const all = await steppers();
+        const ids = all.flatMap((stepper) =>
+          [...stepper.querySelectorAll("[id]")].map((element) => element.id),
+        );
+        expect(ids.length).toBe(2 * 4);
+        expect(new Set(ids).size).toBe(ids.length);
+        for (const { svg } of printedSteps(all[1])) {
+          const resolved = references(svg).map(
+            (id) => svg.querySelector(`[id="${id}"]`)?.localName,
+          );
+          expect(resolved).toEqual(["marker", "circle"]);
+        }
+      });
+
+      it("labels each figure Stepper once, with its alt, and keeps its printed steps from screen readers and the figures' series", async () => {
+        const all = await steppers();
+        expect(
+          all.map((stepper) =>
+            [...stepper.querySelectorAll("[aria-label]")].map((labelled) =>
+              labelled.getAttribute("aria-label"),
+            ),
+          ),
+        ).toEqual([
+          ["Um quadrado, depois um círculo dentro dele."],
+          ["Um ponto dando a volta num centro, apontado por uma seta."],
+          ["Um ponto que pula para a direita."],
+        ]);
+        const steps = all.flatMap(printedSteps);
+        expect(steps).toHaveLength(5);
+        for (const { svg } of steps) {
+          expect(svg.closest('[aria-hidden="true"]')).not.toBeNull();
+          expect(svg.closest("figure")).toBeNull();
+          expect(svg.closest("[data-in-steps]")).toBeNull();
+          expect(svg.querySelector("[data-in-steps]")).toBeNull();
+        }
+      });
+    });
+
     it("renders an image next to the entry, optimized", async () => {
       expect(await builtPage("celula")).toMatch(
         /<img src="\/_astro\/foto\.[\w-]+\.webp"[^>]* alt="Uma foto"/,
@@ -912,6 +2088,35 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       );
     });
 
+    it("holds a Stage with choice groups as a labelled row of options per group, in the order written, each its own radio group, none chosen, its controls hidden and no example named", async () => {
+      const stage = parsed(await builtPage("busca-em-grafo")).querySelector("artifact-stage");
+      const controls = stage?.querySelector(".stage-controls");
+      expect(controls?.hasAttribute("hidden")).toBe(true);
+      const groups = [...(controls?.querySelectorAll("fieldset") ?? [])].map((group) => {
+        const options = [...group.querySelectorAll('input[type="radio"]')];
+        return {
+          label: group.querySelector("legend")?.textContent,
+          options: options.map((option) => option.getAttribute("value")),
+          names: [...new Set(options.map((option) => option.getAttribute("name")))].length,
+          checked: options.filter((option) => option.hasAttribute("checked")).length,
+        };
+      });
+      expect(groups).toEqual([
+        { label: "Começar em", options: ["A", "B", "C"], names: 1, checked: 0 },
+        { label: "Buscar em", options: ["largura", "profundidade"], names: 1, checked: 0 },
+      ]);
+      const [start, search] = [...(controls?.querySelectorAll("fieldset") ?? [])].map((group) =>
+        group.querySelector("input")?.getAttribute("name"),
+      );
+      expect(start).not.toBe(search);
+      expect(controls?.querySelector(".stage-counter")?.hasAttribute("hidden")).toBe(true);
+      expect(controls?.querySelector(".stage-say")?.textContent).toBe(
+        "Escolha um vértice e uma busca para começar.",
+      );
+      expect(stage?.querySelector(".stage-example")).toBeNull();
+      expect(stage?.querySelectorAll("[data-mark]")).toHaveLength(0);
+    });
+
     it("holds a typed Stage's fields filled with its first example, a line after them naming that example's values, and its tables as that example's result", async () => {
       const stage = parsed(await builtPage("maximo-divisor")).querySelector("artifact-stage");
       const rows = [...(stage?.querySelectorAll("tbody tr") ?? [])].map((row) =>
@@ -938,6 +2143,57 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       expect(stage?.querySelector(".stage-controls + .stage-example")?.textContent).toBe(
         "Calcular mdc(a, b) a = 48, b = 18",
       );
+    });
+
+    it("holds a text field filled with its first example's text, with no case, correction, spelling or length help, and names that example's text bare in the code face, the empty word as ε", async () => {
+      const textFields = (stage: Element | undefined) =>
+        [...(stage?.querySelectorAll(".stage-field") ?? [])].map((field) => {
+          const input = field.querySelector("input");
+          return {
+            label: field.textContent.trim(),
+            name: input?.getAttribute("name"),
+            value: input?.getAttribute("value"),
+            autocapitalize: input?.getAttribute("autocapitalize"),
+            autocorrect: input?.getAttribute("autocorrect"),
+            spellcheck: input?.getAttribute("spellcheck"),
+            maxlength: input?.getAttribute("maxlength"),
+            inputmode: input?.getAttribute("inputmode"),
+          };
+        });
+      const named = (stage: Element | undefined) => {
+        const example = stage?.querySelector(".stage-controls + .stage-example");
+        return [
+          example?.textContent,
+          [...(example?.querySelectorAll("code") ?? [])].map((code) => code.textContent),
+        ];
+      };
+      const off = { autocapitalize: "off", autocorrect: "off", spellcheck: "false" };
+      const [word, empty] = [
+        ...parsed(await builtPage("automato-par")).querySelectorAll("artifact-stage"),
+      ];
+      expect(textFields(word)).toEqual([
+        { label: "w", name: "w", value: "aabba", ...off, maxlength: null, inputmode: null },
+      ]);
+      expect(named(word)).toEqual(["Aceita w? w = aabba", ["aabba"]]);
+      expect(textFields(empty)).toEqual([
+        { label: "a palavra w", name: "w", value: "", ...off, maxlength: null, inputmode: null },
+      ]);
+      expect(named(empty)).toEqual(["Contar |w| w = ε", ["ε"]]);
+      const [mixed] = parsed(await builtPage("hash-modular")).querySelectorAll("artifact-stage");
+      expect(textFields(mixed)).toEqual([
+        { label: "t", name: "t", value: "olá mundo", ...off, maxlength: null, inputmode: null },
+        {
+          label: "m",
+          name: "m",
+          value: "7",
+          autocapitalize: null,
+          autocorrect: "off",
+          spellcheck: "false",
+          maxlength: null,
+          inputmode: "numeric",
+        },
+      ]);
+      expect(named(mixed)).toEqual(["Calcular h(t, m) t = olá mundo, m = 7", ["olá mundo"]]);
     });
 
     it("holds a Stage whose build uses `body` with every row as written shown and its controls hidden", async () => {
@@ -1150,6 +2406,8 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             ["S-troca-name", "group", "Corolário 2.5"],
             ["S-seno", "group", "Exemplo 2.7 (Seno)"],
             ["S-cosseno", "group", "Corolário 2.8"],
+            ["S-media", "group", "Proposição 3.1 (Média)"],
+            ["S-limitada", "group", "Proposição 3.2"],
           ],
         ],
         [
@@ -1161,6 +2419,8 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             ["S-sign", "group", "Lemma 2.1"],
             ["S-increasing", "group", "Corollary 2.2 (Increasing functions)"],
             ["S-cube", "group", "Example 2.4"],
+            ["S-average", "group", "Proposition 3.1 (Average slope)"],
+            ["S-bounded", "group", "Proposition 3.2"],
           ],
         ],
       ] as const) {
@@ -1177,6 +2437,31 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       }
     });
 
+    // happy-dom computes no style from the page's cascade layers, so the test reads the mark the
+    // stylesheet sets in italic, and the catalog shows the italic itself.
+    it("marks every theorem, proposition, lemma and corollary, and no definition or example, as a claim, whose text reads in italic", async () => {
+      for (const [slug, expected] of [
+        [
+          "valor-medio",
+          [
+            "S-fermat",
+            "S-valor-medio",
+            "S-constante",
+            "S-troca",
+            "S-troca-name",
+            "S-cosseno",
+            "S-media",
+            "S-limitada",
+          ],
+        ],
+        ["mean-value", ["S-rolle", "S-sign", "S-increasing", "S-average", "S-bounded"]],
+      ] as const) {
+        const page = await main(slug);
+        const claims = [...page.querySelectorAll(".statement[data-statement-claim]")];
+        expect(claims.map(({ id }) => id)).toEqual(expected);
+      }
+    });
+
     it("prints each citation as its statement's label and number in the artifact's language, linking to the statement", async () => {
       for (const [slug, lang, expected] of [
         [
@@ -1189,6 +2474,8 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             ["#S-troca-name", "Corolário 2.5"],
             ["#S-valor-medio", "Teorema 2.1"],
             ["#S-seno", "Exemplo 2.7"],
+            ["#S-valor-medio", "Teorema 2.1"],
+            ["#S-limitada", "Proposição 3.2"],
           ],
         ],
         [
@@ -1199,6 +2486,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             ["#S-increasing", "Corollary 2.2"],
             ["#S-secant", "Definition 1.3"],
             ["#S-sign", "Lemma 2.1"],
+            ["#S-bounded", "Proposition 3.2"],
           ],
         ],
       ] as const) {
@@ -1257,28 +2545,33 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       }
     });
 
-    it("opens a proof right after its statement plainly and any other proof with its statement's label and number, linked, and ends each with the end square", async () => {
+    it("opens a proof right after its statement plainly, marked as following it, and any other proof with its statement's label and number, linked, the Portuguese preposition agreeing with the label, and ends each with the end square", async () => {
       for (const [slug, lang, expected] of [
         [
           "valor-medio",
           "pt",
           [
-            ["Demonstração.", null, "Fim da demonstração."],
-            ["Demonstração do Lema 1.5.", "#S-fermat", "Fim da demonstração."],
+            ["Demonstração.", true, null, "Fim da demonstração."],
+            ["Demonstração do Lema 1.5.", false, "#S-fermat", "Fim da demonstração."],
+            ["Demonstração.", true, null, "Fim da demonstração."],
+            ["Demonstração da Proposição 3.2.", false, "#S-limitada", "Fim da demonstração."],
           ],
         ],
         [
           "mean-value",
           "en",
           [
-            ["Proof.", null, "End of proof."],
-            ["Proof of Lemma 2.1.", "#S-sign", "End of proof."],
+            ["Proof.", true, null, "End of proof."],
+            ["Proof of Lemma 2.1.", false, "#S-sign", "End of proof."],
+            ["Proof.", true, null, "End of proof."],
+            ["Proof of Proposition 3.2.", false, "#S-bounded", "End of proof."],
           ],
         ],
       ] as const) {
         const page = await main(slug);
         const proofs = [...page.querySelectorAll(".proof")].map((proof) => [
           shown(proof.querySelector(".proof-label"), lang),
+          proof.hasAttribute("data-follows-statement"),
           proof.querySelector(".proof-label a")?.getAttribute("href") ?? null,
           shown(proof.querySelector(":scope > :last-child > .proof-end:last-child"), lang),
         ]);

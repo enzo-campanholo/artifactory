@@ -89,7 +89,7 @@ Two looks would feel wrong: a SaaS product, and a blog or Medium article.
 
 **Terminology.** `GLOSSARY.md` at the repo root defines the words: owner, agent, artifact, study artifact, Library, drafts page, catalog, question, attempt, throwaway state and the rest. Use its terms, not the ones it lists under _Avoid_.
 
-**Interactive study components (current priority).** Quizzes, question boxes, and concept visualizations, plus whatever else proves necessary. They must work across subjects rather than being tailored to one.
+**Interactive study components (current priority).** Quizzes, question boxes, and concept visualizations, plus whatever else proves necessary. They must work across subjects rather than being tailored to one. Machines are the exception: a machine, such as the stack machine MEPA, is subject content, run by a subject-neutral machine trace inside the Stage ([ADR 0008](../docs/adr/0008-the-design-system-holds-machines.md)).
 
 **Content the components must handle well**
 - math and formulas: equations, notation, worked derivations

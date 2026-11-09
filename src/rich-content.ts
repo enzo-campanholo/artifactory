@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { satteri } from "@astrojs/markdown-satteri";
 import type { AstroIntegration } from "astro";
 import { defineHastPlugin, defineMdastPlugin, type MdastVisitorContext, type Point } from "satteri";
+import { numberList } from "@artifactory/design-system/number-lists";
 import { bundledLanguages, isSpecialLang } from "shiki";
 import { buildFailures } from "./build-failures.ts";
 import { positionAt, type Report } from "./check-failure.ts";
@@ -21,7 +22,7 @@ export function richContent(): AstroIntegration {
             processor: satteri({
               features: { math: true, rawHtml: true },
               mdastPlugins: [mathAndCode(root, report)],
-              hastPlugins: [tableScrollers],
+              hastPlugins: [tableScrollers, shownLines],
             }),
             shikiConfig: { theme: "css-variables" },
           },
@@ -31,6 +32,65 @@ export function richContent(): AstroIntegration {
     },
   };
 }
+
+// A fence's `start=N` in its info string, after the language: the number its first line shows.
+const startInInfo = /(?<=^|\s)start(?:=(\S*))?(?=\s|$)/;
+
+function fenceStart(info: string): { written: string; first: number | undefined } | undefined {
+  const found = startInInfo.exec(info);
+  if (found === null) return undefined;
+  const value = found[1] ?? "";
+  const first = /^(?:0|[1-9]\d*)$/.test(value) ? Number(value) : undefined;
+  return {
+    written: found[0],
+    first: first !== undefined && Number.isSafeInteger(first) ? first : undefined,
+  };
+}
+
+// A fence's `{…}` in its info string: the lines it marks, by the numbers the page shows.
+const marksInInfo = /(?<=^|\s)\{([^}]*)\}(?=\s|$)/;
+
+declare module "satteri" {
+  interface DataMap {
+    // Each fence's code, the number its first line shows and the lines its `{…}` marks, in the
+    // document's order.
+    fences: { code: string; first: number; marked: number[] | undefined }[];
+  }
+}
+
+// Each code line carries the number the page shows for it, which the design system's gutter,
+// Stepper and Stage all read, and a block that marks lines (`data-marks`) has every other line
+// `data-off`, the lines `rich-content.css` greys. Satteri hands Shiki no info string once raw HTML
+// is on, as math needs, so a Shiki transformer can't see `start` or `{…}`: the code visitor keeps
+// each fence's in the document's data, and this plugin, which runs after highlighting, finds a
+// block's by its code. Both walk the compiled document in order, before any component places its
+// slot, so of two blocks with the same code each takes its own fence's.
+const shownLines = defineHastPlugin({
+  name: "artifactory-shown-lines",
+  element: {
+    filter: ["pre"],
+    visit(pre, ctx) {
+      const code = pre.children.find(
+        (child) => child.type === "element" && child.tagName === "code",
+      );
+      if (code === undefined) return;
+      const fences = ctx.data.fences ?? [];
+      const text = ctx.textContent(code);
+      const index = fences.findIndex((fence) => fence.code === text);
+      const [fence] = index === -1 ? [] : fences.splice(index, 1);
+      const marked = fence?.marked;
+      if (marked !== undefined) ctx.setProperty(pre, "data-marks", "");
+      let shown = fence?.first ?? 1;
+      for (const line of code.type === "element" ? code.children : []) {
+        if (line.type !== "element" || !String(line.properties.class).split(" ").includes("line"))
+          continue;
+        ctx.setProperty(line, "data-line", String(shown));
+        if (marked !== undefined && !marked.includes(shown)) ctx.setProperty(line, "data-off", "");
+        shown += 1;
+      }
+    },
+  },
+});
 
 // A named group gives the scroller's tab stop a name without adding every table to the page's
 // landmarks, as a region would.
@@ -95,18 +155,48 @@ function mathAndCode(root: string, report: Report) {
     math: (node, ctx) =>
       node.position && renderMathNode(node.value, true, node.position.start, ctx),
     code(node, ctx) {
-      const { lang, position } = node;
-      if (lang == null || Object.hasOwn(bundledLanguages, lang) || isSpecialLang(lang) || !position)
-        return;
-      const fenceLine = ctx.source.slice(position.start.offset).split("\n", 1)[0] ?? "";
-      report({
-        file: fileOf(ctx),
-        line: position.start.line,
-        column: position.start.column + Math.max(0, fenceLine.indexOf(lang)),
-        ruleId: "code-language",
-        message: `\`${lang}\` is not a code language Shiki knows`,
-        skillSection: "Code blocks",
+      const { lang, meta, position } = node;
+      const start = fenceStart(meta ?? "");
+      const first = start?.first ?? 1;
+      const marks = marksInInfo.exec(meta ?? "");
+      const last = first + node.value.split("\n").length - 1;
+      const marked = marks && numberList(marks[1] ?? "", first, last);
+      (ctx.data.fences ??= []).push({
+        code: node.value,
+        first,
+        marked: marked && "numbers" in marked ? marked.numbers : undefined,
       });
+      if (!position) return;
+      const fenceLine = ctx.source.slice(position.start.offset).split("\n", 1)[0] ?? "";
+      const atFence = (ruleId: string, written: string, from: number, message: string) => {
+        report({
+          file: fileOf(ctx),
+          line: position.start.line,
+          column: position.start.column + Math.max(0, fenceLine.indexOf(written, from)),
+          ruleId,
+          message,
+          skillSection: "Code blocks",
+        });
+      };
+      if (lang != null && !Object.hasOwn(bundledLanguages, lang) && !isSpecialLang(lang)) {
+        atFence("code-language", lang, 0, `\`${lang}\` is not a code language Shiki knows`);
+      }
+      if (start !== undefined && start.first === undefined) {
+        atFence(
+          "code-start",
+          start.written,
+          fenceLine.indexOf(meta ?? ""),
+          `\`${start.written}\` must give the number of the block's first line, a whole number from 0, such as \`start=0\``,
+        );
+      }
+      if (marks && marked && "refused" in marked) {
+        atFence(
+          "code-marks",
+          marks[0],
+          fenceLine.indexOf(meta ?? ""),
+          `\`${marks[0]}\` ${marked.refused}`,
+        );
+      }
     },
   });
 }

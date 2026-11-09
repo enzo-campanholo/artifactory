@@ -7,7 +7,8 @@ import InlineSvg from "./InlineSvg.astro";
 import StepControls from "./StepControls.astro";
 import { componentError } from "./component-errors.ts";
 import { buildModule } from "./stage-builds.ts";
-import { numberProblem, type Field } from "./step-applier.ts";
+import { fieldProblem, type Control, type Field } from "./step-applier.ts";
+import { colourNames, swatchProblems } from "./swatches.ts";
 
 interface Staged {
   /** The custom build: the name of the `<build>.build.ts` file next to the entry. */
@@ -22,6 +23,12 @@ interface Staged {
   /** What the drawing shows as written, in a sentence or two. Give it with `figure`. */
   alt?: string;
   /**
+   * The names of a colouring's colours, in swatch order, as `Figure` takes them: each one or two
+   * characters, at most six, `colours={["R", "B"]}`. Leave it out to name the colours 1 to 6. Give
+   * it only to a Stage whose drawing is a colouring (see "Colourings" under `Figure`).
+   */
+  colours?: string[];
+  /**
    * Sets the tables beside the drawing on a wide screen, as "Beside the drawing" below says. Set
    * it sparingly, only where a step's marks and its rows must be seen together; most Stages
    * stack. Give it with `figure`.
@@ -34,35 +41,57 @@ interface Staged {
 interface Chosen extends Staged {
   /**
    * What the owner chooses before the run: the label over the options, and the options, each a
-   * short word or symbol, such as a vertex's name. `steps` gets the option chosen. On a 393px
-   * phone, seven one-letter options fit on one line under the label; more, or longer names, wrap.
+   * short word or symbol, such as a vertex's name. `steps` gets the option chosen, and the run
+   * starts as soon as the owner chooses one. On a 393px phone, seven one-letter options fit on one
+   * line under the label; more, or longer names, wrap.
+   *
+   * For two or more choices, such as a start vertex and a search, give a list of groups instead,
+   * each with the `name` `steps` gets its option by: `[{ name, label, options }, …]`. Each group is
+   * a row of options under its label, one under another in the order written. None opens chosen,
+   * and the run starts once every group has a choice, then again from step 1 whenever any group
+   * changes. Give each option a name no other group of the Stage has (see **Choice groups**).
    */
-  choose: { label: string; options: string[] };
+  choose:
+    { label: string; options: string[] } | { name: string; label: string; options: string[] }[];
 }
 
 interface Typed extends Staged {
   /**
-   * What the owner types before the run: the label over the fields, and one field per whole
-   * number, with the `name` `steps` gets it by, a `label` to show instead of the name, and the
-   * smallest and largest number it takes. `steps` gets `{ [name]: number }`. `examples` are
-   * inputs, each giving every field a whole number in its bounds, and `pnpm check` runs the build
-   * on every one. The first fills the fields as written, so write the content as its result:
-   * each table as its last step leaves it. The page refuses a number that isn't whole or is out
-   * of bounds, and numbers the build throws on.
+   * What the owner types before the run: the label over the fields, and one field per value, with
+   * the `name` `steps` gets it by and a `label` to show instead of the name. A field without
+   * `kind` takes a whole number, between its `min` and `max`, and `steps` gets it as a `number`. A
+   * field with `kind: "text"` takes text, at most `maxLength` symbols and at least `minLength`
+   * (0 if left out, so the empty word counts), each one of `alphabet` when given, and `steps` gets
+   * it as a `string`, `""` for the empty word. `examples` are inputs, each giving every field a
+   * value it takes, and `pnpm check` runs the build on every one. The first fills the fields as
+   * written, so write the content as its result: each table as its last step leaves it. The page
+   * refuses a number that isn't whole or is out of bounds, text that breaks its field's rule, and
+   * input the build throws on.
    */
   input: {
     label: string;
-    fields: { name: string; label?: string; min: number; max: number }[];
-    examples: Record<string, number>[];
+    fields: (
+      | { name: string; label?: string; kind?: "number"; min: number; max: number }
+      | {
+          name: string;
+          label?: string;
+          kind: "text";
+          alphabet?: string[];
+          minLength?: number;
+          maxLength: number;
+        }
+    )[];
+    examples: Record<string, number | string>[];
   };
 }
 
 /**
  * A part of the artifact that computes in the browser: an algorithm run from the start the owner
- * picks, or a function traced on the numbers they type. Use it only when no component can do the
- * job: a fixed sequence of steps is a `Stepper`, and anything that asks the owner something and
- * records the answer is a question. A Stage is a block in the page, numbered on the figures'
- * series ("Figura 4.1"), and a page may hold several, each with its own build.
+ * picks, or a function traced on the numbers or text they type. Use it only when no component can
+ * do the job: a fixed sequence of steps is a `Stepper`, and anything that asks the owner something
+ * and records the answer is a question. A Stage is a block in the page, numbered on the figures'
+ * series ("Figura 4.1") except inside a question's model answer or explanation, and a page may
+ * hold several, each with its own build.
  *
  * You write two things:
  *
@@ -71,11 +100,11 @@ interface Typed extends Staged {
  *   without JavaScript and in print, so write it to make sense with no step on it. With `choose` it
  *   is the starting state; with `input` it is the first example's result.
  * - **A custom build**, a `<build>.build.ts` file next to the entry, which turns the option the
- *   owner chose, or the numbers they typed, into steps. It imports only
+ *   owner chose, the options of several groups, or what they typed, into steps. It imports only
  *   `@artifactory/design-system/stage-build` (below), and holds no CSS, colours, HTML or DOM
  *   code, and nothing that outlives a reload.
  *
- * The Stage draws the rest: the row of options or the fields and Start, the step counter and
+ * The Stage draws the rest: the rows of options or the fields and Start, the step counter and
  * arrows, the line that says each step, the number and the caption, for the keyboard, screen
  * readers, the phone, dark mode and print. A drawn part whose `data-part` is an option's name also
  * chooses that option when clicked or tapped. That's a shortcut for the pointer: the options stay
@@ -123,8 +152,47 @@ interface Typed extends Staged {
  * });
  * ```
  *
+ * **Choice groups.** When the owner makes two or more choices before the run, such as the start
+ * vertex and the search, give `choose` a list of groups, each `{ name, label, options }`, rather
+ * than writing a Stage per choice. Each group is its own row of options under its label, the groups
+ * one under another in the order written, and the arrow keys move the choice within a group only.
+ * No group opens chosen, and the step's line holds the prompt, with the counter hidden, until every
+ * group has a choice: the run starts then, and again from step 1 whenever any group changes, so
+ * write the prompt to ask for every choice. Option names are unique across the Stage's groups, so a
+ * drawn part named like an option chooses that option in its own group and keeps the others' as
+ * they are: a vertex chooses the start while the search stays a row of options. `steps` gets one
+ * option per group, by the group's `name`, so type the build with the groups' names, each a
+ * `string`, as typed input types its fields. `pnpm check` runs the build on every combination,
+ * one option from each group, and names the combination it fails on as `inicio = C, busca =
+ * profundidade`. A run the page refuses ends "Escolha outras opções.". Without JavaScript and in
+ * print the content as written is the starting state, with no option named, as with one group.
+ *
+ * ````mdx
+ * <Stage
+ *   build="busca"
+ *   choose={[
+ *     { name: "inicio", label: "Começar em", options: ["A", "B", "C", "D"] },
+ *     { name: "busca", label: "Buscar em", options: ["largura", "profundidade"] },
+ *   ]}
+ *   prompt="Escolha um vértice e uma busca para começar."
+ *   figure={grafo}
+ *   alt="Um grafo com quatro vértices."
+ *   caption="A busca escolhida, a partir do vértice escolhido."
+ * >
+ * ````
+ *
+ * ```ts
+ * // busca.build.ts
+ * export default defineBuild<{ inicio: string; busca: string }>({
+ *   steps({ inicio, busca }) {
+ *     // …a queue for "largura", a stack for "profundidade", from `inicio`
+ *   },
+ * });
+ * ```
+ *
  * **Typed input.** Give `input` instead of `choose` when the owner types whole numbers, such as
- * a function's arguments. The fields open filled with the first example, and the content as
+ * a function's arguments, or text, such as the word an automaton reads (**Typed text**, below). The
+ * fields open filled with the first example, and the content as
  * written must be that example's result: `pnpm check` fails when a table as written isn't what
  * the first example's last step leaves in it. A step shows the content as written with only what
  * it names applied, so every step must name every cell whose value differs from that result, or
@@ -208,20 +276,102 @@ interface Typed extends Staged {
  * entries to `input.examples` for the edges, such as a zero. The page refuses a number that isn't
  * whole or is out of bounds with the bounds in the step's line, and draws its field dashed.
  *
- * **Steps are whole.** `steps` returns every step for that option or those numbers, at least one
+ * **Typed text.** A field with `kind: "text"` takes text instead of a number:
+ * `{ name, label?, kind: "text", alphabet?, minLength?, maxLength }`. With `alphabet`, a list of
+ * symbols, each one character (one code point), it takes a word over them; without it, one line
+ * of any text, spaces included. `maxLength` is the most symbols it takes, and `minLength` the
+ * fewest, 0 if left out, so an empty field, the empty word, counts. `steps` gets the text as a
+ * `string`: `""` for the empty word, never trimmed or case-folded, since a trailing space is part
+ * of a hashing build's input, and in NFC, so `é` is one code point however it was typed. Count
+ * and walk its symbols by code point, `[...w]`, not by `w.length`. Write the examples in NFC too,
+ * as typing them does. A multi-character symbol, such as a parser's `id`, is the build's to split:
+ * give that field no alphabet and tokenise it in the build. Number fields and text fields mix in
+ * one Stage, such as a hash's text and modulus, `defineBuild<{ t: string; m: number }>`. Without
+ * JavaScript and in print, the line naming the first example sets a text bare in the code face,
+ * with no quotation marks, and the empty word as `ε`: "Aceita w? w = `aabba`". The page refuses
+ * text that breaks the field's rule as it does a number: it draws the field dashed, keeps the text
+ * whole, and states the whole rule in the step's line, never the symbol that broke it ("Digite
+ * até 12 símbolos, só a e b, para w.", "Digite de 2 a 40 caracteres para t."). In a Stage with a
+ * text field, a run it refuses ends "Tente outra entrada." rather than "Tente outros números.".
+ * This one runs an automaton on the word typed:
+ *
+ * ````mdx
+ * <Stage
+ *   build="automato"
+ *   input={{
+ *     label: "Aceita w?",
+ *     fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],
+ *     examples: [{ w: "aabba" }, { w: "" }, { w: "bbbb" }, { w: "b" }],
+ *   }}
+ *   prompt="Digite uma palavra e comece."
+ *   caption="Um autômato que aceita as palavras com um número par de b."
+ * >
+ *
+ * | Variável | Valor |
+ * | -------- | ----- |
+ * | lido     | aabba |
+ * | estado   | q0    |
+ * | aceita   | sim   |
+ *
+ * </Stage>
+ * ````
+ *
+ * ```ts
+ * // automato.build.ts
+ * import { defineBuild, type CellChange, type Step } from "@artifactory/design-system/stage-build";
+ *
+ * export default defineBuild<{ w: string }>({
+ *   steps(input) {
+ *     const symbols = [...input.w];
+ *     let state = "q0";
+ *     const values = (read: number, accepts = "—"): CellChange[] => [
+ *       { row: "lido", column: "Valor", text: read === 0 ? "ε" : symbols.slice(0, read).join("") },
+ *       { row: "estado", column: "Valor", text: state },
+ *       { row: "aceita", column: "Valor", text: accepts },
+ *     ];
+ *     const steps: Step[] = [{ say: "Começa em q0, sem ter lido nada.", cells: values(0) }];
+ *     symbols.forEach((symbol, index) => {
+ *       const from = state;
+ *       if (symbol === "b") state = state === "q0" ? "q1" : "q0";
+ *       steps.push({
+ *         say: `Lê ${symbol}: de ${from} vai a ${state}.`,
+ *         rows: { estado: "strong" },
+ *         cells: values(index + 1),
+ *       });
+ *     });
+ *     const accepts = state === "q0";
+ *     steps.push({
+ *       say:
+ *         symbols.length === 0
+ *           ? "A palavra vazia acaba em q0: aceita."
+ *           : `A palavra acaba em ${state}: ${accepts ? "aceita" : "rejeita"}.`,
+ *       rows: { aceita: "reversed" },
+ *       cells: values(symbols.length, accepts ? "sim" : "não"),
+ *     });
+ *     return steps;
+ *   },
+ * });
+ * ```
+ *
+ * `aabba` has two b's, so its last step, the seventh, leaves `q0` and `sim`, as the table is
+ * written. Every step names `aceita`, "—" until the last, so the answer doesn't show mid-run.
+ *
+ * **Steps are whole.** `steps` returns every step for that choice or that input, at least one
  * and at most 200. The Stage starts each step from the content as written and applies only what it
  * names, so name everything the step shows, not what changed since the step before. A build that
- * throws, or gives more than 200 steps, is refused in the step's line: with `input`, a typed number
+ * throws, or gives more than 200 steps, is refused in the step's line: with `input`, typed input
  * the examples never tried can reach a bug the check never saw, and the page keeps working.
  *
  * **Code.** Write the code as one fenced code block between the Stage's tags, with its language,
  * as anywhere else: it keeps its highlighting and line numbers, so never put code in a table. A
- * step marks its lines with `lines`, by number from 1 as the page numbers them. Mark the line the
+ * step marks its lines with `lines`, by the number the page shows for each: from 1, or from the
+ * fence's `start`, so under ` ```pascal start=0 ` the first line is 0. Mark the line the
  * step runs `reversed`, and only that one: the Stage draws it as a bar of ink across the code's
  * whole width, even where a long line scrolls sideways, and announces the step as "Passo 3 de 9.
  * Linha 3. …". A step with no `reversed` line is announced without one. The other marks work on
  * lines too, by the same meanings: `strong` sets a line at 600, `dashed` draws it in a dashed box
- * and `muted` greys it whole, such as the branch an `if` didn't take.
+ * and `muted` greys it whole, such as the branch an `if` didn't take. Since the steps mark the
+ * lines, the fence takes no `{…}`.
  *
  * **A table that grows.** A step's `body` replaces the table's rows, so a teste de mesa gains a row
  * each time the loop runs, as one written by hand does. Each row is a list of cell texts, one per
@@ -333,12 +483,80 @@ interface Typed extends Staged {
  * label with a `fill-` class of its own, so a vertex filled that way can't be reversed. A mark on
  * a part with nothing it acts on fails the check.
  *
+ * These four are all the marks; there is no grey fill. A static figure elsewhere in the artifact
+ * that shows a state the Stage also shows draws it with the Stage's mark, so the two agree: a
+ * discovered vertex, still on the frontier, is provisional, so it is dashed in both, never filled
+ * grey, since grey (`fill-tint`, `fill-muted`) stays for what is unavailable or in the background.
+ *
+ * **Colourings.** A Stage's drawing can be a colouring, written as a Figure's is (see
+ * "Colourings" under `Figure`): `fill-swatch-N` areas, a label `<text x y data-swatch="N">` in
+ * each coloured part's `<g>`, and `colours` naming the colours. Its build fails, as `Stage: …`,
+ * on the same label rules as a Figure's. Every mark reads on a coloured part, a swatch counting
+ * as something each acts on: `strong` sets its outline at 4 and its label in bold; `dashed`
+ * dashes its outline; `muted` turns its hatching, outline and label grey; `reversed` fills it
+ * with ink over the hatching and turns its label's plate to ink and the label to the ground. A
+ * swatch drawn without an outline takes the mark's own, at 4 for `strong`, dashed for `dashed`.
+ * Name the coloured part's `<g>`, so the mark reaches its label too.
+ *
+ * **Steps colour parts.** A step's `colours` colours parts by their `data-part` name, so a
+ * colouring algorithm can be stepped through: each a swatch number from 1, up to the names in
+ * `colours` (1 to 6 without it), or `null` for uncoloured. The part's `fill-surface` and
+ * `fill-swatch-N` shapes take the swatch and its label the colour's name, and it reads exactly as
+ * one coloured as written, hatching, label, plate and marks; `null` gives it the ground and hides
+ * its label. A part left out stays as written. Each part a step colours is a `<g>` holding a
+ * label `<text x y data-swatch>`, left empty, `<text x="50" y="90" data-swatch=""></text>`, while
+ * it's uncoloured as written, which only a Stage accepts. Steps are whole, so name every colour
+ * the step shows, and going back shows that step's colours. A part a step colours takes every mark
+ * on that step. Write `say` to name the colours it sets by name ("D takes Y, which none of its
+ * coloured neighbours has."). When motion is allowed, a part's hatching cross-fades into the next
+ * over 0.2s; print and the page without JavaScript show the drawing as written, so draw it as the
+ * starting state, usually uncoloured. `colours` takes `number | null`, so a colour a build
+ * computes needs no cast.
+ *
+ * ```ts
+ * // greedy.build.ts: each vertex takes the first colour no coloured neighbour has.
+ * const colours: Record<string, number> = {};
+ * steps.push({
+ *   say: "D takes Y, which none of its coloured neighbours has.",
+ *   colours: { ...colours, D: 3 },
+ *   parts: { D: "reversed", A: "strong", C: "strong" },
+ * });
+ * ```
+ *
  * **Tables** are found by their text: a row by its first cell, a column by its header, as the
  * page shows them with the formatting dropped, so a first cell `*a*` is the row `a`. Write first
  * cells and headers as plain words or symbols, without math. Keep each row's first cell and each
  * header unique among the Stage's tables, since a name that matches more than one fails the
  * check. A part and a row may share a name: `parts` marks only the drawing, and `rows` only the
  * tables.
+ *
+ * **The content as written reaches the build.** `steps` gets it as its second argument, typed
+ * `Content`: `code`, each code block's lines in order, each with the number the page shows
+ * (`line`) and its plain text (`text`); `tables`, each table's headers (`columns`) and rows as
+ * written (`rows`), as plain text and found as `rows` and `cells` find them, even in a run that
+ * gives `body`; and `lang`, the artifact's main language, `"pt-BR"` or `"en"`, to say the steps
+ * in. Read a program from the code block, or a table's starting values, rather than writing them
+ * again in the build: `steps({ a, b }, { code: [listing = []] })` takes the first block's lines.
+ * The page and `pnpm check` hand every run the same content, a fresh copy each time, so a run may
+ * change its own. A build that doesn't need it leaves the argument out.
+ *
+ * **Machine traces.** A Stage that runs a machine the design system holds, such as the stack
+ * machine MEPA, on a program and the owner's input is written as any Stage with `input`: the
+ * program in its content, the tables as the first example's result. Its build is
+ * `trace(machine, notes)` (below), never a copy of the machine. Each machine's entry under
+ * "Machines", after the components, gives its program's form, its tables as written in pt-BR and
+ * English, and its notes. A machine needing a growing structure beside a fixed one, such as a call
+ * stack's frames beside its locals or a tape beside its transitions, can't take two tables: a
+ * Stage that gives `body` holds exactly one. It keeps both in one table with a role column, as
+ * MEPA's memory table holds a subroutine's record beside the globals, or writes its program in the
+ * code block.
+ *
+ * **New structure per run: not yet.** A build marks, rewrites and adds rows to what the content
+ * already draws, so it can't draw a structure a run produces, such as a search's tree. A search
+ * tree is a subgraph of the graph, so draw the graph and let the build mark the tree's edges
+ * `strong` as the run adds them, keep a `π` column for each vertex's parent, and let a growing
+ * `body` table list each vertex's level or children. A second artifact that needs a drawn tree
+ * reopens the question under ADR 0007's second-need rule: propose it as a change to the Stage.
  *
  * **Beside the drawing.** A Stage sets its tables under its drawing. Set `beside` only where the
  * owner must see a step's marks and its table's rows together to follow the step, such as a graph
@@ -355,26 +573,65 @@ interface Typed extends Staged {
  *
  * **Say it for the ear.** `say` is read aloud after "Passo N de M. Linha L.": write operators in
  * words ("o resto de 48 por 18", not "48 % 18"; "b não é zero", not "b != 0"), since a screen
- * reader reads `%` as "por cento" and other operators symbol by symbol.
+ * reader reads `%` as "por cento" and other operators symbol by symbol. The line on screen is the
+ * same text, with no separate one for the eye, so write an assignment in words too: "M[4] recebe
+ * 7", not "M[4] ← 7". A screen reader reads a word such as `aabba` as one word, so when its
+ * symbols matter, spell them out ("lê a, a, b, b, a", "lê o terceiro símbolo, b"), and say "a
+ * palavra vazia", never "ε".
  *
- * `pnpm check` runs the build on every option or example against the built page and fails on a
+ * `pnpm check` runs the build on every option, every combination of groups' options, or every
+ * example against the built page and fails on a
  * throw, no steps, more than 200, a step that isn't shaped like a `Step`, an empty `say`, a part,
  * row, column or code line the content doesn't have, a mark that changes nothing in its part,
+ * a colour on a part that holds no label, a colour that isn't a whole number from 1 to 6 or is
+ * past the names in `colours`,
  * `lines` in a Stage without exactly one code block, more than one `reversed` line, `body` in a
  * Stage without exactly one table or with no row as written, a `body` row without one text per
  * column, or, with `input`, a step without `body` in a run whose other steps give it, or tables as
  * written that aren't the first example's result, a row the last step adds or drops included. The
- * page refuses the same runs.
+ * page refuses the same runs. Before any run, the check fails an example that breaks its field's
+ * rule, the one the page refuses typed input by: a number that isn't whole or is out of bounds, or
+ * text that isn't in NFC, holds a symbol outside the alphabet, or is longer than `maxLength` or
+ * shorter than `minLength`, counted in code points. It also fails a text field whose alphabet holds
+ * a symbol that isn't one code point or holds one twice, whose `minLength` isn't a whole number of
+ * at least 0 or is above `maxLength`, or whose `maxLength` is missing or isn't a whole number of at
+ * least 1, and a field with a prop of the other kind (`min` or `max` on a text field, `alphabet`,
+ * `minLength` or `maxLength` on a number field).
  */
 type Props = Chosen | Typed;
 
 const props = Astro.props;
-const { build, prompt, figure, alt, beside, caption } = props;
+const { build, prompt, figure, alt, colours, beside, caption } = props;
 const choose = "choose" in props ? props.choose : undefined;
 const input = "input" in props ? props.input : undefined;
+const groups = Array.isArray(choose) ? choose : undefined;
+// One group goes unnamed: its option reaches the build as text.
+const optionRows = Array.isArray(choose)
+  ? choose
+  : choose === undefined
+    ? []
+    : [{ ...choose, name: undefined }];
+const control: Control = input === undefined ? "choose" : "input";
 const [written] = input?.examples ?? [];
+const fields = (input?.fields ?? []).map((field): Field => {
+  const named = { name: field.name, ...(field.label === undefined ? {} : { label: field.label }) };
+  return field.kind === "text"
+    ? {
+        ...named,
+        kind: "text",
+        ...(field.alphabet === undefined
+          ? {}
+          : { alphabet: field.alphabet.map((symbol) => symbol.normalize("NFC")) }),
+        minLength: field.minLength ?? 0,
+        maxLength: field.maxLength,
+      }
+    : { ...named, kind: "number", min: field.min, max: field.max };
+});
+type GivenField = Typed["input"]["fields"][number];
+const fieldsProblems = (input?.fields ?? []).map(fieldPropsProblems);
 // A catalog page's builds sit in `catalog/`, as an artifact's sit beside its entry.
 const slug = Astro.params.slug;
+const content = await Astro.slots.render("default");
 const buildFile = `/${slug === undefined ? "design-system/catalog" : `artifacts/${slug}`}/${build}.build.ts`;
 const problems = [
   ...(existsSync(join(process.cwd(), buildFile))
@@ -387,77 +644,188 @@ const problems = [
   ...(choose !== undefined && input !== undefined
     ? ["give it only one of `choose` and `input`"]
     : []),
+  ...(groups === undefined ? [] : groupsProblems(groups)),
+  ...fieldsProblems.flat(),
   ...(input !== undefined && written === undefined ? ["give `input` at least one example"] : []),
   ...(input?.examples ?? []).flatMap((example, index) => exampleProblems(index + 1, example)),
   ...(figure !== undefined && alt === undefined ? ["give `alt` with `figure`"] : []),
+  ...(figure === undefined ? [] : swatchProblems(figure, colours, "Stage")),
   ...(beside === true && figure === undefined ? ["set `beside` only with `figure`"] : []),
+  ...(/<pre\b[^>]*\sdata-marks\b/.test(content)
+    ? [
+        "its code block marks lines with `{…}`, but a Stage marks them itself, step by step, with `lines`: take `{…}` off the fence",
+      ]
+    : []),
 ];
 if (problems.length > 0) throw componentError("Stage", problems.join("; "));
 
+// A drawn part chooses the option it's named like, so an option's name must say which group's.
+function groupsProblems(given: { name: string; options: string[] }[]): string[] {
+  const names = given.map(({ name }) => name);
+  const options = [...new Set(given.flatMap(({ options }) => options))];
+  return [
+    ...(given.length < 2
+      ? ["give `choose` at least two groups, or write one as `{ label, options }`"]
+      : []),
+    ...[...new Set(names)]
+      .filter((name) => names.indexOf(name) !== names.lastIndexOf(name))
+      .map((name) => `two groups have the name \`${name}\`: give each group its own \`name\``),
+    ...options.flatMap((option) => {
+      const holding = given
+        .filter((group) => group.options.includes(option))
+        .map(({ name }) => `\`${name}\``);
+      const last = holding.pop();
+      return holding.length === 0
+        ? []
+        : [
+            `the option \`${option}\` is in the groups ${holding.join(", ")} and ${last ?? ""}: give each option a name no other group has, since a drawn part named like it chooses it`,
+          ];
+    }),
+  ];
+}
+
+// An entry that breaks the props' types still builds, so a field's props are checked here: one of
+// the wrong kind, or a text field's rule that can't hold.
+function fieldPropsProblems(field: GivenField): string[] {
+  const named = `the field \`${field.name}\``;
+  const given: Record<string, unknown> = field;
+  const text = field.kind === "text";
+  const otherKinds = (text ? ["min", "max"] : ["alphabet", "minLength", "maxLength"])
+    .filter((prop) => given[prop] !== undefined)
+    .map(
+      (prop) => `${named} has \`${prop}\`, which only a ${text ? "number" : "text"} field takes`,
+    );
+  if (field.kind !== "text") return otherKinds;
+  const symbols = (field.alphabet ?? []).map((symbol) => symbol.normalize("NFC"));
+  const alphabet = symbols.flatMap((symbol, index) => {
+    const first = symbols.indexOf(symbol);
+    if (Array.from(symbol).length !== 1) {
+      return first === index
+        ? [`${named} has ${JSON.stringify(symbol)} in its alphabet, which isn't one code point`]
+        : [];
+    }
+    return symbols.indexOf(symbol, first + 1) === index
+      ? [`${named} has ${JSON.stringify(symbol)} more than once in its alphabet`]
+      : [];
+  });
+  const { minLength, maxLength } = given;
+  return [
+    ...alphabet,
+    ...(minLength === undefined || isWholeFrom(minLength, 0)
+      ? []
+      : [
+          `${named} has \`minLength\` ${JSON.stringify(minLength)}, which isn't a whole number of at least 0`,
+        ]),
+    ...(maxLength === undefined
+      ? [`${named} has no \`maxLength\``]
+      : isWholeFrom(maxLength, 1)
+        ? []
+        : [
+            `${named} has \`maxLength\` ${JSON.stringify(maxLength)}, which isn't a whole number of at least 1`,
+          ]),
+    ...(isWholeFrom(minLength, 0) && isWholeFrom(maxLength, 1) && minLength > maxLength
+      ? [
+          `${named} has \`minLength\` ${String(minLength)}, above its \`maxLength\` ${String(maxLength)}`,
+        ]
+      : []),
+    ...otherKinds,
+  ];
+}
+
+function isWholeFrom(value: unknown, least: number): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= least;
+}
+
+// A field whose own props fail has no rule to hold its examples to.
 function exampleProblems(number: number, example: Record<string, unknown>): string[] {
-  const fields: Field[] = input?.fields ?? [];
   const named = `example ${String(number)}`;
   return [
     ...Object.keys(example)
       .filter((name) => !fields.some((field) => field.name === name))
       .map((name) => `${named} has \`${name}\`, which no field has`),
-    ...fields.flatMap((field) => {
+    ...fields.flatMap((field, index) => {
       const value = example[field.name];
       if (value === undefined) return [`${named} has no \`${field.name}\``];
-      const problem = numberProblem(field, value);
+      if (fieldsProblems[index]?.length !== 0) return [];
       const given = `${named} gives \`${field.name}\` ${JSON.stringify(value)}`;
-      return problem === "not-whole"
-        ? [`${given}, which isn't a whole number`]
-        : problem === "out-of-bounds"
-          ? [`${given}, outside ${String(field.min)} to ${String(field.max)}`]
-          : [];
+      const broken = fieldProblem(field, value);
+      switch (broken?.problem) {
+        case undefined:
+          return [];
+        case "not-text":
+          return [`${given}, which isn't text`];
+        case "not-nfc":
+          return [`${given}, which isn't in NFC`];
+        case "outside-alphabet":
+          return [`${given}, whose ${broken.symbol} is outside the alphabet`];
+        case "too-long":
+          return field.kind === "text" ? [`${given}, longer than ${String(field.maxLength)}`] : [];
+        case "too-short":
+          return field.kind === "text" ? [`${given}, shorter than ${String(field.minLength)}`] : [];
+        case "not-whole":
+          return [`${given}, which isn't a whole number`];
+        case "out-of-bounds":
+          return field.kind === "number"
+            ? [`${given}, outside ${String(field.min)} to ${String(field.max)}`]
+            : [];
+      }
     }),
   ];
 }
 
-// The field fits its longest bound and one digit more, so a number refused for being too long
-// still shows whole, and a phone fits two fields and Start on one line.
-const digits = ({ min, max }: Field) => Math.max(String(min).length, String(max).length) + 1;
-
-const example = (values: Record<string, number>) =>
-  (input?.fields ?? []).map(({ name }) => `${name} = ${String(values[name])}`).join(", ");
+// A number field fits its longest bound and one digit more, and a text field its most symbols and
+// one more, so input refused for being too long still shows whole. A phone fits two number fields
+// and Start on one line.
+const width = (field: Field) =>
+  field.kind === "text"
+    ? field.maxLength + 1
+    : Math.max(String(field.min).length, String(field.max).length) + 1;
 ---
 
-<artifact-stage data-build={buildFile} data-module={buildModule(buildFile)}>
+<artifact-stage data-build={buildFile} data-module={buildModule(buildFile)} data-control={control}>
   <figure class="figure stage" data-beside={beside === true ? "" : undefined}>
     <div class="stage-controls" hidden>
-      {choose && (
-        <fieldset class="stage-choice">
-          <legend>{choose.label}</legend>
+      {optionRows.map(({ name, label, options }) => (
+        <fieldset class="stage-choice" data-group={name}>
+          <legend>{label}</legend>
           <div class="stage-options">
-            {choose.options.map((option) => (
+            {options.map((option) => (
               <label class="stage-option">
-                <input type="radio" name={`stage-${build}`} value={option} />
+                <input
+                  type="radio"
+                  name={name === undefined ? `stage-${build}` : `stage-${build}-${name}`}
+                  value={option}
+                />
                 <span>{option}</span>
               </label>
             ))}
           </div>
         </fieldset>
-      )}
+      ))}
       {input && (
-        <form class="stage-input" data-examples={JSON.stringify(input.examples)}>
+        <form
+          class="stage-input"
+          data-fields={JSON.stringify(fields)}
+          data-examples={JSON.stringify(input.examples)}
+        >
           <fieldset class="stage-choice">
             <legend>{input.label}</legend>
             <div class="stage-fields">
-              {input.fields.map((field) => (
-                <label class="stage-field">
+              {fields.map((field) => (
+                <label class="stage-field" data-kind={field.kind}>
                   <span>{field.label ?? field.name}</span>
                   <input
                     type="text"
                     name={field.name}
                     value={String(written?.[field.name] ?? "")}
-                    inputmode={field.min < 0 ? "text" : "numeric"}
+                    inputmode={
+                      field.kind === "text" ? undefined : field.min < 0 ? "text" : "numeric"
+                    }
+                    autocapitalize={field.kind === "text" ? "off" : undefined}
                     autocomplete="off"
                     autocorrect="off"
                     spellcheck="false"
-                    data-min={field.min}
-                    data-max={field.max}
-                    style={`--stage-field-digits: ${String(digits(field))}`}
+                    style={`--stage-field-width: ${String(width(field))}`}
                   />
                 </label>
               ))}
@@ -480,18 +848,29 @@ const example = (values: Record<string, number>) =>
     </div>
     {input && written && (
       <p class="stage-example">
-        <span class="stage-example-label">{input.label}</span>&#32;{example(written)}
+        <span class="stage-example-label">{input.label}</span>&#32;
+        {fields.map((field, index) => (
+          <Fragment>
+            {index > 0 && ", "}
+            {`${field.name} = `}
+            {field.kind === "text" ? (
+              <code>{written[field.name] === "" ? "ε" : written[field.name]}</code>
+            ) : (
+              String(written[field.name])
+            )}
+          </Fragment>
+        ))}
       </p>
     )}
     {figure && alt && (
-      <div class="figure-stage stage-figure">
-        <InlineSvg svg={figure} alt={alt} />
+      <div class="figure-stage stage-figure" data-colours={JSON.stringify(colourNames(colours))}>
+        <InlineSvg svg={figure} alt={alt} swatches="marked" colours={colours} />
       </div>
     )}
     <div class="stage-content">
-      <slot />
+      <Fragment set:html={content} />
     </div>
-    <figcaption>
+    <figcaption data-uncaptioned={caption === undefined ? "" : undefined}>
       <span class="figure-number">
         <span data-lang="en">Figure</span>
         <span data-lang="pt">Figura</span>&#32;
@@ -538,6 +917,12 @@ const example = (values: Record<string, number>) =>
         font-size: var(--font-size-frame-small);
         font-weight: var(--font-weight-frame-strong);
       }
+    }
+
+    /* Each group's label sits close over its own row, and the groups stand further apart, so a
+       label never reads as the row above's. */
+    .stage-choice + .stage-choice {
+      margin-block-start: var(--space-2);
     }
 
     .stage-options {
@@ -594,7 +979,10 @@ const example = (values: Record<string, number>) =>
       }
     }
 
+    /* A grid item grows its track to its widest field, so a text field wider than the column
+       would push the Stage past it; at 0 the field shrinks to the column instead. */
     .stage-input {
+      min-inline-size: 0;
       margin: 0;
     }
 
@@ -609,6 +997,7 @@ const example = (values: Record<string, number>) =>
       display: inline-flex;
       align-items: center;
       gap: var(--space-2);
+      max-inline-size: 100%;
       font-family: var(--font-frame);
       font-stretch: var(--font-stretch-frame);
       font-size: var(--font-size-frame);
@@ -617,7 +1006,7 @@ const example = (values: Record<string, number>) =>
 
       > input {
         box-sizing: border-box;
-        inline-size: calc(var(--stage-field-digits) * 1ch + 2 * var(--inset) + 2 * var(--stroke));
+        inline-size: calc(var(--stage-field-width) * 1ch + 2 * var(--inset) + 2 * var(--stroke));
         min-inline-size: var(--target);
         min-block-size: var(--target);
         margin: 0;
@@ -636,6 +1025,19 @@ const example = (values: Record<string, number>) =>
         &[aria-invalid="true"] {
           border-style: dashed;
         }
+      }
+
+      /* A build reads text symbol by symbol, so it is set in the code face, where 0 and O, l and 1
+         differ, and each symbol is 1ch wide. 1rem, not code's 0.82em of body type, since a phone
+         zooms the page into a focused field set smaller. A field wider than its line shrinks to
+         the line, alone on it. */
+      &[data-kind="text"] > input {
+        flex: 0 1 auto;
+        font-family: var(--font-mono);
+        font-size: var(--font-size-frame);
+        font-variation-settings: "MONO" 1;
+        font-variant-numeric: normal;
+        text-align: start;
       }
     }
 
@@ -713,6 +1115,12 @@ const example = (values: Record<string, number>) =>
       cursor: pointer;
     }
 
+    /* A part uncoloured as written holds an empty label for a step to fill, so its plate stays
+       hidden, on screen and in print, until a step colours it. */
+    .stage-figure [data-swatch-plate]:has(+ text[data-swatch=""]) {
+      visibility: hidden;
+    }
+
     /* Forced colours would flatten the reversed fill and the grey, so the Stage paints its marks
        in the system's own ink, ground and grey. */
     @media (forced-colors: active) {
@@ -726,14 +1134,41 @@ const example = (values: Record<string, number>) =>
         --stage-ink: CanvasText;
         --stage-ground: Canvas;
       }
+
+      /* The drawing's tokens are the system's already, so a colour's plate and label take them
+         from their part, as marked, over figure-colours.css's own. */
+      .stage-figure > svg [data-swatch-plate] {
+        --color-surface: inherit;
+      }
+
+      .stage-figure > svg text[data-swatch] {
+        color: inherit;
+      }
     }
 
     /* Print shows the content as written whatever step is on screen, and `beforeprint` doesn't
-       fire for every way of printing, so the marks exist only on screen. */
+       fire for every way of printing, so the marks exist only on screen. A part's hatching is
+       drawn at the drawing's top, beyond its tokens' reach, so a mark or hover hands the part
+       the hatching drawn in its state instead (swatches.ts). */
     @media screen {
       @media (hover: hover) and (forced-colors: none) {
         .stage-figure [data-choice]:hover:not([data-mark="reversed"]) {
           --color-surface: var(--color-surface-subtle);
+          --swatch-1: var(--swatch-1-wiped);
+          --swatch-2: var(--swatch-2-wiped);
+          --swatch-3: var(--swatch-3-wiped);
+          --swatch-4: var(--swatch-4-wiped);
+          --swatch-5: var(--swatch-5-wiped);
+          --swatch-6: var(--swatch-6-wiped);
+        }
+
+        .stage-figure [data-choice][data-mark="muted"]:hover {
+          --swatch-1: var(--swatch-1-muted-wiped);
+          --swatch-2: var(--swatch-2-muted-wiped);
+          --swatch-3: var(--swatch-3-muted-wiped);
+          --swatch-4: var(--swatch-4-muted-wiped);
+          --swatch-5: var(--swatch-5-muted-wiped);
+          --swatch-6: var(--swatch-6-muted-wiped);
         }
       }
 
@@ -751,15 +1186,99 @@ const example = (values: Record<string, number>) =>
         stroke-dasharray: 6 4;
       }
 
+      /* A step's colour is an attribute on the part, so print keeps the classes as written: its
+         areas take the swatch, as a `fill-swatch-` class would fill them, and its plate shows.
+         Uncoloured, its swatches take the ground and its label and plate hide. */
+      .stage-figure
+        [data-colour="1"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-1);
+      }
+
+      .stage-figure
+        [data-colour="2"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-2);
+      }
+
+      .stage-figure
+        [data-colour="3"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-3);
+      }
+
+      .stage-figure
+        [data-colour="4"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-4);
+      }
+
+      .stage-figure
+        [data-colour="5"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-5);
+      }
+
+      .stage-figure
+        [data-colour="6"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-6);
+      }
+
+      .stage-figure [data-colour="none"] [class*="fill-swatch-"] {
+        fill: var(--color-surface);
+      }
+
+      .stage-figure [data-colour]:not([data-colour="none"]) [data-swatch-plate] {
+        visibility: visible;
+      }
+
+      .stage-figure [data-colour="none"] :is([data-swatch-plate], text[data-swatch]) {
+        visibility: hidden;
+      }
+
+      /* A swatch drawn without an outline takes the mark's own, so every mark reads on it, as
+         does a ground area a step colours. */
+      .stage-figure
+        :is([data-mark="strong"], [data-mark="strong"] *):is(
+          [class*="fill-swatch-"],
+          [data-colour]:not([data-colour="none"]) .fill-surface:not([data-swatch-plate])
+        ):not([class*="stroke-"]) {
+        stroke: var(--color-text);
+        stroke-width: 4;
+      }
+
+      .stage-figure
+        :is([data-mark="dashed"], [data-mark="dashed"] *):is(
+          [class*="fill-swatch-"],
+          [data-colour]:not([data-colour="none"]) .fill-surface:not([data-swatch-plate])
+        ):not([class*="stroke-"]) {
+        stroke: var(--color-text);
+        stroke-width: 2;
+        stroke-dasharray: 6 4;
+      }
+
       /* Unclassed labels paint in currentColor, so the marks set the colour as well as the token. */
       .stage-figure [data-mark="muted"] {
         --color-text: var(--color-text-muted);
+        --swatch-1: var(--swatch-1-muted);
+        --swatch-2: var(--swatch-2-muted);
+        --swatch-3: var(--swatch-3-muted);
+        --swatch-4: var(--swatch-4-muted);
+        --swatch-5: var(--swatch-5-muted);
+        --swatch-6: var(--swatch-6-muted);
         color: var(--color-text-muted);
       }
 
       .stage-figure [data-mark="reversed"] {
         --color-text: var(--stage-ground);
         --color-surface: var(--stage-ink);
+        --swatch-1: var(--stage-ink);
+        --swatch-2: var(--stage-ink);
+        --swatch-3: var(--stage-ink);
+        --swatch-4: var(--stage-ink);
+        --swatch-5: var(--stage-ink);
+        --swatch-6: var(--stage-ink);
         color: var(--stage-ground);
       }
 
@@ -892,7 +1411,8 @@ const example = (values: Record<string, number>) =>
     @media print {
       .stage-controls,
       .stage-step-text,
-      .stage-step-row {
+      .stage-step-row,
+      .stage-figure [data-colour-fading] {
         display: none;
       }
     }

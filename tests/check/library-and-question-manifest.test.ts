@@ -51,6 +51,8 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "published: 2026-08-30",
         ],
         [
+          'import Matching from "@artifactory/design-system/matching";',
+          'import NumericQuestion from "@artifactory/design-system/numeric-question";',
           'import OpenQuestion from "@artifactory/design-system/open-question";',
           'import SingleChoice from "@artifactory/design-system/single-choice";',
           "",
@@ -60,6 +62,17 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "",
           "1. $x$",
           "2. $2x$",
+          "",
+          "---",
+          "",
+          "a) esquece o expoente que desce. Pela regra da potência:",
+          "",
+          "1. o expoente $2$ desce como fator;",
+          "2. o novo expoente é $2 - 1 = 1$.",
+          "",
+          "```python",
+          "derivada = 2 * x",
+          "```",
           "",
           "</SingleChoice>",
           "",
@@ -78,6 +91,41 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "Pela definição de derivada como limite.",
           "",
           "</OpenQuestion>",
+          "",
+          '<NumericQuestion id="derivada-em-3" answer="6">',
+          "",
+          "Quanto vale a derivada de $x^2$ em $x = 3$?",
+          "",
+          "---",
+          "",
+          "Pela regra da potência, a derivada é $2x$:",
+          "",
+          "1. em $x = 3$, ela vale $2 \\cdot 3$;",
+          "2. logo, $6$.",
+          "",
+          "</NumericQuestion>",
+          "",
+          '<Matching answers={{ "derivada-de-x3": 2, "derivada-de-constante": 1 }}>',
+          "",
+          "Qual é a derivada de cada função?",
+          "",
+          "1. $0$",
+          "2. $3x^2$",
+          "3. $x$",
+          "",
+          "---",
+          "",
+          "- $x^3$",
+          "- $5$",
+          "",
+          "---",
+          "",
+          "Pela regra da potência:",
+          "",
+          "- o expoente $3$ desce como fator;",
+          "- uma constante não varia, e sua derivada é $0$.",
+          "",
+          "</Matching>",
         ],
       ),
       "artifacts/bases-nitrogenadas/index.mdx": artifact([
@@ -135,13 +183,47 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "published: 2026-10-13",
         ],
         [
+          'import Matching from "@artifactory/design-system/matching";',
           'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+          'import SingleChoice from "@artifactory/design-system/single-choice";',
           "",
           '<NumericQuestion id="spring-frequency" answer="10" tolerance={0.05} unit="rad/s">',
           "",
           "A $2\\,\\mathrm{kg}$ mass hangs on a spring with $k = 200\\,\\mathrm{N/m}$. What is its angular frequency $\\omega$?",
           "",
           "</NumericQuestion>",
+          "",
+          "## Special matrices",
+          "",
+          '<Matching answers={{ "identity-matrix": 1, "zero-matrix": 2, "rotation-matrix": 4 }}>',
+          "",
+          "Which real eigenvalues does each $2 \\times 2$ matrix have?",
+          "",
+          "1. Only $1$",
+          "2. Only $0$",
+          "3. Only $-1$",
+          "4. None",
+          "",
+          "---",
+          "",
+          "- The identity $I$",
+          "- The zero matrix",
+          "- A rotation by $90°$",
+          "",
+          "</Matching>",
+          "",
+          '<SingleChoice id="identity-eigenvalue" answer={1}>',
+          "",
+          "What is every eigenvalue of the identity matrix?",
+          "",
+          "1. $1$",
+          "2. $0$",
+          "",
+          "---",
+          "",
+          "The identity maps every vector to itself, so $I v = 1 \\cdot v$.",
+          "",
+          "</SingleChoice>",
         ],
       ),
       "artifacts/genetica/index.mdx": artifact([
@@ -350,13 +432,25 @@ describe("a repo with published artifacts and drafts, some with questions", () =
 
       expect(await questionsOn("")).toEqual([
         { artifactId: "l1m1t3s1", questions: [{ id: "limite-de-1-sobre-x", number: 1 }] },
-        { artifactId: "e1g3nv4l", questions: [{ id: "spring-frequency", number: 1 }] },
+        {
+          artifactId: "e1g3nv4l",
+          questions: [
+            { id: "spring-frequency", number: 1 },
+            { id: "identity-matrix", number: 2, section: "Special matrices", math: [] },
+            { id: "zero-matrix", number: 3, section: "Special matrices", math: [] },
+            { id: "rotation-matrix", number: 4, section: "Special matrices", math: [] },
+            { id: "identity-eigenvalue", number: 5, section: "Special matrices", math: [] },
+          ],
+        },
         { artifactId: "l1m1t3s2", questions: [{ id: "limite-de-1-sobre-x", number: 1 }] },
         {
           artifactId: "d3r1v4d4",
           questions: [
             { id: "regra-da-potencia", number: 1 },
             { id: "por-que-2x", number: 2, section: "A derivada de xn", math: ["xn"] },
+            { id: "derivada-em-3", number: 3, section: "A derivada de xn", math: ["xn"] },
+            { id: "derivada-de-x3", number: 4, section: "A derivada de xn", math: ["xn"] },
+            { id: "derivada-de-constante", number: 5, section: "A derivada de xn", math: ["xn"] },
           ],
         },
       ]);
@@ -406,6 +500,202 @@ describe("a repo with published artifacts and drafts, some with questions", () =
     });
   });
 
+  describe("a single choice's explanation", () => {
+    async function singleChoice(slug: string, id: string, lang: "en" | "pt") {
+      const page = await builtPage(slug);
+      const question = page.querySelector(`#q-${id}`);
+      const options = question?.querySelector(".single-choice-options");
+      const explanation = question?.querySelector(".question-explanation");
+      const { copy } = inLanguage(explanation, lang);
+      const text = (node: Element | null | undefined) =>
+        node?.textContent.replace(/\s+/g, " ").trim();
+      return {
+        options: [...(options?.querySelectorAll(":scope > li") ?? [])].map(text),
+        hidden: explanation?.hasAttribute("hidden"),
+        afterOptions:
+          options !== null &&
+          options !== undefined &&
+          explanation !== null &&
+          explanation !== undefined &&
+          (options.compareDocumentPosition(explanation) & 4) !== 0,
+        heading: text(copy?.querySelector(".question-revealed-heading")),
+        content: copy?.querySelector(".question-revealed-content"),
+      };
+    }
+
+    it("comes after the options, hidden, under its heading in the artifact's language, and a list or code in it is no option", async () => {
+      const pt = await singleChoice("derivadas", "regra-da-potencia", "pt");
+      expect(pt).toMatchObject({
+        options: ["x", "2x"],
+        hidden: true,
+        afterOptions: true,
+        heading: "Explicação",
+      });
+      expect(
+        [...(pt.content?.querySelectorAll("ol > li") ?? [])].map((li) => li.textContent),
+      ).toEqual(["o expoente 2 desce como fator;", "o novo expoente é 2−1=1."]);
+      expect(pt.content?.querySelector("pre code")?.textContent).toBe("derivada = 2 * x");
+
+      const en = await singleChoice("eigenvalues", "identity-eigenvalue", "en");
+      expect(en).toMatchObject({
+        options: ["1", "0"],
+        hidden: true,
+        afterOptions: true,
+        heading: "Explanation",
+      });
+      expect(en.content?.textContent.replace(/\s+/g, " ").trim()).toBe(
+        "The identity maps every vector to itself, so Iv=1⋅v.",
+      );
+    });
+
+    it("isn't there on a single choice written without one", async () => {
+      const page = await builtPage("limites");
+      expect(page.querySelector("#q-limite-de-1-sobre-x .question-explanation")).toBeNull();
+    });
+  });
+
+  describe("a numeric question's explanation", () => {
+    it("comes after the field, hidden, under its heading in the artifact's language, and leaves the question as what comes before `---`", async () => {
+      const page = await builtPage("derivadas");
+      const question = page.querySelector("#q-derivada-em-3");
+      const field = question?.querySelector(".numeric-question-answer");
+      const explanation = question?.querySelector(".question-explanation");
+      const { copy } = inLanguage(explanation, "pt");
+      const text = (node: Element | null | undefined) =>
+        node?.textContent.replace(/\s+/g, " ").trim();
+
+      expect(text(question?.querySelector(".question-prompt"))).toBe(
+        "Quanto vale a derivada de x2 em x=3?",
+      );
+      expect(explanation?.hasAttribute("hidden")).toBe(true);
+      expect(
+        field !== null &&
+          field !== undefined &&
+          explanation !== null &&
+          explanation !== undefined &&
+          (field.compareDocumentPosition(explanation) & 4) !== 0,
+      ).toBe(true);
+      expect(text(copy?.querySelector(".question-revealed-heading"))).toBe("Explicação");
+      const content = copy?.querySelector(".question-revealed-content");
+      expect(text(content?.querySelector("p"))).toBe("Pela regra da potência, a derivada é 2x:");
+      expect([...(content?.querySelectorAll("ol > li") ?? [])].map(text)).toEqual([
+        "em x=3, ela vale 2⋅3;",
+        "logo, 6.",
+      ]);
+      expect(
+        question?.querySelector("#q-derivada-em-3--field")?.hasAttribute("aria-describedby"),
+      ).toBe(false);
+    });
+
+    it("isn't there on a numeric question written without one", async () => {
+      const page = await builtPage("eigenvalues");
+      expect(page.querySelector("#q-spring-frequency .question-explanation")).toBeNull();
+      expect(
+        page.querySelector("#q-spring-frequency--field")?.getAttribute("aria-describedby"),
+      ).toBe("q-spring-frequency--unit");
+    });
+  });
+
+  describe("a matching between other questions", () => {
+    async function matching(lang: "en" | "pt") {
+      const page = await builtPage("eigenvalues");
+      const { copy } = inLanguage(page.querySelector("artifact-matching"), lang);
+      const text = (node: Element | null | undefined) =>
+        node?.textContent.replace(/\s+/g, " ").trim();
+      return {
+        page,
+        box: copy,
+        header: text(copy?.querySelector(".question-number")),
+        hint: text(copy?.querySelector(".question-hint")),
+        options: [...(copy?.querySelectorAll(".matching-options > li") ?? [])].map(text),
+        rows: [...(copy?.querySelectorAll(".matching-item") ?? [])].map((row) => ({
+          anchor: row.id,
+          number: text(row.querySelector(".matching-item-number")),
+          item: text(row.querySelector(".matching-item-text")),
+          letters: [...row.querySelectorAll("label")].map(text),
+        })),
+      };
+    }
+
+    it("heads one box with its items' range and the hint, letters the options once and gives each item its own numbered row of letters, before the page's script runs", async () => {
+      const { box, header, hint, options, rows } = await matching("en");
+      expect(box?.hasAttribute("data-question-id")).toBe(false);
+      expect(header).toBe("Questions 2–4");
+      expect(hint).toBe("Match");
+      expect(options).toEqual(["a) Only 1", "b) Only 0", "c) Only −1", "d) None"]);
+      expect(rows).toEqual([
+        {
+          anchor: "q-identity-matrix",
+          number: "2",
+          item: "The identity I",
+          letters: ["a", "b", "c", "d"],
+        },
+        {
+          anchor: "q-zero-matrix",
+          number: "3",
+          item: "The zero matrix",
+          letters: ["a", "b", "c", "d"],
+        },
+        {
+          anchor: "q-rotation-matrix",
+          number: "4",
+          item: "A rotation by 90°",
+          letters: ["a", "b", "c", "d"],
+        },
+      ]);
+      const pt = await matching("pt");
+      expect([pt.header, pt.hint]).toEqual(["Questões 2–4", "Associe"]);
+    });
+
+    it("lists each item to revisit by its own number, and the question after the set continues the series", async () => {
+      const { page } = await matching("en");
+      const revisit = (id: string) =>
+        page.querySelector(`[data-wrong-for="${id}"] a [data-lang="en"]`)?.textContent.trim();
+      const link = (id: string) =>
+        page.querySelector(`[data-wrong-for="${id}"] a`)?.getAttribute("href");
+      expect(revisit("zero-matrix")).toBe("Question 3");
+      expect(link("zero-matrix")).toBe("#q-zero-matrix");
+      expect(revisit("identity-eigenvalue")).toBe("Question 5");
+    });
+  });
+
+  describe("a matching's explanation", () => {
+    it("comes after the item rows, hidden, under its heading in the artifact's language, and a list in it is no item", async () => {
+      const page = await builtPage("derivadas");
+      const box = page.querySelector("artifact-matching");
+      const rows = box?.querySelector(".matching-items");
+      const explanation = box?.querySelector(".question-explanation");
+      const { copy } = inLanguage(explanation, "pt");
+      const text = (node: Element | null | undefined) =>
+        node?.textContent.replace(/\s+/g, " ").trim();
+
+      expect([...(box?.querySelectorAll(".matching-item-text") ?? [])].map(text)).toEqual([
+        "x3",
+        "5",
+      ]);
+      expect(explanation?.hasAttribute("hidden")).toBe(true);
+      expect(
+        rows !== null &&
+          rows !== undefined &&
+          explanation !== null &&
+          explanation !== undefined &&
+          (rows.compareDocumentPosition(explanation) & 4) !== 0,
+      ).toBe(true);
+      expect(text(copy?.querySelector(".question-revealed-heading"))).toBe("Explicação");
+      const content = copy?.querySelector(".question-revealed-content");
+      expect(text(content?.querySelector("p"))).toBe("Pela regra da potência:");
+      expect([...(content?.querySelectorAll("ul > li") ?? [])].map(text)).toEqual([
+        "o expoente 3 desce como fator;",
+        "uma constante não varia, e sua derivada é 0.",
+      ]);
+    });
+
+    it("isn't there on a matching written without one", async () => {
+      const page = await builtPage("eigenvalues");
+      expect(page.querySelector("artifact-matching .question-explanation")).toBeNull();
+    });
+  });
+
   describe("an artifact's masthead", () => {
     function masthead(page: Document, lang: "en" | "pt") {
       const { copy, slots, toggles } = inLanguage(page.querySelector("header"), lang);
@@ -434,12 +724,12 @@ describe("a repo with published artifacts and drafts, some with questions", () =
     it("dates a published artifact by its published date, links back to the Library and holds the eye", async () => {
       const published = await builtPage("derivadas");
       expect(masthead(published, "pt")).toEqual({
-        runningHead: ["Pular para o texto", "Biblioteca", "Tema escuro", "2 seções · 2 questões"],
+        runningHead: ["Pular para o texto", "Biblioteca", "Tema escuro", "2 seções · 5 questões"],
         identRow: ["Cálculo", "Publicado em 30 ago. 2026"],
         toggles: ["Tema escuro"],
       });
       expect(masthead(published, "en")).toEqual({
-        runningHead: ["Skip to the text", "Library", "Dark theme", "2 sections · 2 questions"],
+        runningHead: ["Skip to the text", "Library", "Dark theme", "2 sections · 5 questions"],
         identRow: ["Cálculo", "Published 30 Aug 2026"],
         toggles: ["Dark theme"],
       });
@@ -545,6 +835,9 @@ describe("a repo with published artifacts and drafts, some with questions", () =
         d3r1v4d4: [
           { id: "regra-da-potencia", kind: "single-choice", key: 2 },
           { id: "por-que-2x", kind: "open-question" },
+          { id: "derivada-em-3", kind: "numeric", key: { value: "6" } },
+          { id: "derivada-de-x3", kind: "single-choice", key: 2 },
+          { id: "derivada-de-constante", kind: "single-choice", key: 1 },
         ],
         "1nt3gr41": [{ id: "regra-da-potencia", kind: "single-choice", key: 1 }],
         b4s3sn1t: [],
@@ -558,6 +851,10 @@ describe("a repo with published artifacts and drafts, some with questions", () =
             kind: "numeric",
             key: { value: "10", tolerance: 0.05 },
           },
+          { id: "identity-matrix", kind: "single-choice", key: 1 },
+          { id: "zero-matrix", kind: "single-choice", key: 2 },
+          { id: "rotation-matrix", kind: "single-choice", key: 4 },
+          { id: "identity-eigenvalue", kind: "single-choice", key: 1 },
         ],
         g3n3t1c4: [],
       });

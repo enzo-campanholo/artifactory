@@ -1,3 +1,5 @@
+import type { Fault, Machine, Problem } from "./machine.ts";
+
 /**
  * The four marks a step can put on the drawing, the tables and the code, named for what they
  * mean. The Stage draws each one the same way everywhere:
@@ -40,9 +42,20 @@ export interface Step {
   /** Marks on the drawing's parts, by their `data-part` name. */
   parts?: Record<string, Mark>;
   /**
-   * Marks on the code block's lines, by line number from 1, as the page numbers them. Mark the line
-   * this step runs `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage
-   * must hold exactly one fenced code block.
+   * Colours on the drawing's parts, by their `data-part` name, each a swatch number from 1 to the
+   * Stage's `colours` (1 to 6 without it), or `null` for uncoloured: its swatch shapes take the
+   * ground and its label hides. A part's `fill-surface` and `fill-swatch-` shapes take swatch N
+   * and its label colour N's name, as if written so. Each part must hold a label
+   * `<text data-swatch>`, empty if it's uncoloured as written. Leave a part out to keep it as
+   * written, and name every colour this step shows, not only the ones it changes. A number that
+   * isn't a whole number from 1 to 6 refuses the run.
+   */
+  colours?: Record<string, number | null>;
+  /**
+   * Marks on the code block's lines, by the number the page shows for each: from 1, or from the
+   * fence's `start` (` ```pascal start=0 ` makes the first line 0). Mark the line this step runs
+   * `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage must hold
+   * exactly one fenced code block.
    */
   lines?: Record<number, Mark>;
   /**
@@ -62,28 +75,212 @@ export interface Step {
   cells?: CellChange[];
 }
 
-/** What the owner typed into a Stage's `input`: each field's whole number, by the field's `name`. */
-export type Typed = Record<string, number>;
+/**
+ * What the owner typed into a Stage's `input`, by each field's `name`: a number field's whole
+ * number, or a text field's text as a `string`, in NFC, `""` for the empty word. With a list of
+ * choice groups, the option chosen in each group, by the group's `name`, as a `string`.
+ */
+export type Typed = Record<string, number | string>;
+
+/** One line of the Stage's code block as written. */
+export interface CodeLine {
+  /** The number the page shows for it: from 1, or from the fence's `start`. */
+  line: number;
+  /** Its text, as plain text: no highlighting, no line number, its indentation kept. */
+  text: string;
+}
+
+/** One of the Stage's tables as written, as plain text, as `rows` and `cells` find it. */
+export interface WrittenTable {
+  /** Each column's header text, in order. */
+  columns: string[];
+  /** Each body row as its cells' texts, one per column, in order. */
+  rows: string[][];
+}
+
+/**
+ * The Stage's content as written, `steps`'s second argument, so a build reads what the content
+ * already says, such as a program in the code block, rather than writing it twice. The page and
+ * `pnpm check` hand every run the same content, a fresh copy each time, whatever an earlier run
+ * did with its own.
+ */
+export interface Content {
+  /**
+   * The artifact's main language, for saying each step in it: `"pt-BR"` or `"en"`, as the Stage
+   * chooses its own lines.
+   */
+  lang: "pt-BR" | "en";
+  /**
+   * Each fenced code block's lines, one list per block in the content's order, each line in order
+   * with the number the page shows for it: ` ```text start=0 ` makes the first line 0.
+   */
+  code: CodeLine[][];
+  /**
+   * Each table, in the content's order, with its rows as written, even in a run whose steps give
+   * `body`.
+   */
+  tables: WrittenTable[];
+}
 
 /**
  * A custom build: what turns the owner's choice into steps. With `choose`, `steps` gets the option
- * as text; with `input`, it gets each field's number, typed as `Input`.
+ * as text; with a list of choice groups, each group's option by the group's name, typed as
+ * `Input`, each a `string`; with `input`, it gets each field's value, typed as `Input`: a number
+ * field's whole number as a `number`, a text field's text as a `string`. Either way its second
+ * argument is the Stage's content as written (`Content`), which a build may leave out.
  */
 export interface Build<Input extends string | Typed = string> {
   /**
-   * Every step for the option the owner chose or the numbers they typed, in order, at least one
-   * and at most 200. Called again from step 1 whenever they choose again or press Start.
+   * Every step for the option the owner chose, the options of every group, or the input they
+   * typed, in order, at least one and at most 200. Called again from step 1 whenever they choose
+   * again (with groups, once every group has a choice) or press Start, with the content as written
+   * each time.
    */
-  steps: (input: Input) => Step[];
+  steps: (input: Input, content: Content) => Step[];
 }
 
 /**
  * Wraps the build so TypeScript checks it. A `.build.ts` file's default export. With `input`,
- * give the fields' names as its type, `defineBuild<{ a: number; b: number }>({ … })`, so `steps`
- * gets them typed: `pnpm check` fails when they aren't the Stage's fields.
+ * give the fields' names as its type, a number field's as `number` and a text field's as `string`,
+ * `defineBuild<{ a: number; b: number }>({ … })` or `defineBuild<{ w: string; m: number }>({ … })`,
+ * so `steps` gets them typed: `pnpm check` fails when they aren't the Stage's fields and kinds.
+ * With a list of choice groups, give the groups' names, each a `string`,
+ * `defineBuild<{ inicio: string; busca: string }>({ … })`; with one group, leave the type out.
+ * `steps` gets the content as written second, typed `Content`, without a type of its own.
  */
 export function defineBuild<Input extends string | Typed = string>(
   build: Build<Input>,
 ): Build<Input> {
   return build;
+}
+
+// More steps than this is no longer a walkthrough.
+export const mostSteps = 200;
+
+// A machine's fault refuses the run. The trace throws it through `steps`, which returns only steps,
+// and the step applier turns it into the refusal the page and the check give.
+export class MachineFault extends Error {
+  readonly line: number;
+  readonly fault: Fault["fault"];
+
+  constructor({ line, fault }: Fault) {
+    super(`line ${String(line)}: ${fault.en}`);
+    this.line = line;
+    this.fault = fault;
+  }
+}
+
+// A program or notes that don't fit the machine refuse every run, the same way.
+export class MachineProblems extends Error {
+  readonly problems: Problem[];
+
+  constructor(problems: Problem[]) {
+    super(problems.map(({ problem }) => problem).join("; "));
+    this.problems = problems;
+  }
+}
+
+const startingSay: Record<Content["lang"], string> = {
+  "pt-BR": "A máquina ainda não deu nenhum passo.",
+  en: "The machine hasn't taken a step yet.",
+};
+
+/**
+ * A build that traces a machine the design system holds, such as MEPA
+ * (`@artifactory/design-system/machines/mepa`), on the owner's input: the build's whole default
+ * export, `export default trace(mepa, { reads: ["x", "y"], … })`. The machine reads its program
+ * from the Stage's content as written (MEPA's from the code block), so the program is written
+ * once, and says each step in the artifact's main language. `notes` are the program's own data,
+ * keyed by address, in the artifact's language, never read from the code's comments: `reads`
+ * names the Stage's fields in the order the machine reads them, exactly the Stage's fields, each
+ * of the kind the machine reads (number fields for MEPA), or `pnpm check` fails as `build-input`.
+ * With a list of choice groups, `reads` names the groups, for a machine that reads text; one
+ * group's option has no name to read it by, so a trace takes `input` or a list of groups. Each
+ * machine's entry under "Machines" lists the kind it reads, its other notes and its tables.
+ *
+ * The first step shows the starting state, then one step follows per step of the machine until it
+ * halts, at most 200 in all, as for any build: a run past them is refused, so keep runs short
+ * through the fields' bounds. Every cell whose text changed since the step before is `strong`. A
+ * fault, such as a division by zero, refuses the run, naming the line and the fault. A program or
+ * notes that don't fit the machine, a `reads` name that isn't one of the Stage's fields included,
+ * refuse every run, `pnpm check` naming each problem and the code line it's on.
+ */
+export function trace<
+  Program,
+  State,
+  Notes,
+  Value extends number | string,
+  const Reads extends string,
+>(
+  machine: Machine<Program, State, Notes, Value>,
+  notes: NoInfer<Notes> & { reads: readonly Reads[] },
+): Build<Record<Reads, Value>> {
+  return {
+    steps(input, content) {
+      const fields = Object.keys(input);
+      const unread = notes.reads
+        .filter((name) => !fields.includes(name))
+        .map((name) => ({
+          line: undefined,
+          problem: `\`reads\` names \`${name}\`, which isn't one of the Stage's fields`,
+        }));
+      const parsed = machine.parse(content, notes);
+      if ("problems" in parsed || unread.length > 0) {
+        throw new MachineProblems([...unread, ...("problems" in parsed ? parsed.problems : [])]);
+      }
+      let state = machine.start(
+        parsed.program,
+        notes.reads.map((name) => input[name]),
+      );
+      const steps = [{ say: startingSay[content.lang], ...machine.view(state) }];
+      for (let halted = false; !halted && steps.length <= mostSteps;) {
+        const moved = machine.step(state);
+        if ("fault" in moved) throw new MachineFault(moved.fault);
+        ({ state, halted } = moved);
+        steps.push({ say: moved.say, ...machine.view(state) });
+      }
+      return steps.map((step, index) => strongWhereChanged(step, steps[index - 1], content));
+    },
+  };
+}
+
+// A text diff can't see a write of the value a cell already held, so a view may still mark that
+// cell `strong` itself, and a cell the view marks keeps its mark.
+function strongWhereChanged(step: Step, before: Step | undefined, content: Content): Step {
+  if (before === undefined) return step;
+  const textOf = (shown: Step, row: string, column: string) =>
+    shown.cells?.findLast(
+      (cell) => cell.row === row && cell.column === column && cell.text !== undefined,
+    )?.text ?? writtenText(content, row, column);
+  const named = [...(before.cells ?? []), ...(step.cells ?? [])];
+  const changed = named.filter(
+    ({ row, column }, index) =>
+      named.findIndex((cell) => cell.row === row && cell.column === column) === index &&
+      textOf(step, row, column) !== textOf(before, row, column),
+  );
+  const cells = (step.cells ?? []).map((cell) =>
+    cell.mark === undefined &&
+    changed.some(({ row, column }) => row === cell.row && column === cell.column)
+      ? { ...cell, mark: "strong" as const }
+      : cell,
+  );
+  const unnamed = changed.filter(
+    ({ row, column }) => !cells.some((cell) => cell.row === row && cell.column === column),
+  );
+  return {
+    ...step,
+    cells: [
+      ...cells,
+      ...unnamed.map(({ row, column }) => ({ row, column, mark: "strong" as const })),
+    ],
+  };
+}
+
+function writtenText(content: Content, row: string, column: string): string | undefined {
+  for (const { columns, rows } of content.tables) {
+    const at = columns.indexOf(column);
+    const cells = rows.find(([first]) => first === row);
+    if (at >= 0 && cells !== undefined) return cells[at];
+  }
+  return undefined;
 }

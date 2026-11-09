@@ -5,10 +5,13 @@ import Proof from "../src/Proof.astro";
 import Ref from "../src/Ref.astro";
 import Statement from "../src/Statement.astro";
 import Stepper from "../src/Stepper.astro";
+import insertionSort from "./insertion-sort.svg?raw";
 import orbitSteps from "./orbit-steps.svg?raw";
 import plot from "./plot.svg?raw";
 import stateSync from "./state-sync.d2";
 import studySteps from "./study-steps.d2?steps";
+import swatchNumerals from "./swatch-numerals.svg?raw";
+import swatches from "./swatches.svg?raw";
 
 ## Text
 
@@ -49,12 +52,32 @@ export function area(radius: number): number {
 }
 ```
 
+Code that points at some of its lines marks them with `{…}`, and the prose names them, since the marks are only seen: here line 2, which keeps its comment in ink, and lines 4 to 5, the first only a comment:
+
+```ts {2, 4-5}
+export function ringArea(outer: number, inner: number): number {
+  const disc = Math.PI * outer ** 2; // the whole disc
+  const hole = Math.PI * inner ** 2;
+  // take the hole away
+  return disc - hole;
+}
+```
+
 Code with a line too long for the column scrolls inside its rules:
 
 ```ts
 export function annulusArea(outerRadius: number, innerRadius: number): number {
   return Math.PI * (outerRadius ** 2 - innerRadius ** 2); // the ring between two circles of the same centre
 }
+```
+
+Code whose source numbers its lines from 0, such as a stack machine's listing, keeps those numbers with `start=0`:
+
+```text start=0
+push 2
+push 3
+add
+print
 ```
 
 So does a table too wide for the column:
@@ -164,6 +187,35 @@ both exist, since $f$ is continuous on $[a, b]$.
 
 </Proof>
 
+A proposition is a claim too, italic like a theorem, and its proof can follow it at once:
+
+<Statement kind="proposition" id="bounded-derivative" name="Bounded derivative">
+
+If $|f'(x)| \le M$ for every $x \in (a, b)$, then $|f(y) - f(x)| \le M\,|y - x|$ for all $x, y \in [a, b]$.
+
+</Statement>
+
+<Proof of="bounded-derivative">
+
+For $x < y$, <Ref to="mean-value" /> on $[x, y]$ gives some $c \in (x, y)$ with $|f(y) - f(x)| = |f'(c)|\,(y - x) \le M\,(y - x)$.
+
+</Proof>
+
+<Statement kind="proposition" id="uniformly-continuous">
+
+A function whose derivative is bounded on $(a, b)$ is uniformly continuous on $[a, b]$.
+
+</Statement>
+
+<Ref to="uniformly-continuous" /> is <Ref to="bounded-derivative" /> read with a tolerance. A proof
+of a proposition that doesn't follow it names it as any other does, "da Proposição" in Portuguese:
+
+<Proof of="uniformly-continuous">
+
+Given $\varepsilon > 0$, take $\delta = \varepsilon / M$, or any $\delta$ when $M = 0$. By <Ref to="bounded-derivative" />, $|y - x| < \delta$ gives $|f(y) - f(x)| < \varepsilon$.
+
+</Proof>
+
 ### Examples
 
 A worked example is a statement too. Its solution follows a run-in label, shown openly, and its equations, tables and figures keep the page's numbering:
@@ -230,6 +282,30 @@ the shaded area under the curve up to $T$.
   caption="The area under the velocity curve is the distance travelled."
 />
 
+Code in a drawing, set in the code face with `font-code`: the array, its values, its indices and the variable, while the labels that aren't code keep the heading face:
+
+<Figure
+  src={insertionSort}
+  alt="Insertion sort halfway through an array a holding 2, 3, 7, 1 and 9 at indices 0 to 4. The first three cells are shaded and bracketed as sorted, the last two as unsorted, and an arrow labelled i points up at index 3."
+  caption="Insertion sort is about to place a[3] in the sorted part."
+/>
+
+A total colouring of a six-cycle in colours Rd, Bl, Gn, Yl, Pu and Or, drawn as the six swatches on vertices 2.75rem across, each vertex and each edge labelled with its colour:
+
+<Figure
+  src={swatches}
+  colours={["Rd", "Bl", "Gn", "Yl", "Pu", "Or"]}
+  alt="Six vertices on a hexagon, joined around it, each in its own colour: going round from the top left, Rd hatched with diagonal lines rising to the right, Bl with diagonal lines falling, Gn cross-hatched, Yl with horizontal lines, Pu with vertical lines and Or dotted. The edges, going round from Rd to Bl, are Yl, Pu, Or, Rd, Bl and Gn."
+  caption="Each part differs in colour from every part it touches."
+/>
+
+Without `colours`, the colours are named by their numbers: a triangle's vertices in colours 1 to 3.
+
+<Figure
+  src={swatchNumerals}
+  alt="A triangle of three vertices: the top one in colour 1, hatched with diagonal lines rising to the right, the bottom left in colour 2, with diagonal lines falling, and the bottom right in colour 3, cross-hatched."
+/>
+
 ## Stepper
 
 A D2 diagram, one board per step:
@@ -267,6 +343,60 @@ A code walkthrough:
 export function area(radius: number): number {
   return Math.PI * radius ** 2;
 }
+```
+
+</Stepper>
+
+A walkthrough of code numbered from 0, its steps naming the lines by the numbers shown:
+
+<Stepper
+  lines={["0-1", "2", "3"]}
+  captions={["Push the two numbers.", "Add them, leaving their sum.", "Print the sum."]}
+>
+
+```text start=0
+push 2
+push 3
+add
+print
+```
+
+</Stepper>
+
+Code rewritten step by step, one code block per step. The first marks the loop about to go, the second the line that replaces it; the last, a stack machine's listing numbered from 0 as its addresses are, marks nothing and shows in full ink:
+
+<Stepper
+  captions={[
+    "The loop adds each number to the sum.",
+    "The loop is replaced by Gauss's formula.",
+    "The formula, compiled for the stack machine.",
+  ]}
+>
+
+```ts {3-5}
+export function sumTo(n: number): number {
+  let sum = 0;
+  for (let i = 1; i <= n; i++) {
+    sum += i;
+  }
+  return sum;
+}
+```
+
+```ts {2}
+export function sumTo(n: number): number {
+  return (n * (n + 1)) / 2;
+}
+```
+
+```text start=0
+push n
+push n
+push 1
+add
+mul
+push 2
+div
 ```
 
 </Stepper>

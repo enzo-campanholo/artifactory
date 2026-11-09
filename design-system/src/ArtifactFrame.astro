@@ -6,7 +6,7 @@ import Bilingual from "./Bilingual.astro";
 import ThemeEye from "./ThemeEye.astro";
 import { outline, sectionsForContents, type Heading } from "./artifact-outline.ts";
 import { shortDate } from "./dates.ts";
-import { questionAnchor, questionsBlock } from "./question-markers.ts";
+import { questionAnchor, questionsBlock, withQuestionNumbers } from "./question-markers.ts";
 import { withStatementReferences } from "./statements.ts";
 
 interface Props {
@@ -21,10 +21,11 @@ interface Props {
 }
 
 const { title, subject, published, draft, public: isPublic, headings, lang } = Astro.props;
-const content = withStatementReferences(Astro.props.content);
-const sections = outline(content, headings);
+const referenced = withStatementReferences(Astro.props.content);
+const sections = outline(referenced, headings);
 const headed = sections.flatMap(({ heading }) => (heading === undefined ? [] : [heading]));
 const questions = sections.flatMap((section) => section.questions);
+const content = withQuestionNumbers(referenced, questions);
 const sectionOf = new Map(
   sections.flatMap(({ heading, questions: inSection }) =>
     inSection.map(({ id }) => [id, heading?.html] as const),
@@ -780,11 +781,25 @@ const unansweredResume = {
         content: counter(artifact-diagram);
       }
 
-      .question {
+      /* CSS can't count what a closed model answer or a hidden explanation hides, so a figure in
+         a question's revealed part takes no number: counting it would renumber every figure after
+         the question as it opens or locks. */
+      .question-revealed :is(figure.figure, figure.diagram) {
+        counter-increment: none;
+
+        > figcaption > .figure-number,
+        > figcaption[data-uncaptioned] {
+          display: none;
+        }
+      }
+
+      /* One count per question, as the page's questions block numbers them: a matching's box holds
+         several, each on its own row. */
+      [data-question-id] {
         counter-increment: artifact-question;
       }
 
-      .question-number::after {
+      [data-question-id] > form > .question-header > .question-number::after {
         content: " " counter(artifact-question);
       }
     }

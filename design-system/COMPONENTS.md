@@ -31,13 +31,15 @@ D2 also draws in the design system's style: labels are Archivo, condensed like t
 headings, and rectangles, squares and containers are drawn with square corners whatever
 `style.border-radius` says, so leave that out. Code labels, `sql_table` and `class` members and
 `style.font: mono` are set in D2's own monospace. The page numbers each diagram by its section
-("Diagrama 4.1").
+("Diagrama 4.1"), except inside a question's model answer or explanation, where it shows its
+caption with no number.
 
 The check fails a file that asks for what the design system doesn't draw: colours written in
 the file (`style.fill`, `style.stroke` or `style.font-color` as `"#…"` or a colour name),
 `style.shadow`, `style.fill-pattern`, `style.animated`, `style.opacity` below 1, `sketch`, a legend
 (`vars.d2-legend`), and a `link`, `tooltip` or `icon`, or a link in a markdown label. Say it in
-the prose instead.
+the prose instead. When colour is the subject, such as a colouring of a graph's vertices, draw
+it as a `Figure` with swatches (see "Colourings" under `Figure`): D2 draws no swatches.
 
 The layout engine is ELK; a file may choose `dagre` or `tala` with
 `vars: { d2-config: { layout-engine: dagre } }`.
@@ -70,9 +72,37 @@ import celula from "./celula.svg?raw";
 
 Colour the drawing with the `fill-` and `stroke-` classes under "Colours in figures", which
 follow the site in light mode, dark mode and print. Shapes and text without a fill are drawn in
-the text colour, and text uses the face of the page's headings. The page numbers each figure by
-its section ("Figura 4.1"). Colours written in the file (`fill="#…"`) don't
-follow dark mode, so leave them out.
+the text colour, and text uses the face of the page's headings, or the code face with
+`font-code` for code, identifiers and instructions. The page numbers each figure by
+its section ("Figura 4.1"), except inside a question's model answer or explanation, where it
+shows its caption with no number, so never cite one there by number. Colours written in the file
+(`fill="#…"`) don't follow dark mode, so leave them out.
+
+**Colourings.** When colour is the subject, such as a colouring of a graph's vertices, a map's
+regions or a graph's edges, draw each colour as a swatch, never as a line style, a fill or a
+hue of your own: at most six colours, each a `fill-swatch-N` hatching under "Colours in
+figures". Every coloured part carries a label, `<text x y data-swatch="N">`, whose text is
+colour N's name, in the same `<g>` as the shapes it names, with its `x` and `y` at the part's
+centre. The Figure sets the label's size, centres it there and draws it on a square plate of
+the ground, so it reads over the hatching. A vertex or region takes `fill-swatch-N` and the
+label; an edge takes the label only, at its midpoint, and keeps its line as any edge's:
+
+```svg
+<g>
+  <circle cx="40" cy="40" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" />
+  <text x="40" y="40" data-swatch="1">1</text>
+</g>
+<g>
+  <line x1="62" y1="40" x2="158" y2="40" class="stroke-text" stroke-width="2" />
+  <text x="110" y="40" data-swatch="2">2</text>
+</g>
+```
+
+Draw no legend. Name the colours once in the prose, where they're first used ("as cores 1 a
+3"), and name each part's colour in `alt` ("A tem a cor 1, B a cor 2…"). The build fails when a
+label's text isn't its colour's name, when a `<g>` with a `fill-swatch-N` shape has no label or
+a label of another colour, when a label has no `x` and `y`, and when a swatch is past the names
+`colours` gives.
 
 ### Props
 
@@ -80,6 +110,11 @@ follow dark mode, so leave them out.
 - `alt` (`string`, required): What the drawing shows, in a sentence or two. Screen readers read it instead of the drawing.
 - `caption` (`string`, optional): One short sentence under the drawing, after its number ("Figura 4.1"), saying what to look for.
   Leave it out when the paragraph before already says it.
+- `colours` (`string[]`, optional): The names of a colouring's colours, in swatch order, each one or two characters, at most six:
+  `colours={["R", "B"]}` names `fill-swatch-1` "R" and `fill-swatch-2` "B", and each label shows
+  its colour's name. Leave it out to name the colours by their numbers, 1 to 6. Give it only to
+  a Figure whose subject is a colouring (see "Colourings" above); the prose still names the
+  colours once and `alt` names each part's.
 
 ## Note
 
@@ -121,7 +156,15 @@ fraction (`3/4`), but no thousands separators, `π`, `√` or expressions. Input
 number gets a message and uses up nothing. Without a tolerance the check is exact, so give one
 that matches the computation's precision whenever the answer is rounded.
 
-Write the question inside it. It can hold math, code and lists:
+Write the question inside it. It can hold math, code and lists.
+
+Then, optionally, a blank line, `---`, another blank line and the explanation: the worked
+solution, step by step to the right number. It can hold paragraphs, math, code, lists and
+figures, which show their captions with no number. It shows, under the heading "Explicação" / "Explanation", only once the answer locks,
+right or wrong, after the right answer on a wrong one. It reasons about the answer but never
+teaches a fact for the first time, since an owner who skips the question never reads it, so put
+every fact they must learn in the text too. Write one whenever the source gives a worked
+solution:
 
 ```mdx
 import NumericQuestion from "@artifactory/design-system/numeric-question";
@@ -129,6 +172,10 @@ import NumericQuestion from "@artifactory/design-system/numeric-question";
 <NumericQuestion id="queda-livre" answer="9.81" tolerance={0.01} unit="m/s²">
 
 Uma pedra cai 4,905 m em 1 s a partir do repouso. Qual é a aceleração $g$?
+
+---
+
+A partir do repouso, $d = g t^2 / 2$, logo $g = 2d / t^2 = 2 \cdot 4{,}905 / 1^2 = 9{,}81$ m/s².
 
 </NumericQuestion>
 ```
@@ -157,7 +204,9 @@ answer the artifact could check. When the answer is one of a few options, use `S
 when it's a single computed number, use `NumericQuestion`.
 
 Write the question, a blank line, `---`, another blank line, then the model answer. Without the
-blank line above it, `---` turns the question into a heading. Both can hold math, code and lists:
+blank line above it, `---` turns the question into a heading. Both can hold math, code, lists
+and figures. A figure or diagram in the model answer shows its caption with no number, since the
+page can't count what the closed model answer hides; one in the question keeps its number:
 
 ```mdx
 import OpenQuestion from "@artifactory/design-system/open-question";
@@ -178,15 +227,75 @@ Some os anéis de raio $\rho$ e largura $\mathrm{d}\rho$: $\int_0^r 2 \pi \rho \
 - `id` (`string`, required): The question's ID: readable kebab-case, unique within the artifact and never reused, even
   after the question is removed. The owner's answers belong to it, and `#q-<id>` links to it.
 
+## Matching
+
+`import Matching from "@artifactory/design-system/matching";`
+
+Several auto-checked questions, one per item, that share one list of options and are checked
+together: the owner picks an option's letter for each item and presses Check once. Each item is
+a question of its own, numbered in the page's series with its own answer, and locks with its
+own mark: a tick on the right letter, and on a wrong item its chosen letter crossed out. The
+page letters the options a), b), c) and numbers the items, so do neither yourself. Use it
+instead of separate `SingleChoice` questions when several questions would repeat the same
+options, such as matching items to categories, terms to definitions or code to its output. Any
+option may be right for any number of items, or for none; when each option should be used once,
+say so in the prompt, since the page doesn't enforce it. For one question, use `SingleChoice`.
+
+Write the prompt, then the options as one numbered list, then a blank line, `---`, another blank
+line and the items as one bulleted list. Options and items are one paragraph each of inline
+text, math and code.
+
+Then, optionally, a blank line, a second `---`, another blank line and one explanation for the
+whole set: why each item takes its option, with the reasons against likely wrong choices in its
+prose ("um objeto criado com `new` não fica na pilha, porque …"). It can hold paragraphs, math,
+code, lists and figures, which show their captions with no number. It shows, under the heading "Explicação" / "Explanation" after the item
+rows, only once every item locks, right or wrong. It reasons about the answers but never teaches
+a fact for the first time, since an owner who skips the questions never reads it, so put every
+fact they must learn in the text too. Write one whenever the source gives a reason:
+
+```mdx
+import Matching from "@artifactory/design-system/matching";
+
+<Matching answers={{ "variavel-global": 2, "variavel-local": 3, "objeto-new": 4 }}>
+
+Em que área de memória fica cada item?
+
+1. Código
+2. Dados
+3. Pilha
+4. Heap
+
+---
+
+- Uma variável global
+- Uma variável local
+- Um objeto criado com `new`
+
+---
+
+Locais vivem no quadro da chamada, na pilha; `new` aloca no heap, e globais ficam na área de
+dados.
+
+</Matching>
+```
+
+### Props
+
+- `answers` (`Record<string, number>`, required): Each item's question ID, mapped to the number of its right option, counting from 1, in the
+  items' order. Each key is a question ID with every rule a question's `id` has: readable
+  kebab-case, unique among all the artifact's questions and never reused, even after the item is
+  removed. The owner's answers to the item belong to it, and `#q-<id>` links to the item's row.
+
 ## Proof
 
 `import Proof from "@artifactory/design-system/proof";`
 
-The proof of a theorem, lemma or corollary written as a `Statement`. It is unnumbered: it opens
-with a run-in "Demonstração." / "Proof." and its last line ends with a small square, so the owner
-sees where the argument stops. Write it right after the statement it proves. A proof anywhere
-else opens with what it proves, linked ("Demonstração do Teorema 2.1."), so write it elsewhere
-only when the subject proves the result later. A definition has no proof.
+The proof of a theorem, proposition, lemma or corollary written as a `Statement`. It is
+unnumbered: it opens with a run-in "Demonstração." / "Proof." and its last line ends with a small
+square, so the owner sees where the argument stops. Write it right after the statement it proves.
+A proof anywhere else opens with what it proves, linked ("Demonstração do Teorema 2.1.",
+"Demonstração da Proposição 2.1."), so write it elsewhere only when the subject proves the result
+later. A definition or an example has no proof.
 
 Write it at the top level of a section, like its statement: nested in a list or a question, a
 proof never counts as following its statement, so it always opens by naming it, and its equations
@@ -214,7 +323,7 @@ $h < 0$, então o limite, $f'(c)$, é $0$.
 
 ### Props
 
-- `of` (`string`, required): The `id` of the theorem, lemma or corollary it proves.
+- `of` (`string`, required): The `id` of the theorem, proposition, lemma or corollary it proves.
 
 ## Ref
 
@@ -245,10 +354,19 @@ presses Check, and the question locks and shows right or wrong once the answer i
 wrong answer also ticks the right option. The page letters the options a), b), c), so don't
 letter them yourself. Use it when exactly one option is right and the options can be read side
 by side. For a computed number, use `NumericQuestion`, since options would let the owner work
-backwards from them.
+backwards from them. When several questions would share the same options, write one `Matching`
+instead of repeating them.
 
-Write the question first, then the options as one numbered list at the end. Options can hold
-inline math and code, one paragraph each:
+Write the question first, then the options as one numbered list at its end. Options can hold
+inline math and code, one paragraph each.
+
+Then, optionally, a blank line, `---`, another blank line and the explanation: why the right
+option is right, with the reasons for wrong ones in its prose ("a) esquece …"). It can hold
+paragraphs, math, code, lists and figures, which show their captions with no number. It shows,
+under the heading "Explicação" /
+"Explanation", only once the answer locks, right or wrong. It reasons about the answer but never
+teaches a fact for the first time, since an owner who skips the question never reads it, so put
+every fact they must learn in the text too. Write one whenever the source gives a reason:
 
 ```mdx
 import SingleChoice from "@artifactory/design-system/single-choice";
@@ -260,6 +378,11 @@ Qual é a derivada de $x^2$?
 1. $x$
 2. $2x$
 3. $x^2 / 2$
+
+---
+
+Pela regra da potência, o expoente desce como fator e diminui de um: $2x^{2-1} = 2x$. a) esquece
+o fator; c) integra em vez de derivar.
 
 </SingleChoice>
 ```
@@ -275,10 +398,11 @@ Qual é a derivada de $x^2$?
 `import Stage from "@artifactory/design-system/stage";`
 
 A part of the artifact that computes in the browser: an algorithm run from the start the owner
-picks, or a function traced on the numbers they type. Use it only when no component can do the
-job: a fixed sequence of steps is a `Stepper`, and anything that asks the owner something and
-records the answer is a question. A Stage is a block in the page, numbered on the figures'
-series ("Figura 4.1"), and a page may hold several, each with its own build.
+picks, or a function traced on the numbers or text they type. Use it only when no component can
+do the job: a fixed sequence of steps is a `Stepper`, and anything that asks the owner something
+and records the answer is a question. A Stage is a block in the page, numbered on the figures'
+series ("Figura 4.1") except inside a question's model answer or explanation, and a page may
+hold several, each with its own build.
 
 You write two things:
 
@@ -287,11 +411,11 @@ You write two things:
   without JavaScript and in print, so write it to make sense with no step on it. With `choose` it
   is the starting state; with `input` it is the first example's result.
 - **A custom build**, a `<build>.build.ts` file next to the entry, which turns the option the
-  owner chose, or the numbers they typed, into steps. It imports only
+  owner chose, the options of several groups, or what they typed, into steps. It imports only
   `@artifactory/design-system/stage-build` (below), and holds no CSS, colours, HTML or DOM
   code, and nothing that outlives a reload.
 
-The Stage draws the rest: the row of options or the fields and Start, the step counter and
+The Stage draws the rest: the rows of options or the fields and Start, the step counter and
 arrows, the line that says each step, the number and the caption, for the keyboard, screen
 readers, the phone, dark mode and print. A drawn part whose `data-part` is an option's name also
 chooses that option when clicked or tapped. That's a shortcut for the pointer: the options stay
@@ -339,8 +463,47 @@ export default defineBuild({
 });
 ```
 
+**Choice groups.** When the owner makes two or more choices before the run, such as the start
+vertex and the search, give `choose` a list of groups, each `{ name, label, options }`, rather
+than writing a Stage per choice. Each group is its own row of options under its label, the groups
+one under another in the order written, and the arrow keys move the choice within a group only.
+No group opens chosen, and the step's line holds the prompt, with the counter hidden, until every
+group has a choice: the run starts then, and again from step 1 whenever any group changes, so
+write the prompt to ask for every choice. Option names are unique across the Stage's groups, so a
+drawn part named like an option chooses that option in its own group and keeps the others' as
+they are: a vertex chooses the start while the search stays a row of options. `steps` gets one
+option per group, by the group's `name`, so type the build with the groups' names, each a
+`string`, as typed input types its fields. `pnpm check` runs the build on every combination,
+one option from each group, and names the combination it fails on as `inicio = C, busca =
+profundidade`. A run the page refuses ends "Escolha outras opções.". Without JavaScript and in
+print the content as written is the starting state, with no option named, as with one group.
+
+````mdx
+<Stage
+  build="busca"
+  choose={[
+    { name: "inicio", label: "Começar em", options: ["A", "B", "C", "D"] },
+    { name: "busca", label: "Buscar em", options: ["largura", "profundidade"] },
+  ]}
+  prompt="Escolha um vértice e uma busca para começar."
+  figure={grafo}
+  alt="Um grafo com quatro vértices."
+  caption="A busca escolhida, a partir do vértice escolhido."
+>
+````
+
+```ts
+// busca.build.ts
+export default defineBuild<{ inicio: string; busca: string }>({
+  steps({ inicio, busca }) {
+    // …a queue for "largura", a stack for "profundidade", from `inicio`
+  },
+});
+```
+
 **Typed input.** Give `input` instead of `choose` when the owner types whole numbers, such as
-a function's arguments. The fields open filled with the first example, and the content as
+a function's arguments, or text, such as the word an automaton reads (**Typed text**, below). The
+fields open filled with the first example, and the content as
 written must be that example's result: `pnpm check` fails when a table as written isn't what
 the first example's last step leaves in it. A step shows the content as written with only what
 it names applied, so every step must name every cell whose value differs from that result, or
@@ -424,20 +587,102 @@ written. Put the example worth looking at first, since `pnpm look` shoots only t
 entries to `input.examples` for the edges, such as a zero. The page refuses a number that isn't
 whole or is out of bounds with the bounds in the step's line, and draws its field dashed.
 
-**Steps are whole.** `steps` returns every step for that option or those numbers, at least one
+**Typed text.** A field with `kind: "text"` takes text instead of a number:
+`{ name, label?, kind: "text", alphabet?, minLength?, maxLength }`. With `alphabet`, a list of
+symbols, each one character (one code point), it takes a word over them; without it, one line
+of any text, spaces included. `maxLength` is the most symbols it takes, and `minLength` the
+fewest, 0 if left out, so an empty field, the empty word, counts. `steps` gets the text as a
+`string`: `""` for the empty word, never trimmed or case-folded, since a trailing space is part
+of a hashing build's input, and in NFC, so `é` is one code point however it was typed. Count
+and walk its symbols by code point, `[...w]`, not by `w.length`. Write the examples in NFC too,
+as typing them does. A multi-character symbol, such as a parser's `id`, is the build's to split:
+give that field no alphabet and tokenise it in the build. Number fields and text fields mix in
+one Stage, such as a hash's text and modulus, `defineBuild<{ t: string; m: number }>`. Without
+JavaScript and in print, the line naming the first example sets a text bare in the code face,
+with no quotation marks, and the empty word as `ε`: "Aceita w? w = `aabba`". The page refuses
+text that breaks the field's rule as it does a number: it draws the field dashed, keeps the text
+whole, and states the whole rule in the step's line, never the symbol that broke it ("Digite
+até 12 símbolos, só a e b, para w.", "Digite de 2 a 40 caracteres para t."). In a Stage with a
+text field, a run it refuses ends "Tente outra entrada." rather than "Tente outros números.".
+This one runs an automaton on the word typed:
+
+````mdx
+<Stage
+  build="automato"
+  input={{
+    label: "Aceita w?",
+    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],
+    examples: [{ w: "aabba" }, { w: "" }, { w: "bbbb" }, { w: "b" }],
+  }}
+  prompt="Digite uma palavra e comece."
+  caption="Um autômato que aceita as palavras com um número par de b."
+>
+
+| Variável | Valor |
+| -------- | ----- |
+| lido     | aabba |
+| estado   | q0    |
+| aceita   | sim   |
+
+</Stage>
+````
+
+```ts
+// automato.build.ts
+import { defineBuild, type CellChange, type Step } from "@artifactory/design-system/stage-build";
+
+export default defineBuild<{ w: string }>({
+  steps(input) {
+    const symbols = [...input.w];
+    let state = "q0";
+    const values = (read: number, accepts = "—"): CellChange[] => [
+      { row: "lido", column: "Valor", text: read === 0 ? "ε" : symbols.slice(0, read).join("") },
+      { row: "estado", column: "Valor", text: state },
+      { row: "aceita", column: "Valor", text: accepts },
+    ];
+    const steps: Step[] = [{ say: "Começa em q0, sem ter lido nada.", cells: values(0) }];
+    symbols.forEach((symbol, index) => {
+      const from = state;
+      if (symbol === "b") state = state === "q0" ? "q1" : "q0";
+      steps.push({
+        say: `Lê ${symbol}: de ${from} vai a ${state}.`,
+        rows: { estado: "strong" },
+        cells: values(index + 1),
+      });
+    });
+    const accepts = state === "q0";
+    steps.push({
+      say:
+        symbols.length === 0
+          ? "A palavra vazia acaba em q0: aceita."
+          : `A palavra acaba em ${state}: ${accepts ? "aceita" : "rejeita"}.`,
+      rows: { aceita: "reversed" },
+      cells: values(symbols.length, accepts ? "sim" : "não"),
+    });
+    return steps;
+  },
+});
+```
+
+`aabba` has two b's, so its last step, the seventh, leaves `q0` and `sim`, as the table is
+written. Every step names `aceita`, "—" until the last, so the answer doesn't show mid-run.
+
+**Steps are whole.** `steps` returns every step for that choice or that input, at least one
 and at most 200. The Stage starts each step from the content as written and applies only what it
 names, so name everything the step shows, not what changed since the step before. A build that
-throws, or gives more than 200 steps, is refused in the step's line: with `input`, a typed number
+throws, or gives more than 200 steps, is refused in the step's line: with `input`, typed input
 the examples never tried can reach a bug the check never saw, and the page keeps working.
 
 **Code.** Write the code as one fenced code block between the Stage's tags, with its language,
 as anywhere else: it keeps its highlighting and line numbers, so never put code in a table. A
-step marks its lines with `lines`, by number from 1 as the page numbers them. Mark the line the
+step marks its lines with `lines`, by the number the page shows for each: from 1, or from the
+fence's `start`, so under ` ```pascal start=0 ` the first line is 0. Mark the line the
 step runs `reversed`, and only that one: the Stage draws it as a bar of ink across the code's
 whole width, even where a long line scrolls sideways, and announces the step as "Passo 3 de 9.
 Linha 3. …". A step with no `reversed` line is announced without one. The other marks work on
 lines too, by the same meanings: `strong` sets a line at 600, `dashed` draws it in a dashed box
-and `muted` greys it whole, such as the branch an `if` didn't take.
+and `muted` greys it whole, such as the branch an `if` didn't take. Since the steps mark the
+lines, the fence takes no `{…}`.
 
 **A table that grows.** A step's `body` replaces the table's rows, so a teste de mesa gains a row
 each time the loop runs, as one written by hand does. Each row is a list of cell texts, one per
@@ -549,12 +794,80 @@ Anything else stays as drawn, such as a shape filled with `fill-muted` or `fill-
 label with a `fill-` class of its own, so a vertex filled that way can't be reversed. A mark on
 a part with nothing it acts on fails the check.
 
+These four are all the marks; there is no grey fill. A static figure elsewhere in the artifact
+that shows a state the Stage also shows draws it with the Stage's mark, so the two agree: a
+discovered vertex, still on the frontier, is provisional, so it is dashed in both, never filled
+grey, since grey (`fill-tint`, `fill-muted`) stays for what is unavailable or in the background.
+
+**Colourings.** A Stage's drawing can be a colouring, written as a Figure's is (see
+"Colourings" under `Figure`): `fill-swatch-N` areas, a label `<text x y data-swatch="N">` in
+each coloured part's `<g>`, and `colours` naming the colours. Its build fails, as `Stage: …`,
+on the same label rules as a Figure's. Every mark reads on a coloured part, a swatch counting
+as something each acts on: `strong` sets its outline at 4 and its label in bold; `dashed`
+dashes its outline; `muted` turns its hatching, outline and label grey; `reversed` fills it
+with ink over the hatching and turns its label's plate to ink and the label to the ground. A
+swatch drawn without an outline takes the mark's own, at 4 for `strong`, dashed for `dashed`.
+Name the coloured part's `<g>`, so the mark reaches its label too.
+
+**Steps colour parts.** A step's `colours` colours parts by their `data-part` name, so a
+colouring algorithm can be stepped through: each a swatch number from 1, up to the names in
+`colours` (1 to 6 without it), or `null` for uncoloured. The part's `fill-surface` and
+`fill-swatch-N` shapes take the swatch and its label the colour's name, and it reads exactly as
+one coloured as written, hatching, label, plate and marks; `null` gives it the ground and hides
+its label. A part left out stays as written. Each part a step colours is a `<g>` holding a
+label `<text x y data-swatch>`, left empty, `<text x="50" y="90" data-swatch=""></text>`, while
+it's uncoloured as written, which only a Stage accepts. Steps are whole, so name every colour
+the step shows, and going back shows that step's colours. A part a step colours takes every mark
+on that step. Write `say` to name the colours it sets by name ("D takes Y, which none of its
+coloured neighbours has."). When motion is allowed, a part's hatching cross-fades into the next
+over 0.2s; print and the page without JavaScript show the drawing as written, so draw it as the
+starting state, usually uncoloured. `colours` takes `number | null`, so a colour a build
+computes needs no cast.
+
+```ts
+// greedy.build.ts: each vertex takes the first colour no coloured neighbour has.
+const colours: Record<string, number> = {};
+steps.push({
+  say: "D takes Y, which none of its coloured neighbours has.",
+  colours: { ...colours, D: 3 },
+  parts: { D: "reversed", A: "strong", C: "strong" },
+});
+```
+
 **Tables** are found by their text: a row by its first cell, a column by its header, as the
 page shows them with the formatting dropped, so a first cell `*a*` is the row `a`. Write first
 cells and headers as plain words or symbols, without math. Keep each row's first cell and each
 header unique among the Stage's tables, since a name that matches more than one fails the
 check. A part and a row may share a name: `parts` marks only the drawing, and `rows` only the
 tables.
+
+**The content as written reaches the build.** `steps` gets it as its second argument, typed
+`Content`: `code`, each code block's lines in order, each with the number the page shows
+(`line`) and its plain text (`text`); `tables`, each table's headers (`columns`) and rows as
+written (`rows`), as plain text and found as `rows` and `cells` find them, even in a run that
+gives `body`; and `lang`, the artifact's main language, `"pt-BR"` or `"en"`, to say the steps
+in. Read a program from the code block, or a table's starting values, rather than writing them
+again in the build: `steps({ a, b }, { code: [listing = []] })` takes the first block's lines.
+The page and `pnpm check` hand every run the same content, a fresh copy each time, so a run may
+change its own. A build that doesn't need it leaves the argument out.
+
+**Machine traces.** A Stage that runs a machine the design system holds, such as the stack
+machine MEPA, on a program and the owner's input is written as any Stage with `input`: the
+program in its content, the tables as the first example's result. Its build is
+`trace(machine, notes)` (below), never a copy of the machine. Each machine's entry under
+"Machines", after the components, gives its program's form, its tables as written in pt-BR and
+English, and its notes. A machine needing a growing structure beside a fixed one, such as a call
+stack's frames beside its locals or a tape beside its transitions, can't take two tables: a
+Stage that gives `body` holds exactly one. It keeps both in one table with a role column, as
+MEPA's memory table holds a subroutine's record beside the globals, or writes its program in the
+code block.
+
+**New structure per run: not yet.** A build marks, rewrites and adds rows to what the content
+already draws, so it can't draw a structure a run produces, such as a search's tree. A search
+tree is a subgraph of the graph, so draw the graph and let the build mark the tree's edges
+`strong` as the run adds them, keep a `π` column for each vertex's parent, and let a growing
+`body` table list each vertex's level or children. A second artifact that needs a drawn tree
+reopens the question under ADR 0007's second-need rule: propose it as a change to the Stage.
 
 **Beside the drawing.** A Stage sets its tables under its drawing. Set `beside` only where the
 owner must see a step's marks and its table's rows together to follow the step, such as a graph
@@ -571,16 +884,30 @@ for that step.
 
 **Say it for the ear.** `say` is read aloud after "Passo N de M. Linha L.": write operators in
 words ("o resto de 48 por 18", not "48 % 18"; "b não é zero", not "b != 0"), since a screen
-reader reads `%` as "por cento" and other operators symbol by symbol.
+reader reads `%` as "por cento" and other operators symbol by symbol. The line on screen is the
+same text, with no separate one for the eye, so write an assignment in words too: "M[4] recebe
+7", not "M[4] ← 7". A screen reader reads a word such as `aabba` as one word, so when its
+symbols matter, spell them out ("lê a, a, b, b, a", "lê o terceiro símbolo, b"), and say "a
+palavra vazia", never "ε".
 
-`pnpm check` runs the build on every option or example against the built page and fails on a
+`pnpm check` runs the build on every option, every combination of groups' options, or every
+example against the built page and fails on a
 throw, no steps, more than 200, a step that isn't shaped like a `Step`, an empty `say`, a part,
 row, column or code line the content doesn't have, a mark that changes nothing in its part,
+a colour on a part that holds no label, a colour that isn't a whole number from 1 to 6 or is
+past the names in `colours`,
 `lines` in a Stage without exactly one code block, more than one `reversed` line, `body` in a
 Stage without exactly one table or with no row as written, a `body` row without one text per
 column, or, with `input`, a step without `body` in a run whose other steps give it, or tables as
 written that aren't the first example's result, a row the last step adds or drops included. The
-page refuses the same runs.
+page refuses the same runs. Before any run, the check fails an example that breaks its field's
+rule, the one the page refuses typed input by: a number that isn't whole or is out of bounds, or
+text that isn't in NFC, holds a symbol outside the alphabet, or is longer than `maxLength` or
+shorter than `minLength`, counted in code points. It also fails a text field whose alphabet holds
+a symbol that isn't one code point or holds one twice, whose `minLength` isn't a whole number of
+at least 0 or is above `maxLength`, or whose `maxLength` is missing or isn't a whole number of at
+least 1, and a field with a prop of the other kind (`min` or `max` on a text field, `alphabet`,
+`minLength` or `maxLength` on a number field).
 
 ### Props
 
@@ -588,14 +915,24 @@ Give one of these 2 sets of props.
 
 With `choose`:
 
-- `choose` (`{ label: string; options: string[] }`, required): What the owner chooses before the run: the label over the options, and the options, each a
-  short word or symbol, such as a vertex's name. `steps` gets the option chosen. On a 393px
-  phone, seven one-letter options fit on one line under the label; more, or longer names, wrap.
+- `choose` (`{ label: string; options: string[] } | { name: string; label: string; options: string[] }[]`, required): What the owner chooses before the run: the label over the options, and the options, each a
+  short word or symbol, such as a vertex's name. `steps` gets the option chosen, and the run
+  starts as soon as the owner chooses one. On a 393px phone, seven one-letter options fit on one
+  line under the label; more, or longer names, wrap.
+
+  For two or more choices, such as a start vertex and a search, give a list of groups instead,
+  each with the `name` `steps` gets its option by: `[{ name, label, options }, …]`. Each group is
+  a row of options under its label, one under another in the order written. None opens chosen,
+  and the run starts once every group has a choice, then again from step 1 whenever any group
+  changes. Give each option a name no other group of the Stage has (see **Choice groups**).
 - `build` (`string`, required): The custom build: the name of the `<build>.build.ts` file next to the entry.
 - `prompt` (`string`, required): What to do first, shown where each step's line will be: "Escolha um vértice para começar."
 - `figure` (`string`, optional): A drawing the build marks, imported with `?raw` from an `.svg` file next to the entry. Name
   each part the build marks with `data-part`.
 - `alt` (`string`, optional): What the drawing shows as written, in a sentence or two. Give it with `figure`.
+- `colours` (`string[]`, optional): The names of a colouring's colours, in swatch order, as `Figure` takes them: each one or two
+  characters, at most six, `colours={["R", "B"]}`. Leave it out to name the colours 1 to 6. Give
+  it only to a Stage whose drawing is a colouring (see "Colourings" under `Figure`).
 - `beside` (`boolean`, optional): Sets the tables beside the drawing on a wide screen, as "Beside the drawing" below says. Set
   it sparingly, only where a step's marks and its rows must be seen together; most Stages
   stack. Give it with `figure`.
@@ -603,18 +940,24 @@ With `choose`:
 
 With `input`:
 
-- `input` (`{ label: string; fields: { name: string; label?: string; min: number; max: number }[]; examples: Record<string, number>[] }`, required): What the owner types before the run: the label over the fields, and one field per whole
-  number, with the `name` `steps` gets it by, a `label` to show instead of the name, and the
-  smallest and largest number it takes. `steps` gets `{ [name]: number }`. `examples` are
-  inputs, each giving every field a whole number in its bounds, and `pnpm check` runs the build
-  on every one. The first fills the fields as written, so write the content as its result:
-  each table as its last step leaves it. The page refuses a number that isn't whole or is out
-  of bounds, and numbers the build throws on.
+- `input` (`{ label: string; fields: ( | { name: string; label?: string; kind?: "number"; min: number; max: number } | { name: string; label?: string; kind: "text"; alphabet?: string[]; minLength?: number; maxLength: number } )[]; examples: Record<string, number | string>[] }`, required): What the owner types before the run: the label over the fields, and one field per value, with
+  the `name` `steps` gets it by and a `label` to show instead of the name. A field without
+  `kind` takes a whole number, between its `min` and `max`, and `steps` gets it as a `number`. A
+  field with `kind: "text"` takes text, at most `maxLength` symbols and at least `minLength`
+  (0 if left out, so the empty word counts), each one of `alphabet` when given, and `steps` gets
+  it as a `string`, `""` for the empty word. `examples` are inputs, each giving every field a
+  value it takes, and `pnpm check` runs the build on every one. The first fills the fields as
+  written, so write the content as its result: each table as its last step leaves it. The page
+  refuses a number that isn't whole or is out of bounds, text that breaks its field's rule, and
+  input the build throws on.
 - `build` (`string`, required): The custom build: the name of the `<build>.build.ts` file next to the entry.
 - `prompt` (`string`, required): What to do first, shown where each step's line will be: "Escolha um vértice para começar."
 - `figure` (`string`, optional): A drawing the build marks, imported with `?raw` from an `.svg` file next to the entry. Name
   each part the build marks with `data-part`.
 - `alt` (`string`, optional): What the drawing shows as written, in a sentence or two. Give it with `figure`.
+- `colours` (`string[]`, optional): The names of a colouring's colours, in swatch order, as `Figure` takes them: each one or two
+  characters, at most six, `colours={["R", "B"]}`. Leave it out to name the colours 1 to 6. Give
+  it only to a Stage whose drawing is a colouring (see "Colourings" under `Figure`).
 - `beside` (`boolean`, optional): Sets the tables beside the drawing on a wide screen, as "Beside the drawing" below says. Set
   it sparingly, only where a step's marks and its rows must be seen together; most Stages
   stack. Give it with `figure`.
@@ -622,7 +965,7 @@ With `input`:
 
 ### The build: `@artifactory/design-system/stage-build`
 
-A build file imports only this module. Its default export is `defineBuild({ steps(choice) { … } })` with `choose`, or `defineBuild<{ a: number; b: number }>({ steps(input) { … } })` with `input`.
+A build file imports only this module and the machines under `@artifactory/design-system/machines/`. Its default export is `defineBuild({ steps(choice) { … } })` with one choice group, `defineBuild<{ inicio: string; busca: string }>({ steps(chosen) { … } })` with a list of choice groups, or `defineBuild<{ a: number; w: string }>({ steps(input) { … } })` with `input`, or, for a machine the design system holds, `trace(machine, notes)`.
 
 #### `Mark`
 
@@ -659,9 +1002,17 @@ what it names, so name everything this step shows, not what changed since the la
   counter, and screen readers hear it after "Passo N de M." and, when a line is marked
   `reversed`, "Linha L.", so it must make sense without the drawing.
 - `parts` (`Record<string, Mark>`, optional): Marks on the drawing's parts, by their `data-part` name.
-- `lines` (`Record<number, Mark>`, optional): Marks on the code block's lines, by line number from 1, as the page numbers them. Mark the line
-  this step runs `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage
-  must hold exactly one fenced code block.
+- `colours` (`Record<string, number | null>`, optional): Colours on the drawing's parts, by their `data-part` name, each a swatch number from 1 to the
+  Stage's `colours` (1 to 6 without it), or `null` for uncoloured: its swatch shapes take the
+  ground and its label hides. A part's `fill-surface` and `fill-swatch-` shapes take swatch N
+  and its label colour N's name, as if written so. Each part must hold a label
+  `<text data-swatch>`, empty if it's uncoloured as written. Leave a part out to keep it as
+  written, and name every colour this step shows, not only the ones it changes. A number that
+  isn't a whole number from 1 to 6 refuses the run.
+- `lines` (`Record<number, Mark>`, optional): Marks on the code block's lines, by the number the page shows for each: from 1, or from the
+  fence's `start` (` ```pascal start=0 ` makes the first line 0). Mark the line this step runs
+  `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage must hold
+  exactly one fenced code block.
 - `body` (`string[][]`, optional): The table's body rows in this step, in place of the rows as written: one list of cell texts
   per row, one text per column, as plain text like `CellChange.text`. Each row takes the look of
   the last row as written. `rows` and `cells` then find rows among these, not the rows as
@@ -675,43 +1026,108 @@ what it names, so name everything this step shows, not what changed since the la
 
 #### `Typed`
 
-What the owner typed into a Stage's `input`: each field's whole number, by the field's `name`.
+What the owner typed into a Stage's `input`, by each field's `name`: a number field's whole
+number, or a text field's text as a `string`, in NFC, `""` for the empty word. With a list of
+choice groups, the option chosen in each group, by the group's `name`, as a `string`.
 
 ```ts
-type Typed = Record<string, number>;
+type Typed = Record<string, number | string>;
 ```
+
+#### `CodeLine`
+
+One line of the Stage's code block as written.
+
+- `line` (`number`, required): The number the page shows for it: from 1, or from the fence's `start`.
+- `text` (`string`, required): Its text, as plain text: no highlighting, no line number, its indentation kept.
+
+#### `WrittenTable`
+
+One of the Stage's tables as written, as plain text, as `rows` and `cells` find it.
+
+- `columns` (`string[]`, required): Each column's header text, in order.
+- `rows` (`string[][]`, required): Each body row as its cells' texts, one per column, in order.
+
+#### `Content`
+
+The Stage's content as written, `steps`'s second argument, so a build reads what the content
+already says, such as a program in the code block, rather than writing it twice. The page and
+`pnpm check` hand every run the same content, a fresh copy each time, whatever an earlier run
+did with its own.
+
+- `lang` (`"pt-BR" | "en"`, required): The artifact's main language, for saying each step in it: `"pt-BR"` or `"en"`, as the Stage
+  chooses its own lines.
+- `code` (`CodeLine[][]`, required): Each fenced code block's lines, one list per block in the content's order, each line in order
+  with the number the page shows for it: ` ```text start=0 ` makes the first line 0.
+- `tables` (`WrittenTable[]`, required): Each table, in the content's order, with its rows as written, even in a run whose steps give
+  `body`.
 
 #### `Build`
 
 A custom build: what turns the owner's choice into steps. With `choose`, `steps` gets the option
-as text; with `input`, it gets each field's number, typed as `Input`.
+as text; with a list of choice groups, each group's option by the group's name, typed as
+`Input`, each a `string`; with `input`, it gets each field's value, typed as `Input`: a number
+field's whole number as a `number`, a text field's text as a `string`. Either way its second
+argument is the Stage's content as written (`Content`), which a build may leave out.
 
-- `steps` (`(input: Input) => Step[]`, required): Every step for the option the owner chose or the numbers they typed, in order, at least one
-  and at most 200. Called again from step 1 whenever they choose again or press Start.
+- `steps` (`(input: Input, content: Content) => Step[]`, required): Every step for the option the owner chose, the options of every group, or the input they
+  typed, in order, at least one and at most 200. Called again from step 1 whenever they choose
+  again (with groups, once every group has a choice) or press Start, with the content as written
+  each time.
 
 #### `defineBuild`
 
 Wraps the build so TypeScript checks it. A `.build.ts` file's default export. With `input`,
-give the fields' names as its type, `defineBuild<{ a: number; b: number }>({ … })`, so `steps`
-gets them typed: `pnpm check` fails when they aren't the Stage's fields.
+give the fields' names as its type, a number field's as `number` and a text field's as `string`,
+`defineBuild<{ a: number; b: number }>({ … })` or `defineBuild<{ w: string; m: number }>({ … })`,
+so `steps` gets them typed: `pnpm check` fails when they aren't the Stage's fields and kinds.
+With a list of choice groups, give the groups' names, each a `string`,
+`defineBuild<{ inicio: string; busca: string }>({ … })`; with one group, leave the type out.
+`steps` gets the content as written second, typed `Content`, without a type of its own.
 
 ```ts
 function defineBuild<Input extends string | Typed = string>(build: Build<Input>): Build<Input>;
+```
+
+#### `trace`
+
+A build that traces a machine the design system holds, such as MEPA
+(`@artifactory/design-system/machines/mepa`), on the owner's input: the build's whole default
+export, `export default trace(mepa, { reads: ["x", "y"], … })`. The machine reads its program
+from the Stage's content as written (MEPA's from the code block), so the program is written
+once, and says each step in the artifact's main language. `notes` are the program's own data,
+keyed by address, in the artifact's language, never read from the code's comments: `reads`
+names the Stage's fields in the order the machine reads them, exactly the Stage's fields, each
+of the kind the machine reads (number fields for MEPA), or `pnpm check` fails as `build-input`.
+With a list of choice groups, `reads` names the groups, for a machine that reads text; one
+group's option has no name to read it by, so a trace takes `input` or a list of groups. Each
+machine's entry under "Machines" lists the kind it reads, its other notes and its tables.
+
+The first step shows the starting state, then one step follows per step of the machine until it
+halts, at most 200 in all, as for any build: a run past them is refused, so keep runs short
+through the fields' bounds. Every cell whose text changed since the step before is `strong`. A
+fault, such as a division by zero, refuses the run, naming the line and the fault. A program or
+notes that don't fit the machine, a `reads` name that isn't one of the Stage's fields included,
+refuse every run, `pnpm check` naming each problem and the code line it's on.
+
+```ts
+function trace<Program, State, Notes, Value extends number | string, const Reads extends string>(machine: Machine<Program, State, Notes, Value>, notes: NoInfer<Notes> & { reads: readonly Reads[] }): Build<Record<Reads, Value>>;
 ```
 
 ## Statement
 
 `import Statement from "@artifactory/design-system/statement";`
 
-A definition, theorem, lemma, corollary or worked example, numbered by the page as a clause of
-its section so that it can be cited ("Teorema 2.1"). Its number stands in the margin in the
-paragraphs' series, its label runs in at the start of its first line ("**Teorema** (Valor
-médio)."), and a theorem, lemma or corollary reads in italic while a definition or example stays
-upright. Use it for each definition or result the subject names and the owner should be able to
-cite, and for each worked example: a problem solved in full, with its solution shown openly after
-"Solução." / "Solution.". An example teaches; when the owner should work the problem out
-themselves, ask it as a question instead (`OpenQuestion`, `NumericQuestion`). Keep explanations in
-paragraphs, and asides in a `Note`. Cite it anywhere in the artifact with `Ref`.
+A definition, theorem, proposition, lemma, corollary or worked example, numbered by the page as a
+clause of its section so that it can be cited ("Teorema 2.1"). Its number stands in the margin in
+the paragraphs' series, its label runs in at the start of its first line ("**Teorema** (Valor
+médio)."), and a claim (a theorem, proposition, lemma or corollary, which a `Proof` can prove)
+reads in italic while a definition or example stays upright. Use it for each definition or result
+the subject names and the owner should be able to cite, with the kind the subject gives it, and
+for each worked example: a problem solved in full, with its solution shown openly after "Solução."
+/ "Solution.". An example teaches; when the owner should work the problem out themselves, ask it
+as a question instead (`OpenQuestion`, `NumericQuestion`). Keep explanations in paragraphs, and a
+remark or aside in a `Note`, never in a `Statement`. Cite it anywhere in the artifact with `Ref`.
 
 Write it at the top level of a section, after the first `##` heading: never inside a list, a
 question or another component. Its content is ordinary Markdown (paragraphs, math, lists, and in
@@ -749,9 +1165,11 @@ A secante tem inclinação $\frac{4 - 0}{2 - 0} = 2$ e $f'(c) = 2c$, então $c =
 
 ### Props
 
-- `kind` (`"definition" | "theorem" | "lemma" | "corollary" | "example"`, required): What it states. The page writes the kind's label in the artifact's main language
-  ("Definição", "Teorema", "Lema", "Corolário", "Exemplo" / "Definition", "Theorem", "Lemma",
-  "Corollary", "Example").
+- `kind` (`"definition" | "theorem" | "proposition" | "lemma" | "corollary" | "example"`, required): What it states. The page writes the kind's label in the artifact's main language
+  ("Definição", "Teorema", "Proposição", "Lema", "Corolário", "Exemplo" / "Definition",
+  "Theorem", "Proposition", "Lemma", "Corollary", "Example"). A theorem, proposition, lemma or
+  corollary is a claim: it reads in italic, and a `Proof` can prove it. A remark or aside is no
+  kind: write it in a `Note`.
 - `id` (`string`, required): The statement's ID: readable lowercase kebab-case, unique among the artifact's statements.
   `<Ref to="…">` cites it, and `#S-<id>` links to it.
 - `name` (`string`, optional): The name the subject gives it, in plain text, shown in parentheses after the label
@@ -763,10 +1181,11 @@ A secante tem inclinação $\frac{4 - 0}{2 - 0} = 2$ e $f'(c) = 2c$, então $c =
 
 Steps the owner through a mechanism, a diagram or a code walkthrough one step at a time, with
 back and forward buttons above it. Use it when the order is the point: the stages of a process,
-a drawing built up part by part, or a program read a few lines at a time. For a picture that
-reads at once, use `Diagram` or `Figure`.
+a drawing built up part by part, a program read a few lines at a time, or code rewritten step
+by step. For a picture that reads at once, use `Diagram` or `Figure`.
 
-Give it exactly one of `diagram`, `figure` or `lines`:
+Give it one of `diagram`, `figure` or `lines`, or, for code that changes between steps, none of
+them and one code block per step:
 
 ````mdx
 import mitose from "./mitose.d2?steps";
@@ -783,6 +1202,22 @@ import bomba from "./bomba.svg?raw";
 ```
 
 </Stepper>
+
+<Stepper captions={["Soma dentro do laço.", "Tira a soma do laço.", "Usa a fórmula."]}>
+
+```pascal {3}
+…
+```
+
+```pascal {2-3}
+…
+```
+
+```pascal
+…
+```
+
+</Stepper>
 ````
 
 A D2 diagram steps through its `steps` boards, each drawn as a whole, in one frame the size of
@@ -790,13 +1225,26 @@ the largest board: write every board so it reads on its own. Diagrams and drawin
 colours as in `Diagram` and `Figure`. A stepper needs at least two steps, and `captions`, when
 given, needs one caption per step.
 
-Printed, a stepper shows every step: each board under its number and caption, and code with each
-step's lines and caption listed under it. A figure prints once, at its last step, with the
-captions listed under it, so make the last step the complete drawing.
+Code: use `lines` when the code stays the same and only the lines in play change; put one fenced
+code block per step inside the stepper, with blank lines around each, when the code itself
+changes between steps. Never draw code as a figure stepper, which loses its text and copying.
+Each block stands alone, with its own language, `start` and numbers, and its fence's `{…}` marks
+that step's lines: the rest turn grey, and a block without `{…}` shows in full ink. The stepper
+doesn't compare blocks, so mark the lines that changed, or, before a deletion, the line about to
+go in the step before. It shows one block at a time, in one frame as tall as the tallest block,
+so stepping doesn't move the page. Screen readers hear the step number, the marked lines and the
+caption.
+
+Printed, a stepper shows every step: each board, or each code block with its marks, under its
+number and caption, and a one-block stepper's code with each step's lines and caption listed
+under it. A figure whose parts are all in its last step prints once, at that step, with the
+captions listed under it; one with a part that leaves before the end, such as a point moving
+around an orbit, prints every step, each in the drawing's full frame under its number and
+caption. For a figure that builds up, the last step is the complete drawing.
 
 ### Props
 
-Give one of these 3 sets of props.
+Give one of these 4 sets of props.
 
 With `diagram`:
 
@@ -804,9 +1252,10 @@ With `diagram`:
   board is the first step, unless everything is drawn under `steps`, and each board in `steps`
   is the next.
 - `alt` (`string`, required): What the drawing shows as a whole, in a sentence or two. Screen readers read it.
-- `captions` (`string[]`, optional): One short caption per step, in step order, shown beside the buttons. Screen readers announce
-  it with the step number and, for code, the step's lines; without captions they hear only
-  those. Leave it out only when the prose around the stepper already explains each step.
+- `captions` (`string[]`, optional): One short caption per step (per code block, with one code block per step), in step order,
+  shown beside the buttons. Screen readers announce it with the step number and, for code, the
+  step's lines; without captions they hear only those. Leave it out only when the prose around
+  the stepper already explains each step.
 
 With `figure`:
 
@@ -815,18 +1264,233 @@ With `figure`:
   4, `"2-"` from step 2 to the end, and `"1, 3"` in steps 1 and 3. Elements without one always
   show. The highest step number named is the number of steps.
 - `alt` (`string`, required): What the drawing shows as a whole, in a sentence or two. Screen readers read it.
-- `captions` (`string[]`, optional): One short caption per step, in step order, shown beside the buttons. Screen readers announce
-  it with the step number and, for code, the step's lines; without captions they hear only
-  those. Leave it out only when the prose around the stepper already explains each step.
+- `captions` (`string[]`, optional): One short caption per step (per code block, with one code block per step), in step order,
+  shown beside the buttons. Screen readers announce it with the step number and, for code, the
+  step's lines; without captions they hear only those. Leave it out only when the prose around
+  the stepper already explains each step.
 
 With `lines`:
 
-- `lines` (`string[]`, required): The lines each step highlights, one entry per step, counting lines from 1: `"3"`, `"3-5"`,
-  `"3-"` (line 3 to the end) or `"1-2, 6"`. The other lines turn grey. Put one fenced code block
-  inside the stepper, with blank lines around it.
-- `captions` (`string[]`, optional): One short caption per step, in step order, shown beside the buttons. Screen readers announce
-  it with the step number and, for code, the step's lines; without captions they hear only
-  those. Leave it out only when the prose around the stepper already explains each step.
+- `lines` (`string[]`, required): The lines each step highlights, one entry per step, by the numbers the page shows for them:
+  from 1, or from the fence's `start`. `"3"`, `"3-5"`, `"3-"` (line 3 to the end) or `"1-2, 6"`.
+  The other lines turn grey. Put one fenced code block inside the stepper, with blank lines
+  around it, and no `{…}` in its fence: `lines` marks the lines here.
+- `captions` (`string[]`, optional): One short caption per step (per code block, with one code block per step), in step order,
+  shown beside the buttons. Screen readers announce it with the step number and, for code, the
+  step's lines; without captions they hear only those. Leave it out only when the prose around
+  the stepper already explains each step.
+
+With none of `diagram`, `figure` or `lines`:
+
+- `captions` (`string[]`, optional): One short caption per step (per code block, with one code block per step), in step order,
+  shown beside the buttons. Screen readers announce it with the step number and, for code, the
+  step's lines; without captions they hear only those. Leave it out only when the prose around
+  the stepper already explains each step.
+
+## Machines
+
+The machines the design system holds. A Stage traces one with a build whose default export is `trace(machine, notes)`, under the Stage's build above. Each entry says how to write the machine's program and tables in the Stage's content, and which notes its build gives.
+
+### mepa
+
+`import mepa from "@artifactory/design-system/machines/mepa";`
+
+MEPA, the stack machine Pascal-like languages compile to in Kowaltowski's textbook: the program
+counter `i`, the stack top `s`, the display `D` and the memory `M`. Trace it in a Stage with
+`input` whose content is the listing, a registers table and a memory table, with a build of a
+few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR, laid out as a
+compiler lays out a program: a jump over the subroutines to the main program's start, and a
+function, área(bases, altura), that the main program calls with a + b and h:
+
+````mdx
+<Stage
+  build="trapezio"
+  input={{
+    label: "Área do trapézio",
+    fields: [
+      { name: "a", min: 0, max: 20 },
+      { name: "b", min: 0, max: 20 },
+      { name: "h", min: 0, max: 20 },
+    ],
+    examples: [{ a: 3, b: 5, h: 4 }, { a: 2, b: 3, h: 3 }],
+  }}
+  prompt="Digite as bases e a altura e rode o programa."
+  caption="A área do trapézio na MEPA, uma instrução por passo."
+>
+
+```text start=0
+INPP
+AMEM 3        ; a, b, h
+DSVS L1       ; salta a função
+L2: ENPR 1    ; área(bases, altura)
+CRVL 1,-5
+CRVL 1,-4
+MULT
+CRCT 2
+DIVI
+ARMZ 1,-6     ; o valor de retorno
+RTPR 1,2
+L1: NADA
+LEIT
+ARMZ 0,0
+LEIT
+ARMZ 0,1
+LEIT
+ARMZ 0,2
+AMEM 1        ; o valor de retorno
+CRVL 0,0
+CRVL 0,1
+SOMA
+CRVL 0,2
+CHPR L2,1
+IMPR
+DMEM 3
+PARA
+FIM
+```
+
+| Registrador | Valor |
+| ----------- | ----: |
+| i           |    26 |
+| s           |    −1 |
+| D[0]        |     0 |
+| D[1]        |     ? |
+| entrada     |     — |
+| saída       |    16 |
+
+| Célula | Dado | Papel | Desl. | Topo |
+| ------ | ---: | ----- | ----: | ---- |
+| M[0]   |    3 |       |       |      |
+| M[1]   |    5 |       |       |      |
+| M[2]   |    4 |       |       |      |
+| M[3]   |   16 |       |       |      |
+| M[4]   |    8 |       |       |      |
+| M[5]   |    4 |       |       |      |
+| M[6]   |   24 |       |       |      |
+| M[7]   |    1 |       |       |      |
+| M[8]   |    ? |       |       |      |
+| M[9]   |   16 |       |       |      |
+| M[10]  |    2 |       |       |      |
+
+</Stage>
+````
+
+```ts
+// trapezio.build.ts
+import { trace } from "@artifactory/design-system/stage-build";
+import mepa from "@artifactory/design-system/machines/mepa";
+
+export default trace(mepa, {
+  reads: ["a", "b", "h"],
+  labels: { L1: "o início do programa principal", L2: "o início de área" },
+  subroutines: { L2: { params: ["bases", "altura"], returns: true } },
+  roles: {
+    1: ["base a", "base b", "altura h"],
+    8: "a área",
+    18: ["valor de retorno"],
+    21: "parâmetro bases",
+    22: "parâmetro altura",
+  },
+  after: { 25: "As variáveis a, b e h estão liberadas." },
+});
+```
+
+The tables as written are what the first example's last step leaves, as for any Stage with
+`input`: `PARA` keeps `i` on its own line, 26; `RTPR` gave `D[1]` back the value `ENPR` kept in
+M[8], none; every cell is above `s`, so none shows a role, an offset or `← s`; and M[3] to M[10]
+keep the last values the stack held there.
+
+**The listing** is the Stage's one code block, fenced ` ```text start=0 `, so address k is the
+line the page shows as k: never type the addresses into it. Each line is an optional label
+(`L1:`, a name of letters, digits and `_`, naming that line's address), an instruction with its
+arguments and an optional `; comment`, and the last line is `FIM`:
+
+- `INPP` starts the program: `s` gets −1 and `D[0]` 0.
+- `AMEM n` reserves n cells on the stack, and `DMEM n` frees n.
+- `LEIT` reads the next field, in the order `reads` names them, onto the stack. MEPA reads only
+  whole numbers, so `reads` names only number fields: a text field fails as `build-input`.
+- `ARMZ k,n` stores the top in `M[D[k] + n]` and pops it; `CRVL k,n` pushes a copy of it. n may
+  be negative: `CRVL 1,-5` reads a subroutine's parameter.
+- `CRCT c` pushes the constant c.
+- `SOMA`, `MULT` and `DIVI` replace the two cells at the top with their sum, product or quotient
+  (`DIVI` drops the remainder, as Pascal's `div`).
+- `DSVS L` jumps: `i` gets the address of the line labelled `L`. MEPA has no conditional jump
+  yet, so a jump back to an earlier line repeats forever and runs past the Stage's 200 steps.
+- `NADA` does nothing: it marks a place, usually labelled, for a jump to land on.
+- `CHPR L,k` calls the subroutine at the label `L`, of level k: it pushes the return address,
+  the next line's, and k, and jumps to `L`.
+- `ENPR k` enters level k: it pushes `D[k]` and points `D[k]` at the next cell, the record's
+  base, offset 0. The caller's arguments sit below the base, the last at −4, and a return value
+  the caller reserved below the first.
+- `RTPR k,n` returns from a subroutine with n parameters: `D[k]` gets back the value `ENPR`
+  pushed, `i` the return address, and `s` drops by n + 3, leaving the return value on top.
+- `IMPR` pops the top onto the output, and `PARA` stops the machine.
+
+**Failures**, each a `stage-run` failure of `pnpm check`. A listing the machine can't read is
+refused, naming the line: an instruction MEPA doesn't have ("`PUSH 3` isn't a MEPA
+instruction"), wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers", "`DSVS 3`
+isn't `DSVS L`, with a label"), a jump or call to a label no line has ("`DSVS L9` jumps to the
+label `L9`, which the listing doesn't have: it has `L1`", "`CHPR L9,1` calls the label `L9`, …"),
+a label on two lines ("the label `L1` is already on line 1"), a label with no instruction after
+it, a fence without `start=0`, `FIM` anywhere but on the last line, and a Stage with no code block
+or more than one. So is a `roles` or `after` note keyed to an address the listing doesn't have, a
+`labels` note naming a label no line has ("`labels` names the label `L2`, which the listing
+doesn't have: it has `L1`"), and a `subroutines` note on a label no `CHPR` calls ("`subroutines`
+names the label `L2`, which no `CHPR` calls: the listing calls `L1`"). A run is refused, naming
+the line, when it divides by zero, reads with no field left, drops the stack below its bottom,
+runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, returns to a cell with no
+value, reaches a cell below `M[0]`, or reaches `FIM`. A table without a column the view writes
+into fails as any Stage's does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
+
+**The registers table** has the rows `i`, `s`, `D[0]` and every other `D[k]` an `ARMZ`, `CRVL`,
+`ENPR` or `RTPR` names, then the input yet to be read and the output, each listing its values in
+order, `—` when empty. Its headers and the last two rows' names follow the artifact's main
+language. In pt-BR, as the example's, and in English, after the same run:
+
+| Register | Value |
+| -------- | ----: |
+| i        |    26 |
+| s        |    −1 |
+| D[0]     |     0 |
+| D[1]     |     ? |
+| input    |     — |
+| output   |    16 |
+
+**The memory table** has `Célula` (`Cell`) as its first column and a row per cell, `M[0]` up to
+the highest cell the run reaches, in any order, so a run that reaches a row the table lacks
+fails. Its columns are `Célula | Dado | Papel | Desl. | Topo` in pt-BR, and in English:
+
+| Cell | Data | Role | Offset | Top |
+| ---- | ---: | ---- | -----: | --- |
+| M[0] |    3 |      |        |     |
+
+`Papel` (`Role`) and `Desl.` (`Offset`) are optional: leave one out and the view doesn't write
+it. `Desl.` shows each cell of a subroutine's record its offset from the record's base, from its
+return value and parameters, as `subroutines` gives them, up to the top: −6 for área's return
+value, −5 and −4 for its parameters, −3 for the return address, −2 for the level, −1 for the
+kept `D[k]`, then 0 up for its locals. A record holds its cells from its `ENPR` to its `RTPR`,
+and the topmost record holding a cell gives its offset; a cell outside every record shows none.
+A cell above `s` is `muted` and shows no role or offset, `← s` marks the top, and a cell with no
+value shows `?`. The cells each step writes are `strong`, even when one already held that value.
+
+**The lines:** the instruction that ran is `reversed`, and the one `i` points at next is
+`dashed` until the machine stops.
+
+**Notes**, besides `reads`, in the artifact's language: `labels`, by label, the place each label
+names (`L1: "o início de main"`), said beside the label when a jump lands there ("Desvia para L1,
+o início de main: i recebe 3."), when a call goes there ("Chama L2, o início de div: …") and when
+the run passes its `NADA` ("Passa por L1, o início de main, e não faz nada."); a label without
+one is said alone. `subroutines`, by the label `CHPR` calls, the subroutine's parameters, first
+to last, and whether it returns a value (`L2: { params: ["a", "b"], returns: true }`): they give
+`Desl.` its offsets, and `ENPR` says where each parameter and the return value sit ("Os
+parâmetros a e b estão em M[3] e M[4], nos deslocamentos menos 5 e menos 4."), as `RTPR` says
+the value it leaves on top. `roles`, by address, the role of the cell that instruction writes
+(`11: "lido"`), or for an `AMEM n` a list of n roles, one per cell it reserves
+(`1: ["x, global", "y, global"]`), and for a `CHPR` a list of 2. A cell an `ARMZ` writes keeps
+its role unless the note gives one. Without one, `CHPR`'s cells are the return address and the
+level ("endereço de retorno", "nível 1") and `ENPR`'s the kept display ("D[1] guardado"), and any
+other write has no role. `after`, by address, a sentence added to that instruction's step
+(`14: "As globais x e y estão liberadas."`).
 
 ## Colours in diagrams
 
@@ -856,3 +1520,20 @@ Each class paints an SVG element with a token:
 - `stroke-border`: `--color-border`
 
 The `text`, `muted` and `accent` classes are ink: use them for lines and labels. The `tint`, `surface` and `border` classes are too faint to read on the page: use them for fills and gridlines, never for text or a line that carries meaning, unless it sits on an ink fill.
+
+### Code in figures
+
+Text takes the face of the page's headings, Archivo. `font-code` sets a `<text>` in the code face instead, Recursive in mono mode, as code blocks are: give it to code, identifiers and instructions (`push 2`, `head`, `x := 0`), and nothing else. It combines with one of the classes above, as `class="font-code fill-muted"`, and a Stage's `strong` mark still sets it in bold.
+
+### Swatches
+
+When colour is the subject (a graph or map colouring, an edge colouring, a red-black tree), each colour is a swatch: a hatching in ink on the ground, never a hue or a line form. In a `Figure` or a `Stage` drawing, never a `Stepper`, fill an area (a vertex, a region) with its colour's class, in swatch order, at most 6 to a drawing; an area left in the ground is uncoloured:
+
+- `fill-swatch-1`: diagonal lines `/`
+- `fill-swatch-2`: diagonal lines `\`
+- `fill-swatch-3`: cross-hatch, both diagonals
+- `fill-swatch-4`: horizontal lines
+- `fill-swatch-5`: vertical lines
+- `fill-swatch-6`: dots
+
+The label is the colour: every coloured part, edges included, carries a `<text x y data-swatch="N">` in the same `<g>` as its shapes, at the part's centre or the edge's midpoint, whose text is colour N's name, as `Figure`'s `colours` gives it (1 to 6 without it). The drawing sets the label's size, centres it and draws it on a square plate of the ground. An edge takes the label only, never a swatch or a line style. `Figure`'s entry says the rest, and `Stage`'s how the marks read on a coloured part.

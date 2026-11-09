@@ -322,6 +322,39 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
   },
 );
 
+interface LookCase {
+  id: string;
+  outcome: string;
+  captures: string[];
+  assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
+  observed: Record<string, unknown>;
+}
+
+async function look(repo: FixtureRepo, slug: string) {
+  const result = await repo.run("pnpm", ["look", slug]);
+  const output = join(repo.root, ".look", slug);
+  const report = JSON.parse(await readFile(join(output, "results.json"), "utf8")) as {
+    cases: LookCase[];
+  };
+  const evidence = process.env.ARTIFACTORY_BROWSER_EVIDENCE;
+  if (evidence) {
+    await cp(output, join(evidence, slug), { recursive: true });
+    await writeFile(join(evidence, `${slug}.log`), result.output);
+  }
+  return { ...result, report };
+}
+
+const frontmatter = (id: string, slug: string) => [
+  "---",
+  `id: ${id}`,
+  `title: ${slug}`,
+  "subject: Artifactory",
+  "lang: en",
+  "published: 2026-10-25",
+  "---",
+  "",
+];
+
 describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
   "opt-in Look Stage evidence",
   () => {
@@ -337,14 +370,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
         ["look-refused", "refused1"],
       ] as const) {
         files[`artifacts/${slug}/index.mdx`] = [
-          "---",
-          `id: ${id}`,
-          `title: ${slug}`,
-          "subject: Artifactory",
-          "lang: en",
-          "published: 2026-10-25",
-          "---",
-          "",
+          ...frontmatter(id, slug),
           'import Stage from "@artifactory/design-system/stage";',
           "",
           "## Three steps",
@@ -368,32 +394,115 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
           "",
         ].join("\n");
       }
+      for (const [slug, id] of [
+        ["look-groups", "groups01"],
+        ["look-groups-refused", "groupsrf"],
+      ] as const) {
+        files[`artifacts/${slug}/index.mdx`] = [
+          ...frontmatter(id, slug),
+          'import Stage from "@artifactory/design-system/stage";',
+          "",
+          "## Two choice groups",
+          "",
+          '<Stage build="search" choose={[{name:"start",label:"Start at",options:["A","B"]},{name:"search",label:"Search",options:["breadth","depth"]}]} prompt="Choose a vertex and a search." caption="Literal two-group Stage evidence.">',
+          "",
+          "| Vertex |",
+          "| --- |",
+          "| A |",
+          "",
+          "</Stage>",
+          "",
+        ].join("\n");
+        files[`artifacts/${slug}/search.build.ts`] = [
+          'import { defineBuild } from "@artifactory/design-system/stage-build";',
+          slug === "look-groups-refused"
+            ? 'export default defineBuild<{ start: string; search: string }>({ steps() { throw new Error("Literal deliberate refusal"); } });'
+            : "export default defineBuild<{ start: string; search: string }>({ steps: ({ start, search }) => [{ say: `From ${start}.` }, { say: `By ${search}.` }] });",
+          "",
+        ].join("\n");
+      }
+      files["artifacts/look-typed/index.mdx"] = [
+        ...frontmatter("typed001", "look-typed"),
+        'import Stage from "@artifactory/design-system/stage";',
+        "",
+        "## Typed input",
+        "",
+        '<Stage build="sum" input={{label:"Add two numbers",fields:[{name:"a",min:0,max:99},{name:"b",min:0,max:99}],examples:[{a:4,b:2}]}} prompt="Type a and b, then press Start." caption="Literal typed Stage evidence.">',
+        "",
+        "| Sum |",
+        "| --- |",
+        "| 6 |",
+        "",
+        "</Stage>",
+        "",
+      ].join("\n");
+      files["artifacts/look-typed/sum.build.ts"] = [
+        'import { defineBuild } from "@artifactory/design-system/stage-build";',
+        "export default defineBuild<{ a: number; b: number }>({ steps: ({ a, b }) => [{ say: `Take ${String(a)}.` }, { say: `Add ${String(b)}.` }] });",
+        "",
+      ].join("\n");
       repo = await createFixtureRepo(files);
     });
     afterAll(async () => {
       await repo.remove();
     });
+    it.each([
+      {
+        slug: "look-groups",
+        stem: "01-stage-choose",
+        groups: ["start", "search"],
+        outcome: "captured-awaiting-visual-review",
+        printed: /^ {2}first options start = A, search = breadth, 2 steps$/m,
+        shots: ["step-1", "step-2"],
+      },
+      {
+        slug: "look-groups-refused",
+        stem: "01-stage-choose",
+        groups: ["start", "search"],
+        outcome: "refused",
+        printed:
+          /^ {2}first options start = A, search = breadth, refused: .*Choose other options\.$/m,
+        shots: ["refused"],
+      },
+      {
+        slug: "look-typed",
+        stem: "01-stage-input",
+        groups: [],
+        outcome: "captured-awaiting-visual-review",
+        printed: /^ {2}first example a = 4, b = 2, 2 steps$/m,
+        shots: ["step-1", "step-2"],
+      },
+    ])(
+      "shoots the run on the first option of every group, or the first example, and prints it: $slug",
+      async ({ slug, stem, groups, outcome, printed, shots }) => {
+        const result = await look(repo, slug);
+        expect(result.exitCode, result.output).toBe(0);
+        expect(result.stdout).toMatch(printed);
+        for (const test of result.report.cases) {
+          const width = test.id === "look-393" ? "393" : "1920";
+          expect(test.outcome).toBe(outcome);
+          expect(test.assertions.filter((assertion) => !assertion.passed)).toEqual([]);
+          for (const group of groups)
+            expect(test.assertions).toContainEqual(
+              expect.objectContaining({
+                name: `${stem}: first option of ${group} selected`,
+                passed: true,
+              }),
+            );
+          expect(test.captures).toEqual(
+            ["as-written", ...shots].map((shot) => `${stem}-${shot}-${width}.png`),
+          );
+        }
+      },
+      checkTimeout,
+    );
     it.each(["look-equal-prompt", "look-stuck", "look-refused"])(
       "records all Stage steps or an explicit failure/refusal through pnpm look: %s",
       async (slug) => {
-        const result = await repo.run("pnpm", ["look", slug]);
-        const output = join(repo.root, ".look", slug);
-        const report = JSON.parse(await readFile(join(output, "results.json"), "utf8")) as {
-          cases: {
-            id: string;
-            outcome: string;
-            assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
-            captures: string[];
-          }[];
-        };
-        const evidence = process.env.ARTIFACTORY_BROWSER_EVIDENCE;
-        if (evidence) {
-          await cp(output, join(evidence, slug), { recursive: true });
-          await writeFile(join(evidence, `${slug}.log`), result.output);
-        }
+        const result = await look(repo, slug);
         expect(result.exitCode, result.output).toBe(slug === "look-stuck" ? 1 : 0);
-        expect(report.cases.map((test) => test.id)).toEqual(["look-393", "look-1920"]);
-        for (const test of report.cases) {
+        expect(result.report.cases.map((test) => test.id)).toEqual(["look-393", "look-1920"]);
+        for (const test of result.report.cases) {
           const width = test.id === "look-393" ? 393 : 1920;
           if (slug === "look-stuck") {
             expect(test.outcome).toBe("failed");
@@ -420,6 +529,589 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
             ]);
           }
         }
+      },
+      checkTimeout,
+    );
+  },
+);
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look Stepper evidence",
+  () => {
+    let repo: FixtureRepo;
+    const code = ["```ts", "const radius = 2;", "const area = radius * radius;", "```"];
+    beforeAll(async () => {
+      repo = await createFixtureRepo({
+        "artifacts/look-code-stepper/index.mdx": [
+          ...frontmatter("codestp1", "look-code-stepper"),
+          'import Stepper from "@artifactory/design-system/stepper";',
+          "",
+          "## Code read a line at a time",
+          "",
+          '<Stepper lines={["1", "2"]} captions={["Literal radius.", "Literal area."]}>',
+          "",
+          ...code,
+          "",
+          "</Stepper>",
+          "",
+          '<Stepper lines={["1", "2"]}>',
+          "",
+          ...code,
+          "",
+          "</Stepper>",
+          "",
+        ].join("\n"),
+        "artifacts/look-code-blocks/index.mdx": [
+          ...frontmatter("codeblks", "look-code-blocks"),
+          'import Stepper from "@artifactory/design-system/stepper";',
+          "",
+          "## Code rewritten a block at a time",
+          "",
+          '<Stepper captions={["Literal loop.", "Literal sum.", "Literal formula."]}>',
+          "",
+          "```ts",
+          "let total = 0;",
+          "for (let i = 1; i <= n; i++) total += i;",
+          "```",
+          "",
+          "```ts",
+          "const total = sum(range(1, n));",
+          "```",
+          "",
+          "```ts",
+          "const total = (n * (n + 1)) / 2;",
+          "```",
+          "",
+          "</Stepper>",
+          "",
+        ].join("\n"),
+        "artifacts/look-nothing/index.mdx": [
+          ...frontmatter("nothing1", "look-nothing"),
+          "## Prose and plain code",
+          "",
+          "This literal paragraph sits above a code block that no Stepper holds.",
+          "",
+          ...code,
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    it(
+      "shoots a one-block code Stepper at every step, printing its captions in place of an alt",
+      async () => {
+        const result = await look(repo, "look-code-stepper");
+        expect(result.exitCode, result.output).toBe(0);
+        const captures = (width: number) =>
+          ["01-stepper", "02-stepper"].flatMap((name) =>
+            [1, 2].map((step) => `${name}-step-${String(step)}-${String(width)}.png`),
+          );
+        const printed = (name: string) =>
+          [...captures(393), ...captures(1920)]
+            .filter((file) => file.startsWith(name))
+            .map((file) => `  .look/look-code-stepper/${file}`);
+        expect(result.output).toContain(
+          [
+            '01-stepper: no drawing; captions, one per step: "Literal radius.", "Literal area."',
+            ...printed("01-stepper"),
+            "",
+            "02-stepper: no drawing and no caption",
+            ...printed("02-stepper"),
+          ].join("\n"),
+        );
+        expect(
+          result.report.cases.map(({ id, outcome, captures }) => ({ id, outcome, captures })),
+        ).toEqual(
+          [393, 1920].map((width) => ({
+            id: `look-${String(width)}`,
+            outcome: "captured-awaiting-visual-review",
+            captures: captures(width),
+          })),
+        );
+      },
+      checkTimeout,
+    );
+    it(
+      "shoots a Stepper with one code block per step at every step, printing its captions in place of an alt",
+      async () => {
+        const result = await look(repo, "look-code-blocks");
+        expect(result.exitCode, result.output).toBe(0);
+        const captures = (width: number) =>
+          [1, 2, 3].map((step) => `01-stepper-step-${String(step)}-${String(width)}.png`);
+        expect(result.output).toContain(
+          [
+            '01-stepper: no drawing; captions, one per step: "Literal loop.", "Literal sum.", "Literal formula."',
+            ...[...captures(393), ...captures(1920)].map(
+              (file) => `  .look/look-code-blocks/${file}`,
+            ),
+          ].join("\n"),
+        );
+        expect(
+          result.report.cases.map(({ id, outcome, captures }) => ({ id, outcome, captures })),
+        ).toEqual(
+          [393, 1920].map((width) => ({
+            id: `look-${String(width)}`,
+            outcome: "captured-awaiting-visual-review",
+            captures: captures(width),
+          })),
+        );
+      },
+      checkTimeout,
+    );
+    it(
+      "ends on a line saying an artifact of prose and plain code has nothing for look to shoot",
+      async () => {
+        const result = await look(repo, "look-nothing");
+        expect(result.exitCode, result.output).toBe(0);
+        expect(result.stdout.trimEnd().split("\n").at(-1)).toBe(
+          "pnpm look: artifacts/look-nothing/index.mdx has nothing for look to shoot",
+        );
+        expect(result.report.cases.map(({ id, outcome }) => ({ id, outcome }))).toEqual([
+          { id: "look-393", outcome: "not-applicable" },
+          { id: "look-1920", outcome: "not-applicable" },
+        ]);
+      },
+      checkTimeout,
+    );
+  },
+);
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look fixed-layer evidence",
+  () => {
+    let repo: FixtureRepo;
+    beforeAll(async () => {
+      const paragraph =
+        "This literal paragraph makes the page taller than the phone viewport, so the bar can slide in.\n";
+      repo = await createFixtureRepo({
+        "public/slide-bar-in.js": [
+          'addEventListener("load", () => {',
+          "  if (innerWidth > 600) return;",
+          '  const stepper = document.querySelector("artifact-stepper");',
+          '  const bar = document.querySelector(".artifact-bar");',
+          "  const target = scrollY + stepper.getBoundingClientRect().bottom - innerHeight + bar.offsetHeight / 2;",
+          '  dispatchEvent(new KeyboardEvent("keydown"));',
+          "  scrollTo(0, target + 400);",
+          "  setTimeout(() => scrollTo(0, target), 150);",
+          "});",
+          "",
+        ].join("\n"),
+        "artifacts/look-bar/steps.svg": [
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 300">',
+          '<rect class="stroke-text" x="20" y="20" width="320" height="260" fill="none" stroke-width="2"/>',
+          '<circle data-step="2-" class="stroke-text" cx="180" cy="150" r="60" fill="none" stroke-width="2"/>',
+          "</svg>",
+          "",
+        ].join("\n"),
+        "artifacts/look-bar/index.mdx": [
+          ...frontmatter("lookbar1", "look-bar"),
+          'import Stepper from "@artifactory/design-system/stepper";',
+          'import steps from "./steps.svg?raw";',
+          "",
+          "## Before",
+          "",
+          ...Array.from({ length: 12 }, () => paragraph),
+          "## Stepper",
+          "",
+          '<Stepper figure={steps} alt="A literal box, then a circle inside it." captions={["The box.", "The circle."]} />',
+          "",
+          "## After",
+          "",
+          ...Array.from({ length: 24 }, () => paragraph),
+          '<script src="/slide-bar-in.js"></script>',
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    it(
+      "hides the slid-in bar for every shot of a Stepper under it, then shows it again",
+      async () => {
+        const result = await look(repo, "look-bar");
+        expect(result.exitCode, result.output).toBe(0);
+        const phone = result.report.cases.find((test) => test.id === "look-393");
+        expect(phone?.outcome).toBe("captured-awaiting-visual-review");
+        expect(phone?.assertions.every((assertion) => assertion.passed)).toBe(true);
+        const files = ["01-stepper-step-1-393.png", "01-stepper-step-2-393.png"];
+        expect(phone?.captures).toEqual(files);
+        for (const file of files) {
+          const barStates = (phone?.assertions ?? [])
+            .filter((assertion) => assertion.name.startsWith(`${file}: `))
+            .flatMap((assertion) =>
+              Array.isArray(assertion.actual) ? (assertion.actual as unknown[]) : [],
+            )
+            .filter((state) => JSON.stringify(state).includes("artifact-bar"));
+          expect(barStates).toEqual([
+            expect.objectContaining({ opacity: "0" }),
+            expect.objectContaining({ opacity: "1" }),
+          ]);
+        }
+      },
+      checkTimeout,
+    );
+  },
+);
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look model answer evidence",
+  () => {
+    let repo: FixtureRepo;
+    beforeAll(async () => {
+      repo = await createFixtureRepo({
+        "artifacts/look-model-answer/circle.svg":
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="stroke-accent" fill="none" stroke-width="4"/></svg>\n',
+        "artifacts/look-model-answer/index.mdx": [
+          ...frontmatter("modelans", "look-model-answer"),
+          'import Figure from "@artifactory/design-system/figure";',
+          'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+          'import OpenQuestion from "@artifactory/design-system/open-question";',
+          'import circle from "./circle.svg?raw";',
+          "",
+          "## Questions",
+          "",
+          '<NumericQuestion id="one-plus-one" answer="2">',
+          "",
+          "What is one plus one?",
+          "",
+          "</NumericQuestion>",
+          "",
+          '<OpenQuestion id="draw-a-circle">',
+          "",
+          "Draw a circle.",
+          "",
+          "---",
+          "",
+          "A circle:",
+          "",
+          '<Figure src={circle} alt="Literal circle of radius forty." />',
+          "",
+          "</OpenQuestion>",
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    it(
+      "reveals a figure inside a model answer to shoot it, names its question, then closes the model answer",
+      async () => {
+        const result = await look(repo, "look-model-answer");
+        expect(result.exitCode, result.output).toBe(0);
+        expect(result.output).toContain(
+          [
+            "01-figure (inside the model answer of Question 2): Literal circle of radius forty.",
+            "  .look/look-model-answer/01-figure-393.png",
+            "  .look/look-model-answer/01-figure-1920.png",
+          ].join("\n"),
+        );
+        for (const width of [393, 1920]) {
+          const test = result.report.cases.find(({ id }) => id === `look-${String(width)}`);
+          expect(test?.outcome).toBe("captured-awaiting-visual-review");
+          expect(test?.captures).toEqual([`01-figure-${String(width)}.png`]);
+          expect(test?.assertions).toContainEqual({
+            name: "01-figure: model answer closed again",
+            expected: false,
+            actual: false,
+            passed: true,
+          });
+          expect(test?.observed.figures).toContainEqual(
+            expect.objectContaining({
+              name: "01-figure",
+              location: "inside the model answer of Question 2",
+            }),
+          );
+        }
+      },
+      checkTimeout,
+    );
+  },
+);
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look explanation evidence",
+  () => {
+    let repo: FixtureRepo;
+    const drawing = (shape: string) =>
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${shape}</svg>\n`;
+    beforeAll(async () => {
+      repo = await createFixtureRepo({
+        "artifacts/look-explanation/square.svg": drawing(
+          '<rect x="10" y="10" width="80" height="80" class="stroke-accent" fill="none" stroke-width="4"/>',
+        ),
+        "artifacts/look-explanation/circle.svg": drawing(
+          '<circle cx="50" cy="50" r="40" class="stroke-accent" fill="none" stroke-width="4"/>',
+        ),
+        "artifacts/look-explanation/index.mdx": [
+          ...frontmatter("explains", "look-explanation"),
+          'import Figure from "@artifactory/design-system/figure";',
+          'import Matching from "@artifactory/design-system/matching";',
+          'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+          'import SingleChoice from "@artifactory/design-system/single-choice";',
+          'import square from "./square.svg?raw";',
+          'import circle from "./circle.svg?raw";',
+          "",
+          "## Questions",
+          "",
+          '<SingleChoice id="corners" answer={2}>',
+          "",
+          "How many corners has a square?",
+          "",
+          "1. Three",
+          "2. Four",
+          "",
+          "---",
+          "",
+          "Count them:",
+          "",
+          '<Figure src={square} alt="Literal square with four corners." />',
+          "",
+          '<Figure src={circle} alt="Literal circle with no corners." />',
+          "",
+          "</SingleChoice>",
+          "",
+          '<NumericQuestion id="square-sides" answer="4">',
+          "",
+          "How many sides has a square?",
+          "",
+          "---",
+          "",
+          '<Figure src={square} alt="Literal square with four sides." />',
+          "",
+          "</NumericQuestion>",
+          "",
+          '<Matching answers={{ "round-shape": 1, "square-shape": 2 }}>',
+          "",
+          "Which shape is it?",
+          "",
+          "1. A circle",
+          "2. A square",
+          "",
+          "---",
+          "",
+          "- Round",
+          "- Four equal sides",
+          "",
+          "---",
+          "",
+          '<Figure src={circle} alt="Literal round circle." />',
+          "",
+          "</Matching>",
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    it(
+      "locks each question, or a matching's whole set, to shoot what its explanation holds, naming where it sits",
+      async () => {
+        const result = await look(repo, "look-explanation");
+        expect(result.exitCode, result.output).toBe(0);
+        const shots: [string, string, string][] = [
+          ["01-figure", "Question 1", "Literal square with four corners."],
+          ["02-figure", "Question 1", "Literal circle with no corners."],
+          ["03-figure", "Question 2", "Literal square with four sides."],
+          ["04-figure", "Questions 3–4", "Literal round circle."],
+        ];
+        for (const [name, question, alt] of shots)
+          expect(result.output).toContain(
+            [
+              `${name} (inside the explanation of ${question}): ${alt}`,
+              `  .look/look-explanation/${name}-393.png`,
+              `  .look/look-explanation/${name}-1920.png`,
+            ].join("\n"),
+          );
+        for (const width of [393, 1920]) {
+          const test = result.report.cases.find(({ id }) => id === `look-${String(width)}`);
+          expect(test?.outcome).toBe("captured-awaiting-visual-review");
+          expect(test?.captures).toEqual(shots.map(([name]) => `${name}-${String(width)}.png`));
+          for (const [name, question] of shots)
+            expect(test?.observed.figures).toContainEqual(
+              expect.objectContaining({ name, location: `inside the explanation of ${question}` }),
+            );
+          for (const name of ["01-figure", "03-figure", "04-figure"])
+            expect(test?.assertions).toContainEqual({
+              name: `${name}: the lock saved nothing`,
+              expected: [],
+              actual: [],
+              passed: true,
+            });
+        }
+      },
+      checkTimeout,
+    );
+  },
+);
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look failure evidence",
+  () => {
+    let repo: FixtureRepo;
+    const square =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" class="stroke-accent" fill="none" stroke-width="4"/></svg>\n';
+    beforeAll(async () => {
+      repo = await createFixtureRepo({
+        "public/keep-unrendered.js": [
+          'addEventListener("DOMContentLoaded", () => {',
+          '  const [, flat] = document.querySelectorAll("main > figure.figure");',
+          '  flat.style.cssText = "height: 0; min-height: 0; padding: 0; border: 0; overflow: hidden";',
+          '  document.querySelector(".question-model-answer figure").style.display = "none";',
+          "});",
+          "",
+        ].join("\n"),
+        "artifacts/look-unrendered/square.svg": square,
+        "artifacts/look-unrendered/index.mdx": [
+          ...frontmatter("unrender", "look-unrendered"),
+          'import Figure from "@artifactory/design-system/figure";',
+          'import OpenQuestion from "@artifactory/design-system/open-question";',
+          'import square from "./square.svg?raw";',
+          "",
+          "## Figures",
+          "",
+          '<Figure src={square} alt="Literal shown square." />',
+          "",
+          '<Figure src={square} alt="Literal flattened square." />',
+          "",
+          '<OpenQuestion id="draw-a-square">',
+          "",
+          "Draw a square.",
+          "",
+          "---",
+          "",
+          '<Figure src={square} alt="Literal hidden square." />',
+          "",
+          "</OpenQuestion>",
+          "",
+          '<script src="/keep-unrendered.js"></script>',
+          "",
+        ].join("\n"),
+        "public/disguise-stepper.js": [
+          'addEventListener("DOMContentLoaded", () => {',
+          '  document.querySelector(".stepper-figure").className = "stepper-stage stepper-unfamiliar";',
+          "});",
+          "",
+        ].join("\n"),
+        "artifacts/look-unknown-stepper/steps.svg": [
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
+          '<rect class="stroke-text" x="10" y="10" width="80" height="80" fill="none" stroke-width="2"/>',
+          '<circle data-step="2-" class="stroke-text" cx="50" cy="50" r="20" fill="none" stroke-width="2"/>',
+          "</svg>",
+          "",
+        ].join("\n"),
+        "artifacts/look-unknown-stepper/index.mdx": [
+          ...frontmatter("unknownf", "look-unknown-stepper"),
+          'import Stepper from "@artifactory/design-system/stepper";',
+          'import steps from "./steps.svg?raw";',
+          "",
+          "## Stepper",
+          "",
+          '<Stepper figure={steps} alt="Literal box, then a circle inside it." captions={["The box.", "The circle."]} />',
+          "",
+          '<script src="/disguise-stepper.js"></script>',
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    it(
+      "fails the case on every item still unrendered when its turn comes, naming each, and shoots none of them",
+      async () => {
+        const result = await look(repo, "look-unrendered");
+        expect(result.exitCode, result.output).toBe(1);
+        for (const width of [393, 1920]) {
+          const id = `look-${String(width)}`;
+          const test = result.report.cases.find((test) => test.id === id);
+          expect(test?.outcome).toBe("failed");
+          expect(test?.captures).toEqual([`01-figure-${String(width)}.png`]);
+          expect(test?.assertions).toContainEqual({
+            name: "02-figure: look can shoot it",
+            expected: {
+              place: "Figure 1.2",
+              kind: "figure",
+              description: "Literal flattened square.",
+              problem: null,
+            },
+            actual: {
+              place: "Figure 1.2",
+              kind: "figure",
+              description: "Literal flattened square.",
+              problem: "not rendered (its box has no size)",
+            },
+            passed: false,
+          });
+          expect(test?.assertions).toContainEqual({
+            name: "03-figure: look can shoot it",
+            expected: {
+              place: "inside the model answer of Question 1",
+              kind: "figure",
+              description: "Literal hidden square.",
+              problem: null,
+            },
+            actual: {
+              place: "inside the model answer of Question 1",
+              kind: "figure",
+              description: "Literal hidden square.",
+              problem: "not rendered after its reveal (checkVisibility() is false)",
+            },
+            passed: false,
+          });
+          expect(test?.assertions).toContainEqual({
+            name: "03-figure: model answer closed again",
+            expected: false,
+            actual: false,
+            passed: true,
+          });
+          expect(result.output).toContain(
+            `pnpm look: ${id}: couldn't shoot 02-figure (Figure 1.2), a figure: not rendered (its box has no size); Literal flattened square.`,
+          );
+          expect(result.output).toContain(
+            `pnpm look: ${id}: couldn't shoot 03-figure (inside the model answer of Question 1), a figure: not rendered after its reveal (checkVisibility() is false); Literal hidden square.`,
+          );
+        }
+        expect(result.output).not.toContain(".look/look-unrendered/02-figure");
+        expect(result.output).not.toContain(".look/look-unrendered/03-figure");
+      },
+      checkTimeout,
+    );
+    it(
+      "fails the case on a Stepper whose form look doesn't know, naming it, and never shoots it as a known form",
+      async () => {
+        const result = await look(repo, "look-unknown-stepper");
+        expect(result.exitCode, result.output).toBe(1);
+        for (const width of [393, 1920]) {
+          const id = `look-${String(width)}`;
+          const test = result.report.cases.find((test) => test.id === id);
+          expect(test?.outcome).toBe("failed");
+          expect(test?.captures).toEqual([]);
+          expect(test?.assertions).toContainEqual({
+            name: "01-stepper: look can shoot it",
+            expected: {
+              place: "",
+              kind: "stepper-unknown",
+              description: "Literal box, then a circle inside it.",
+              problem: null,
+            },
+            actual: {
+              place: "",
+              kind: "stepper-unknown",
+              description: "Literal box, then a circle inside it.",
+              problem: "a Stepper form look doesn't know",
+            },
+            passed: false,
+          });
+          expect(result.output).toContain(
+            `pnpm look: ${id}: couldn't shoot 01-stepper, a stepper-unknown: a Stepper form look doesn't know; Literal box, then a circle inside it.`,
+          );
+        }
+        expect(result.output).not.toContain("has nothing for look to shoot");
       },
       checkTimeout,
     );

@@ -4,13 +4,14 @@ import InlineSvg from "./InlineSvg.astro";
 import StepControls from "./StepControls.astro";
 import { drawInStandard, inOneFrame, smallestLabelSize } from "./d2-board.ts";
 import { componentError } from "./component-errors.ts";
-import { inSteps, printedLines, steppedCode, steppedFigure } from "./stepper.ts";
+import { inSteps, printedLines, steppedBlocks, steppedCode, steppedFigure } from "./stepper.ts";
 
 interface Captioned {
   /**
-   * One short caption per step, in step order, shown beside the buttons. Screen readers announce
-   * it with the step number and, for code, the step's lines; without captions they hear only
-   * those. Leave it out only when the prose around the stepper already explains each step.
+   * One short caption per step (per code block, with one code block per step), in step order,
+   * shown beside the buttons. Screen readers announce it with the step number and, for code, the
+   * step's lines; without captions they hear only those. Leave it out only when the prose around
+   * the stepper already explains each step.
    */
   captions?: string[];
 }
@@ -41,9 +42,10 @@ interface FigureSteps extends Captioned, Described {
 
 interface CodeSteps extends Captioned {
   /**
-   * The lines each step highlights, one entry per step, counting lines from 1: `"3"`, `"3-5"`,
-   * `"3-"` (line 3 to the end) or `"1-2, 6"`. The other lines turn grey. Put one fenced code block
-   * inside the stepper, with blank lines around it.
+   * The lines each step highlights, one entry per step, by the numbers the page shows for them:
+   * from 1, or from the fence's `start`. `"3"`, `"3-5"`, `"3-"` (line 3 to the end) or `"1-2, 6"`.
+   * The other lines turn grey. Put one fenced code block inside the stepper, with blank lines
+   * around it, and no `{…}` in its fence: `lines` marks the lines here.
    */
   lines: string[];
 }
@@ -51,10 +53,11 @@ interface CodeSteps extends Captioned {
 /**
  * Steps the owner through a mechanism, a diagram or a code walkthrough one step at a time, with
  * back and forward buttons above it. Use it when the order is the point: the stages of a process,
- * a drawing built up part by part, or a program read a few lines at a time. For a picture that
- * reads at once, use `Diagram` or `Figure`.
+ * a drawing built up part by part, a program read a few lines at a time, or code rewritten step
+ * by step. For a picture that reads at once, use `Diagram` or `Figure`.
  *
- * Give it exactly one of `diagram`, `figure` or `lines`:
+ * Give it one of `diagram`, `figure` or `lines`, or, for code that changes between steps, none of
+ * them and one code block per step:
  *
  * ````mdx
  * import mitose from "./mitose.d2?steps";
@@ -71,6 +74,22 @@ interface CodeSteps extends Captioned {
  * ```
  *
  * </Stepper>
+ *
+ * <Stepper captions={["Soma dentro do laço.", "Tira a soma do laço.", "Usa a fórmula."]}>
+ *
+ * ```pascal {3}
+ * …
+ * ```
+ *
+ * ```pascal {2-3}
+ * …
+ * ```
+ *
+ * ```pascal
+ * …
+ * ```
+ *
+ * </Stepper>
  * ````
  *
  * A D2 diagram steps through its `steps` boards, each drawn as a whole, in one frame the size of
@@ -78,11 +97,24 @@ interface CodeSteps extends Captioned {
  * colours as in `Diagram` and `Figure`. A stepper needs at least two steps, and `captions`, when
  * given, needs one caption per step.
  *
- * Printed, a stepper shows every step: each board under its number and caption, and code with each
- * step's lines and caption listed under it. A figure prints once, at its last step, with the
- * captions listed under it, so make the last step the complete drawing.
+ * Code: use `lines` when the code stays the same and only the lines in play change; put one fenced
+ * code block per step inside the stepper, with blank lines around each, when the code itself
+ * changes between steps. Never draw code as a figure stepper, which loses its text and copying.
+ * Each block stands alone, with its own language, `start` and numbers, and its fence's `{…}` marks
+ * that step's lines: the rest turn grey, and a block without `{…}` shows in full ink. The stepper
+ * doesn't compare blocks, so mark the lines that changed, or, before a deletion, the line about to
+ * go in the step before. It shows one block at a time, in one frame as tall as the tallest block,
+ * so stepping doesn't move the page. Screen readers hear the step number, the marked lines and the
+ * caption.
+ *
+ * Printed, a stepper shows every step: each board, or each code block with its marks, under its
+ * number and caption, and a one-block stepper's code with each step's lines and caption listed
+ * under it. A figure whose parts are all in its last step prints once, at that step, with the
+ * captions listed under it; one with a part that leaves before the end, such as a point moving
+ * around an orbit, prints every step, each in the drawing's full frame under its number and
+ * caption. For a figure that builds up, the last step is the complete drawing.
  */
-type Props = DiagramSteps | FigureSteps | CodeSteps;
+type Props = DiagramSteps | FigureSteps | CodeSteps | Captioned;
 
 const props = Astro.props;
 const { captions } = props;
@@ -90,14 +122,26 @@ const alt = "alt" in props ? props.alt : "";
 
 // TypeScript accepts a prop from another member of a union, so the types alone let two sources in.
 const sources = ["diagram", "figure", "lines"].filter((source) => source in props);
-if (sources.length !== 1) {
-  throw componentError("Stepper", "give it exactly one of `diagram`, `figure` or `lines`");
+if (sources.length > 1) {
+  throw componentError(
+    "Stepper",
+    "give it one of `diagram`, `figure` or `lines`, or none of them and one fenced code block per step",
+  );
+}
+const drawing = sources.find((source) => source !== "lines");
+if (drawing !== undefined && Astro.slots.has("default")) {
+  throw componentError(
+    "Stepper",
+    `a \`${drawing}\` Stepper holds nothing inside it: give it the \`${drawing}\` alone, or none of \`diagram\`, \`figure\` or \`lines\` and one fenced code block per step`,
+  );
 }
 
 let count: number;
 let boards: { svg: string; crop: string }[] | undefined;
 let figure: string | undefined;
+let figureSteps: string[] | undefined;
 let code: string | undefined;
+let blocks: string[] | undefined;
 let linesOfStep: number[][] | undefined;
 if ("diagram" in props) {
   const { frame, boards: framed } = inOneFrame(props.diagram.map(drawInStandard));
@@ -113,10 +157,19 @@ if ("diagram" in props) {
   }));
   count = boards.length;
 } else if ("figure" in props) {
-  ({ svg: figure, count } = steppedFigure(props.figure));
-} else {
+  if (/fill-swatch-|data-swatch/.test(props.figure)) {
+    throw componentError(
+      "Stepper",
+      "swatches are only for a Figure or a Stage, so a figure Stepper draws none: draw the colouring as a Figure, or step through it in a Stage",
+    );
+  }
+  ({ svg: figure, count, printedSteps: figureSteps } = steppedFigure(props.figure));
+} else if ("lines" in props) {
   ({ html: code, linesOfStep } = steppedCode(await Astro.slots.render("default"), props.lines));
   count = props.lines.length;
+} else {
+  blocks = steppedBlocks(await Astro.slots.render("default"));
+  count = blocks.length;
 }
 
 // A diagram that failed has no boards, and its failure is already reported against the .d2 file.
@@ -146,6 +199,7 @@ const printedSteps = linesOfStep
       };
     })
   : figure &&
+    !figureSteps &&
     captions?.map((caption, index) => ({
       number: `${String(index + 1)}.`,
       en: caption,
@@ -161,7 +215,8 @@ const printedSteps = linesOfStep
           1
         </span>{" "}
         <span data-lang="en">of</span>
-        <span data-lang="pt">de</span> {count} {code && <span class="stepper-lines step-unseen" />}
+        <span data-lang="pt">de</span> {count}{" "}
+        {(code ?? blocks) && <span class="stepper-lines step-unseen" />}
       </p>
       {captions && (
         <div class="stepper-captions">
@@ -190,7 +245,31 @@ const printedSteps = linesOfStep
         <InlineSvg svg={figure} alt={alt} />
       </div>
     )}
+    {figureSteps && (
+      <div class="stepper-figure-steps" aria-hidden="true">
+        {figureSteps.map((step, index) => (
+          <div class="stepper-figure-step figure">
+            <p class="stepper-step">
+              <span class="stepper-step-number">{index + 1}.</span> {captions?.[index]}
+            </p>
+            <InlineSvg svg={step} />
+          </div>
+        ))}
+      </div>
+    )}
     {code && <div class="stepper-stage stepper-code" set:html={code} />}
+    {blocks && (
+      <div class="stepper-stage stepper-blocks">
+        {blocks.map((block, index) => (
+          <div {...inSteps([index + 1])}>
+            <p class="stepper-step">
+              <span class="stepper-step-number">{index + 1}.</span> {captions?.[index]}
+            </p>
+            <Fragment set:html={block} />
+          </div>
+        ))}
+      </div>
+    )}
     {printedSteps && (
       <ol class="stepper-steps">
         {printedSteps.map((step) => (
@@ -207,6 +286,7 @@ const printedSteps = linesOfStep
 )}
 
 <script>
+  import { inPageLanguage } from "./page-language.ts";
   import { lineRuns } from "./stepper.ts";
 
   const texts = {
@@ -260,8 +340,7 @@ const printedSteps = linesOfStep
     }
 
     get #texts() {
-      const lang = this.closest("[lang]")?.getAttribute("lang") ?? "en";
-      return lang.startsWith("pt") ? texts.pt : texts.en;
+      return inPageLanguage(this, texts);
     }
 
     #part(selector: string): HTMLElement {
@@ -294,10 +373,15 @@ const printedSteps = linesOfStep
       this.#part(".stepper-current").textContent = step;
       const lines = this.querySelector(".stepper-lines");
       if (lines !== null) {
-        const lit = [...this.querySelectorAll(".stepper-code .line")].flatMap((line, index) =>
-          line.hasAttribute("data-off") ? [] : [index + 1],
+        const block = this.querySelector(
+          ".stepper-code pre, .stepper-blocks > :not([data-off]) > pre",
         );
-        lines.textContent = saidLines(lit, this.#texts.lines);
+        const lit = block?.matches("[data-marks]")
+          ? [...block.querySelectorAll<HTMLElement>(".line:not([data-off])")].map((line) =>
+              Number(line.dataset.line),
+            )
+          : [];
+        lines.textContent = lit.length > 0 ? saidLines(lit, this.#texts.lines) : "";
       }
       this.#part("button.stepper-back").setAttribute("aria-disabled", String(this.#step === 1));
       this.#part("button.stepper-forward").setAttribute(
@@ -327,8 +411,26 @@ const printedSteps = linesOfStep
       }
     }
 
-    .stepper-code pre {
+    .stepper-code pre,
+    .stepper-blocks pre {
       margin: 0;
+    }
+
+    /* Every block shares one grid cell, so the frame is as tall as the tallest, and each block
+       stretches to it, so its rules stay where they are from step to step. */
+    .stepper-blocks {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+
+      > * {
+        display: grid;
+        grid-area: 1 / 1;
+      }
+
+      > [data-off] {
+        visibility: hidden;
+        opacity: 0;
+      }
     }
 
     .stepper-boards,
@@ -350,31 +452,17 @@ const printedSteps = linesOfStep
       opacity: 0;
     }
 
-    /* Shiki's spans read their colour from these variables, so a line passes the grey to them. */
-    @media screen {
-      .stepper-code .line[data-off] {
-        --astro-code-foreground: var(--color-text-muted);
-        --astro-code-token-keyword: var(--color-text-muted);
-        --astro-code-token-function: var(--color-text-muted);
-        --astro-code-token-parameter: var(--color-text-muted);
-        --astro-code-token-string: var(--color-text-muted);
-        --astro-code-token-string-expression: var(--color-text-muted);
-        --astro-code-token-constant: var(--color-text-muted);
-        --astro-code-token-punctuation: var(--color-text-muted);
-        --astro-code-token-link: var(--color-text-muted);
-      }
-
-      .stepper-code .line:not([data-off])::before {
-        color: var(--color-text);
-        font-weight: var(--font-weight-frame-strong);
-      }
-    }
-
     @media (prefers-reduced-motion: no-preference) {
       .stepper [data-in-steps] {
         transition:
           opacity 0.2s,
           visibility 0.2s;
+      }
+
+      /* Two blocks fading across each other would overlap their text, so a block leaves at once
+         and the next fades in, as a board does. */
+      .stepper-blocks > [data-off] {
+        transition: none;
       }
 
       .stepper-code .line,
@@ -406,7 +494,8 @@ const printedSteps = linesOfStep
     }
 
     .stepper-step,
-    .stepper-steps {
+    .stepper-steps,
+    .stepper-figure-steps {
       display: none;
     }
 
@@ -427,6 +516,16 @@ const printedSteps = linesOfStep
         display: none;
       }
 
+      /* The steps' lines are listed under the code, so it prints as a block that marks none. */
+      .stepper-code .line {
+        --code-line-colour: initial;
+
+        &::before {
+          color: var(--color-text-muted);
+          font-weight: inherit;
+        }
+      }
+
       .stepper-boards {
         justify-items: stretch;
         row-gap: var(--space-4);
@@ -437,6 +536,21 @@ const printedSteps = linesOfStep
 
         > * {
           break-inside: avoid;
+        }
+      }
+
+      .stepper-blocks {
+        row-gap: var(--space-4);
+
+        > * {
+          display: block;
+          grid-area: auto;
+          break-inside: avoid;
+        }
+
+        > [data-off] {
+          visibility: visible;
+          opacity: 1;
         }
       }
 
@@ -478,14 +592,34 @@ const printedSteps = linesOfStep
         break-inside: avoid;
       }
 
-      .stepper-figure [data-in-steps]:not([data-in-last-step]) {
-        visibility: hidden;
-        opacity: 0;
-      }
-
-      .stepper-figure [data-in-last-step] {
+      /* Printed once, a figure is at its last step, which holds every part. */
+      .stepper-figure [data-in-steps] {
         visibility: visible;
         opacity: 1;
+      }
+
+      .stepper-figure:has(+ .stepper-figure-steps) {
+        display: none;
+      }
+
+      .stepper-figure-steps {
+        display: grid;
+        row-gap: var(--space-4);
+        padding-block: var(--space-3);
+        border-block: var(--rule) solid var(--color-text);
+      }
+
+      .stepper-figure-step {
+        break-inside: avoid;
+
+        > svg {
+          max-block-size: 70vh;
+          inline-size: auto;
+        }
+
+        [data-off] {
+          display: none;
+        }
       }
     }
   }

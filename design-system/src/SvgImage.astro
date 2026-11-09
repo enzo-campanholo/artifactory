@@ -8,18 +8,24 @@ interface Props {
   caption: string | undefined;
   class: "figure" | "diagram";
   minScale?: number;
+  swatches?: boolean;
 }
 
-const { svg, alt, caption, class: className, minScale } = Astro.props;
+const { svg, alt, caption, class: className, minScale, swatches } = Astro.props;
 const label =
   className === "figure" ? { en: "Figure", pt: "Figura" } : { en: "Diagram", pt: "Diagrama" };
 ---
 
 <figure class={className}>
   <div class="figure-stage">
-    <InlineSvg svg={svg} alt={alt} minScale={minScale} />
+    <InlineSvg
+      svg={svg}
+      alt={alt}
+      minScale={minScale}
+      swatches={swatches === true ? "plain" : undefined}
+    />
   </div>
-  <figcaption>
+  <figcaption data-uncaptioned={caption === undefined ? "" : undefined}>
     <span class="figure-number">
       <span data-lang="en">{label.en}</span>
       <span data-lang="pt">{label.pt}</span>&#32;

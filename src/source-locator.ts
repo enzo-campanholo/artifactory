@@ -46,7 +46,7 @@ function offsetOf(source: ArtifactSource, target: SourceTarget): number | undefi
     case "link":
       return linkOffset(source, target);
     case "question-id":
-      return idPropOffsets(source.text, target.id)[target.occurrence];
+      return questionIdOffsets(source.text, target.id)[target.occurrence];
     case "statement-id":
       return componentPropOffsets(source.text, "statement", "id", target.id)[target.occurrence];
     case "citation":
@@ -98,6 +98,12 @@ function linkOffset(
   return undefined;
 }
 
+// A matching's items are questions whose IDs are the keys of its `answers`, so a question ID is
+// written either as an `id` prop or as such a key, in the page's order either way.
+function questionIdOffsets(text: string, id: string): number[] {
+  return [...idPropOffsets(text, id), ...answersKeyOffsets(text, id)].sort((a, b) => a - b);
+}
+
 function idPropOffsets(text: string, id: string): number[] {
   const idProp = new RegExp(
     String.raw`(?<=<[A-Z][\w.]*\s[^<>]*)(?<![\w-])id\s*=\s*\{?\s*(["'\x60])${escaped(id)}\1`,
@@ -106,14 +112,39 @@ function idPropOffsets(text: string, id: string): number[] {
   return [...text.matchAll(idProp)].map((match) => match.index);
 }
 
-// A design system component is found by the name the entry imports it as. Its props are read whole,
-// so a `<` or `>` in a prop's value doesn't end its tag.
+function answersKeyOffsets(text: string, id: string): number[] {
+  const key = new RegExp(
+    String.raw`(?<=[{,]\s*)(?:(["'])${escaped(id)}\1|${escaped(id)}(?![\w$]))(?=\s*:)`,
+    "g",
+  );
+  return componentProps(text, "matching")
+    .filter(({ name }) => name === "answers")
+    .flatMap(({ written, writtenStart }) =>
+      [...written.matchAll(key)].map((match) => writtenStart + match.index),
+    );
+}
+
 function componentPropOffsets(
   text: string,
   component: string,
   prop: string,
   value: string,
 ): number[] {
+  return componentProps(text, component)
+    .filter(({ name, written }) => name === prop && unquoted(written) === value)
+    .map(({ start }) => start);
+}
+
+interface WrittenProp {
+  name: string;
+  written: string;
+  start: number;
+  writtenStart: number;
+}
+
+// A design system component is found by the name the entry imports it as. Its props are read whole,
+// so a `<` or `>` in a prop's value doesn't end its tag.
+function componentProps(text: string, component: string): WrittenProp[] {
   const module = escaped(`@artifactory/design-system/${component}`);
   const names = [
     ...text.matchAll(
@@ -127,14 +158,20 @@ function componentPropOffsets(
   );
   return [...text.matchAll(tags)].flatMap(({ 0: tag, 1: props = "", index }) => {
     const propsStart = index + tag.length - props.length;
-    return [...props.matchAll(writtenProp)]
-      .filter(([, name, written = ""]) => name === prop && unquoted(written) === value)
-      .map((match) => propsStart + match.index);
+    return [...props.matchAll(writtenProp)].map(
+      ({ 0: whole, 1: name = "", 2: written = "", index: at }) => {
+        const start = propsStart + at;
+        return { name, written, start, writtenStart: start + whole.length - written.length };
+      },
+    );
   });
 }
 
-const writtenProp = /([\w:-]+)(?:\s*=\s*("[^"]*"|'[^']*'|\{[^{}]*\}))?/g;
-const writtenProps = /(?:\s+[\w:-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|\{[^{}]*\}))?)*/;
+// A prop's value is a string or an expression in braces, which may hold one object in braces of its
+// own, as `answers={{ … }}` does.
+const writtenValue = String.raw`"[^"]*"|'[^']*'|\{(?:[^{}]|\{[^{}]*\})*\}`;
+const writtenProp = new RegExp(String.raw`([\w:-]+)(?:\s*=\s*(${writtenValue}))?`, "g");
+const writtenProps = new RegExp(String.raw`(?:\s+[\w:-]+(?:\s*=\s*(?:${writtenValue}))?)*`);
 
 function unquoted(written: string): string | undefined {
   return (/^\{\s*(["'\x60])(.*)\1\s*\}$/s.exec(written) ?? /^(["'])(.*)\1$/s.exec(written))?.[2];

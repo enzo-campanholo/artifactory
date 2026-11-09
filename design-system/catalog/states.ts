@@ -10,9 +10,23 @@ export const questionIds = {
 
 export const numericKey: NumericKey = { value: "28.27", tolerance: 0.01 };
 
+// No item is the surface of a ball, the third option: an option may be right for none.
+export const matchingAnswers = {
+  "measure-of-2-pi-r": 1,
+  "measure-of-pi-r-squared": 2,
+  "measure-of-4-3-pi-r-cubed": 4,
+};
+
+const [twoPiR = "", piRSquared = "", fourThirdsPiRCubed = ""] = Object.keys(matchingAnswers);
+
 const questions: Question[] = [
   { id: questionIds.singleChoice, kind: "single-choice", key: 2 },
   { id: questionIds.numeric, kind: "numeric", key: numericKey },
+  ...Object.entries(matchingAnswers).map(([id, key]): Question => ({
+    id,
+    kind: "single-choice",
+    key,
+  })),
   { id: questionIds.openQuestion, kind: "open-question" },
 ];
 
@@ -48,6 +62,22 @@ const openQuestionWrong: Answer = {
   response: ownWords,
   mark: "wrong",
 };
+const matchingRight: Answer[] = Object.entries(matchingAnswers).map(([questionId, key]) => ({
+  questionId,
+  response: key,
+  mark: "right",
+}));
+// Taking πr² or (4/3)πr³ for the surface of a ball is a mistake someone could really make.
+const matchingMixed: Answer[] = [
+  { questionId: twoPiR, response: 1, mark: "right" },
+  { questionId: piRSquared, response: 3, mark: "wrong" },
+  { questionId: fourThirdsPiRCubed, response: 3, mark: "wrong" },
+];
+const matchingRightAndWrong: Answer[] = [
+  { questionId: twoPiR, response: 1, mark: "right" },
+  { questionId: piRSquared, response: 3, mark: "wrong" },
+  { questionId: fourThirdsPiRCubed, response: 4, mark: "right" },
+];
 
 function attempt(id: string, startedAt: string, answers: Answer[]): SavedAttempt {
   return {
@@ -64,6 +94,7 @@ const earlierAttempts = [
   attempt("finished", "2026-10-01T09:00:00.000Z", [
     singleChoiceWrong,
     numericRight,
+    ...matchingMixed,
     openQuestionRight,
   ]),
   attempt("unfinished", "2026-10-08T19:30:00.000Z", [singleChoiceRight]),
@@ -71,12 +102,21 @@ const earlierAttempts = [
 const latestRight = attempt("latest", "2026-10-14T08:15:00.000Z", [
   singleChoiceRight,
   numericRight,
+  ...matchingRight,
   openQuestionRight,
 ]);
 const latestWrong = attempt("latest", "2026-10-14T08:15:00.000Z", [
   singleChoiceWrong,
   numericWrong,
+  ...matchingMixed,
   openQuestionWrong,
+]);
+// Answered before an agent added the matching's last item.
+const latestBeforeAnItem = attempt("latest", "2026-10-14T08:15:00.000Z", [
+  singleChoiceRight,
+  numericRight,
+  ...matchingRight.filter(({ questionId }) => questionId !== fourThirdsPiRCubed),
+  openQuestionRight,
 ]);
 
 const artifactId = "catalog";
@@ -105,9 +145,20 @@ function answerRightAndWrong(store: Store) {
   for (const { questionId, response, mark } of [
     singleChoiceRight,
     numericWrong,
+    ...matchingRightAndWrong,
     openQuestionWrong,
   ]) {
     void store.answers.save(questionId, response, mark);
+  }
+}
+
+function chooseLetters(choices: [string, number][]) {
+  for (const [questionId, option] of choices) {
+    const choice = document.querySelector(`#q-${questionId} input[value="${String(option)}"]`);
+    if (!(choice instanceof HTMLInputElement))
+      throw new Error(`The catalog's matching has no item ${questionId}`);
+    choice.checked = true;
+    choice.dispatchEvent(new Event("input", { bubbles: true }));
   }
 }
 
@@ -148,17 +199,21 @@ export const catalogStates = {
   "model-answer-shown": {
     title: "Model answer shown",
     about:
-      "The owner typed a number into the numeric question without checking it, and wrote an answer to the self-checked question and opened its model answer. Nothing is saved until they check the number or mark their answer.",
+      "The owner typed a number into the numeric question without checking it, chose letters for two of the matching's three items, so its Check waits for the third, and wrote an answer to the self-checked question and opened its model answer. Nothing is saved until they check the number or the matching, or mark their answer.",
     async show() {
       await checked(start(seeded()));
       typeNumber();
+      chooseLetters([
+        [twoPiR, 1],
+        [piRSquared, 3],
+      ]);
       writeAndShowModelAnswer();
     },
   },
   saving: {
     title: "Saving",
     about:
-      "Every question is answered, the choice right and the number and the open answer wrong, and no save has been confirmed yet.",
+      "Every question is answered, the choice right, the number and the open answer wrong and the matching's items right, wrong and right, and no save has been confirmed yet.",
     async show() {
       answerRightAndWrong(await checked(start({ ...seeded(), save: noReply })));
     },
@@ -174,7 +229,7 @@ export const catalogStates = {
   "saved-wrong": {
     title: "Saved wrong",
     about:
-      "Seeded with three attempts: a finished one, an unfinished one and the latest, which the page shows, with every question wrong: the choice crosses out the chosen option and ticks the right one, and the number shows the right answer.",
+      "Seeded with three attempts: a finished one, an unfinished one and the latest, which the page shows, with every question wrong but the matching's first item: the choice crosses out the chosen option and ticks the right one, the number shows the right answer, and each wrong item of the matching crosses out its chosen letter and ticks the right one, while the right item ticks its own.",
     show() {
       start(seeded([...earlierAttempts, latestWrong]));
     },
@@ -240,6 +295,14 @@ export const catalogStates = {
       await checked(start(transport));
       await transport.save(artifactId, "other-device", singleChoiceWrong);
       document.dispatchEvent(new Event("visibilitychange"));
+    },
+  },
+  "question-added": {
+    title: "Question added",
+    about:
+      "The latest attempt answered every question before an agent added the matching's last item: the attempt reopens with only that item open, the other items keep their marks, and Check saves just the new one.",
+    show() {
+      start(seeded([...earlierAttempts, latestBeforeAnItem]));
     },
   },
   "started-over": {

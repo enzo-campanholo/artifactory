@@ -21,7 +21,7 @@ class OpenQuestion extends TextQuestionElement {
         // The summary hides once open, so focus moves on to the answer it revealed.
         if (!this.#revealedByOwner) return;
         this.#revealedByOwner = false;
-        event.target.querySelector<HTMLElement>(".question-model-answer-body")?.focus();
+        event.target.querySelector<HTMLElement>(".question-revealed")?.focus();
       },
       { capture: true },
     );

@@ -39,6 +39,53 @@
     fill: var(--color-border);
   }
 
+  /* InlineSvg defines each drawing's hatchings and names them in these properties (swatches.ts). */
+  .figure .fill-swatch-1 {
+    fill: var(--swatch-1);
+  }
+
+  .figure .fill-swatch-2 {
+    fill: var(--swatch-2);
+  }
+
+  .figure .fill-swatch-3 {
+    fill: var(--swatch-3);
+  }
+
+  .figure .fill-swatch-4 {
+    fill: var(--swatch-4);
+  }
+
+  .figure .fill-swatch-5 {
+    fill: var(--swatch-5);
+  }
+
+  .figure .fill-swatch-6 {
+    fill: var(--swatch-6);
+  }
+
+  /* A colour's label sits centred on its x and y, at the size its plate (swatches.ts) was drawn
+     for, whatever the file says. */
+  .figure text[data-swatch] {
+    font-size: 15px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+  /* Forced colours leave SVG paint as the tokens give it, so the hatchings, and the labels and
+     plates over them, take the system's own ink and ground themselves: the hatchings from the
+     pattern their content inherits from. */
+  @media (forced-colors: active) {
+    .figure :is(pattern, [data-swatch-plate]) {
+      --color-text: CanvasText;
+      --color-surface: Canvas;
+    }
+
+    .figure text[data-swatch] {
+      color: CanvasText;
+    }
+  }
+
   .figure .stroke-text {
     stroke: var(--color-text);
   }
@@ -61,5 +108,13 @@
 
   .figure .stroke-border {
     stroke: var(--color-border);
+  }
+
+  /* Code in the code face, as `pre` sets it. It keeps the drawing's weight, so a Stage's `strong`
+     mark still sets it in bold, and drops the frame's narrowing, which is Archivo's. */
+  .figure .font-code {
+    font-family: var(--font-mono);
+    font-stretch: normal;
+    font-variation-settings: "MONO" 1;
   }
 }

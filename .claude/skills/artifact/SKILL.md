@@ -5,7 +5,7 @@ description: Study artifacts in `artifacts/`. Use to create one from the owner's
 
 # Study artifacts
 
-An artifact is the folder `artifacts/<slug>/`: an `index.mdx` entry, plus the `.d2` diagrams, `.svg` figures and images it shows, and the custom build of each `Stage` in it. It holds content and data, plus behaviour only inside a Stage, and the design system draws everything ([ADR 0007](../../../docs/adr/0007-artifacts-contain-content-data-and-staged-behaviour.md)). The owner opens it at `https://<domain>/<slug>/`, where the domain is the repository variable `ARTIFACTORY_DOMAIN` (`gh variable get ARTIFACTORY_DOMAIN`).
+An artifact is the folder `artifacts/<slug>/`: an `index.mdx` entry, plus the `.d2` diagrams, `.svg` figures and images it shows, and the custom build of each `Stage` in it. It holds content and data, plus behaviour only inside a Stage, and the design system draws everything ([ADR 0007](../../../docs/adr/0007-artifacts-contain-content-data-and-staged-behaviour.md)). The owner opens it at `https://<domain>/<slug>/`, where the domain is the repository variable `ARTIFACTORY_DOMAIN`. [Reply](#reply) says how to read it, and what to give when it's empty or the read fails.
 
 ## Authority
 
@@ -18,7 +18,19 @@ An artifact is the folder `artifacts/<slug>/`: an `index.mdx` entry, plus the `.
 ## Before writing
 
 - In a fresh cloud session without `node_modules/`, run `pnpm install --frozen-lockfile`.
-- Read `design-system/COMPONENTS.md`, the whole component reference: what each component is for, its props, a usage example and the colour classes.
+- Read `design-system/COMPONENTS.md`, the whole component reference: what each component is for, its props, a usage example, the colour classes and the machines a Stage can trace.
+
+## Before the first `gh` command
+
+Every path reaches `gh`: the Check, Watch CI and Reply steps, and a request to fix a red CI run, which starts at `gh run view`. Before the first one, run:
+
+```sh
+git remote get-url upstream >/dev/null 2>&1 && gh repo set-default origin
+```
+
+In a private copy (a checkout with an `upstream` remote), it makes `origin`, the copy, `gh`'s default repository, so `gh` reads the copy's CI runs rather than upstream's. Git config stores it for the clone and every worktree of it, and running it again is harmless. In the upstream repo, with no `upstream` remote, it does nothing, and its non-zero exit is expected.
+
+Write each `gh` command as this skill gives it, letting the default pick the repository, with no `-R`. `gh variable` ignores the default and reads the `upstream` remote's variables, so [Reply](#reply) reads the domain through `gh api`, whose `{owner}/{repo}` follows it.
 
 ## Workflows
 
@@ -36,7 +48,7 @@ Each workflow ends with the shared steps under [Finishing](#finishing). An artif
 ### Revise
 
 1. Edit the entry and its files in place, following [A good study artifact](#a-good-study-artifact) and each section of [rules.md](rules.md) that bears on what you change. Keep `id`, the slug and `published` as they are, so the owner's answers stay attached. Follow the question ID rule under [Components](rules.md#components).
-2. Finish: look (if a diagram, figure or `Stage` changed), check, publish, watch CI, reply.
+2. Finish: look (if a diagram, figure, `Stepper` or `Stage` changed), check, publish, watch CI, reply.
 
 ### Publish a draft
 
@@ -51,7 +63,13 @@ Before starting one, read [lifecycle.md](lifecycle.md): each has its own steps a
 
 ### Look
 
-For every new or changed diagram, figure and `Stage` (its build included), run `pnpm look <slug>`. It builds the site and screenshots each `Diagram`, `Figure`, diagram or figure `Stepper` (every step) and `Stage` at 393 px (a phone) and 1920 px (a 1080p screen) into `.look/<slug>/`. Each shot is the item alone, as wide as it sits on the page, so the 1920 px shots are the text column's width, not the screen's. Above each item's files it prints the item's number, its kind, the number its caption shows (`Figure 2.1`) and its `alt`. Cite a figure or Stage in the prose by that printed number. Open every PNG and compare it with its `alt`: labels overlapping or cut off, text too small at 393 px, a drawing far wider than it is tall, a step that shows the wrong part, a mark that doesn't read at 393 px. Fix and look again, until every screenshot matches its `alt` and reads well at both widths.
+For every new or changed diagram, figure, `Stepper` and `Stage` (its build included), run `pnpm look <slug>`. It builds the site and screenshots each `Diagram`, `Figure`, `Stepper` (figure, D2 or code, the one-block form stepped by `lines` and the form with one code block per step alike, at every step) and `Stage` at 393 px (a phone) and 1920 px (a 1080p screen), in the light theme, into `.look/<slug>/`. Each shot is the item alone, as wide as it sits on the page, so the 1920 px shots are the text column's width, not the screen's. Above each item's files it prints the item's number, its kind, the number its caption shows (`Figure 2.1`) and its `alt`. Code has no `alt`, so for a code `Stepper` it prints the captions in its place (`no drawing; captions, one per step: "…", "…"`, or `no drawing and no caption`). Cite a figure or Stage in the prose by that printed number. Items inside an `OpenQuestion`'s model answer or a question's explanation are shot too, revealed as the owner would reveal them, each shot alone. Look opens a model answer and closes it again afterwards. It locks a question to show its explanation, with the first option of a `SingleChoice` or of every item of a `Matching`, or the number 0 in a `NumericQuestion`, on the build's throwaway state, so nothing is saved, and the question stays locked. In place of a number it prints where the item sits (`inside the model answer of Question 2`, `inside the explanation of Question 4`, `inside the explanation of Questions 3–5`), so keep a drawing in the model answer or explanation it belongs to. Open every PNG and compare it with its `alt`, or a code step with its caption: labels overlapping or cut off, text too small at 393 px, a drawing far wider than it is tall, a step that shows the wrong part or highlights the wrong lines, a mark that doesn't read at 393 px. Fix and look again, until every screenshot matches its `alt` or caption and reads well at both widths.
+
+Look doesn't shoot plain code blocks, tables or questions: read them in the source, and `pnpm check` catches what goes wrong in them. Nor does it shoot dark mode or print, which are checked on the design system's catalog.
+
+For each shot, look hides every fixed or sticky layer outside the item (the bottom bar, the notices, the rail), then shows it again. A fixed or sticky layer that holds the item stays shown with it. A bar or notice in a shot is a look bug to report, not something to fix in the artifact.
+
+Look never skips an item it found, and never shoots one it can't see. When an item isn't rendered when its turn comes (still hidden after its model answer opens or its question locks, or with no size), or is a `Stepper` form look doesn't know, the case fails and `pnpm look` exits 1. It prints a `couldn't shoot` line for every such item, with its number or where it sits, its kind, its `alt` or caption, and why. Fix the item, or report a look bug if the item is fine. Never move content just to get it shot.
 
 Look also writes `.look/<slug>/results.json` and a `contact-sheet.html` that helps find shots; judge the original PNGs. `captured-awaiting-visual-review` means a person still has to look, never a visual pass. Failed assertions, unavailable Chromium and unsupported capabilities aren't passes either.
 
@@ -99,9 +117,21 @@ To see the page while writing, `pnpm dev` serves it at `http://localhost:4321/<s
 3. If it goes red, fixing it comes before anything else. Read the failures with `gh run view <id> --log-failed | tail -n 60`: the tail holds the same `pnpm check: N failures` block. Fix, check, push and watch again. A red check leaves the previous version live.
 4. On `main`, the steps after the check deploy the site, set what's open, then probe from outside what is. Their failures aren't check failures, so their log has no failures block. If one goes red, follow [ci.md](ci.md#deploy-steps).
 
+If `gh run list` or `gh run watch` itself fails (an auth, permission or network error, not a red run), stop watching: the reply says "pushed, deploy unverified" and quotes `gh`'s error. Only CI's Probe step confirms a deploy. The site sends every private path to the sign-in, even a slug that doesn't exist, so fetching it proves nothing; leave the site unfetched.
+
 ### Reply
 
-Give the owner the URL, `https://<domain>/<slug>/` (a draft is also listed on the drafts page, `/drafts/`), and a line on what the artifact covers. If `gh variable get ARTIFACTORY_DOMAIN` finds nothing, the site isn't deployed yet: give the local URL from `pnpm dev`, `http://localhost:4321/<slug>/`, instead. Mention anything you couldn't do, such as `pnpm look` failing to start Chrome.
+Give the owner the artifact's address and a line on what it covers. A draft is also listed on the drafts page, `/drafts/`. Mention anything you couldn't do, such as `pnpm look` failing to start Chrome, or CI you couldn't watch ("pushed, deploy unverified", with `gh`'s error).
+
+Read the domain from the `ARTIFACTORY_DOMAIN` variable:
+
+```sh
+gh api 'repos/{owner}/{repo}/actions/variables/ARTIFACTORY_DOMAIN' --jq .value
+```
+
+- **It prints a domain:** give `https://` + that domain + `/<slug>/`.
+- **It prints nothing, or fails with `Not Found (HTTP 404)`:** the variable is empty or unset, so the site isn't deployed yet. Give the local URL from `pnpm dev`, `http://localhost:4321/<slug>/`.
+- **It fails any other way** (an auth, permission or network error): say the domain couldn't be read, quote `gh`'s error, and give the path `/<slug>/`. Build a URL only from a domain `gh` printed, never a template such as `https://<domain>/<slug>/`.
 
 ## A good study artifact
 
@@ -110,11 +140,11 @@ The owner studies alone with it, on a phone or a laptop.
 - **Teach the source material.** Cover what the source covers, accurately, in the artifact's main language. Add context only where it makes the material clearer, and invent no facts, figures or citations.
 - **Open with the point.** The first paragraph says what the artifact covers and why it matters. Then build from what the owner already knows towards what's new, one idea per `##` section.
 - **Name the sections.** The `##` headings are the page's contents: with three or more, the page lists them beside the text on a laptop and in a folded contents line on the phone. Write each as the short name of what the section covers (`## Função e área`), not a sentence, a question or a label such as `## Parte 2`.
-- **Write paragraphs that can be cited.** The page numbers every section, `###` subsection, paragraph and statement after the first `##` in the margin (1, 1.1, 1.2), display equations on their own series ((1), (2)), and figures and diagrams by section (Figura 4.1). Leave the numbering to the page, and keep each paragraph to one point so its number means something. Refer to them by those numbers: "pela equação (2)", "na Figura 3.1".
-- **State definitions and results as statements.** Write each definition, theorem, lemma or corollary the source names as a `Statement` (never as bold text or a heading), the proof the source gives as a `Proof` right after it, and each problem the source solves as a `<Statement kind="example">` with its solution. An example teaches and a question tests, so when the owner should work a problem out themselves, ask it as an `OpenQuestion` or `NumericQuestion` instead, typically right after an example of the same kind. Explanations stay in paragraphs. Before writing a `Statement`, `Proof` or `Ref`, read [statements.md](statements.md).
+- **Write paragraphs that can be cited.** The page numbers every section, `###` subsection, paragraph and statement after the first `##` in the margin (1, 1.1, 1.2), display equations on their own series ((1), (2)), and figures and diagrams by section (Figura 4.1), but nothing inside a question's model answer or explanation: a figure there shows its caption with no number, so never cite it by one. Leave the numbering to the page, and keep each paragraph to one point so its number means something. Refer to them by those numbers: "pela equação (2)", "na Figura 3.1".
+- **State definitions and results as statements.** Write each definition, theorem, proposition, lemma or corollary the source names as a `Statement` of the kind the source gives it (never as bold text or a heading; a remark stays a paragraph or a `Note`), the proof the source gives as a `Proof` right after it, and each problem the source solves as a `<Statement kind="example">` with its solution. An example teaches and a question tests, so when the owner should work a problem out themselves, ask it as an `OpenQuestion` or `NumericQuestion` instead, typically right after an example of the same kind. What you say about them in your own words stays in paragraphs. Before writing a `Statement`, `Proof` or `Ref`, read [statements.md](statements.md).
 - **Put asides in a `Note`.** A remark that would interrupt the sentence goes in a `Note` at the end of its paragraph, which the page sets in the margin. What the owner must read stays in the paragraph.
 - **Show, then ask.** Explain an idea, show it with a worked example, a diagram or a stepper, then ask a question about it while it's fresh. Spread questions through the artifact, after the idea they test. The page numbers the questions in order and letters the options: leave both to it.
 - **Pick the form that fits.** Math for formulas, a code block for code, a `Diagram` for structure and flow, a `Figure` for plots and shapes, a `Stepper` when the order is the point, a `Stage` when the steps depend on what the owner chooses (see [Custom builds](rules.md#custom-builds)). `COMPONENTS.md` says when to use each.
 - **Tables are for data, lists for sentences.** Use a Markdown table when the owner compares short cells down a column: values, symbols, terms. Mark a column of numbers `---:` to align it right. When a row's cells are sentences, write a list instead: on the phone, three columns of sentences wrap to two or three words a line.
-- **Ask questions that test understanding.** Ask about why and how, not about the artifact's own wording. In a `SingleChoice`, make every wrong option a mistake someone could really make. In an `OpenQuestion`, write a model answer that shows the reasoning, not just the result.
+- **Ask questions that test understanding.** Ask about why and how, not about the artifact's own wording. In a `SingleChoice`, make every wrong option a mistake someone could really make. When several items share one set of options (items to their categories, terms to definitions, code to its output), write one `Matching` rather than a `SingleChoice` per item repeating the options; if each option should be used once, say so in the prompt. In an `OpenQuestion`, write a model answer that shows the reasoning, not just the result. Whenever the brief or source material gives a reason for an option, write the `SingleChoice`'s explanation after `---` (`COMPONENTS.md` shows how): one per question, with the reasons for wrong options in its prose ("b) confunde …"). Whenever it gives a worked solution for a numeric answer, write it as the `NumericQuestion`'s explanation after `---` the same way. Whenever it gives reasons for a matching's items, write one explanation for the whole `Matching` after a second `---`, below its items, with the reasons against likely wrong choices in its prose. The owner reads an explanation only once their answer locks (a matching's once every item locks), and never if they skip the question, so every fact they must learn is in the text too.
 - **Ask for a number when the owner should compute it.** When the answer is a value the owner works out (a force, a probability, a root), use a `NumericQuestion` rather than a `SingleChoice`, whose options would let them work backwards. Ask one number per question: a vector's components or a quadratic's two roots are separate questions. Give a `tolerance` (or `relativeTolerance`) that matches the precision the computation really has, such as `0.01` for an answer rounded to two decimal places; without one the check is exact, which suits only exact answers such as `"3/4"`.

@@ -1,4 +1,5 @@
 import { componentError } from "./component-errors.ts";
+import { numberList } from "./number-lists.ts";
 
 // Every stepped part of a stepper names the steps it belongs to in `data-in-steps`, and starts on
 // step 1. The custom element only compares those lists with the current step.
@@ -13,56 +14,104 @@ function inStepsText(steps: number[]): string {
     .join("");
 }
 
-function parseNumberList(list: string, last: number, context: string): number[] {
-  return list.split(",").flatMap((item) => {
-    const range = /^\s*(\d+)\s*(?:(-)\s*(\d*)\s*)?$/.exec(item);
-    const from = Number(range?.[1]);
-    const to = range?.[2] === undefined ? from : range[3] === "" ? last : Number(range[3]);
-    if (range === null || from < 1 || to < from || to > last) {
-      throw componentError(
-        "Stepper",
-        `${context} "${list}" must list numbers from 1 to ${String(last)}, such as "2", "2-4", "2-" or "1-2, 5"`,
-      );
-    }
-    return Array.from({ length: to - from + 1 }, (_, index) => from + index);
-  });
+function listed(list: string, first: number, last: number, context: string): number[] {
+  const parsed = numberList(list, first, last);
+  if ("refused" in parsed)
+    throw componentError("Stepper", `${context} "${list}" ${parsed.refused}`);
+  return parsed.numbers;
 }
 
 const dataStep = /\bdata-step=(?:"([^"]*)"|'([^']*)')/g;
 
-// A printed figure shows its last step, so the parts in it are marked for the print stylesheet.
-export function steppedFigure(svg: string): { svg: string; count: number } {
+function withSteps(svg: string, count: number, mark: (steps: number[]) => string): string {
+  return svg.replace(
+    dataStep,
+    (attribute, double: string | undefined, single: string | undefined) =>
+      attribute + mark(listed(double ?? single ?? "", 1, count, "data-step")),
+  );
+}
+
+const idAttribute = /\sid=(?:"([^"]*)"|'([^']*)')/g;
+const urlReference = /url\(\s*(['"]?)#([^'")\s]+)\1\s*\)/g;
+const hrefReference = /(\s(?:xlink:)?href=)(["'])#([^"']*)\2/g;
+
+// The page's content hash is taken from its HTML, so a copy's ids are named after its step alone.
+function printedStep(svg: string, count: number, step: number): string {
+  const own = new Set([...svg.matchAll(idAttribute)].map(([, double, single]) => double ?? single));
+  const renamed = (id: string) => `${id}-step-${String(step)}`;
+  return withSteps(svg, count, (steps) => (steps.includes(step) ? "" : " data-off"))
+    .replace(
+      idAttribute,
+      (_, double: string | undefined, single: string | undefined) =>
+        ` id="${renamed(double ?? single ?? "")}"`,
+    )
+    .replace(urlReference, (reference, _quote: string, id: string) =>
+      own.has(id) ? `url(#${renamed(id)})` : reference,
+    )
+    .replace(hrefReference, (reference, name: string, quote: string, id: string) =>
+      own.has(id) ? `${name}${quote}#${renamed(id)}${quote}` : reference,
+    );
+}
+
+// A drawing whose parts all reach its last step prints once, at that step, which shows them all.
+// One with a part that leaves prints every step, each a copy of the drawing.
+export function steppedFigure(svg: string): {
+  svg: string;
+  count: number;
+  printedSteps: string[] | undefined;
+} {
   const lists = [...svg.matchAll(dataStep)].map(([, double, single]) => double ?? single ?? "");
   const count = Math.max(0, ...lists.flatMap((list) => [...list.matchAll(/\d+/g)].map(Number)));
+  const leaves = lists.some((list) => !listed(list, 1, count, "data-step").includes(count));
   return {
-    svg: svg.replace(
-      dataStep,
-      (attribute, double: string | undefined, single: string | undefined) => {
-        const steps = parseNumberList(double ?? single ?? "", count, "data-step");
-        return attribute + inStepsText(steps) + (steps.includes(count) ? " data-in-last-step" : "");
-      },
-    ),
+    svg: withSteps(svg, count, inStepsText),
     count,
+    printedSteps: leaves
+      ? Array.from({ length: count }, (_, index) => printedStep(svg, count, index + 1))
+      : undefined,
   };
 }
 
 const codeBlock = /<pre\b/g;
-const codeLine = /<span class="line(?: [^"]*)?"/g;
+const wholeCodeBlock = /<pre\b[\s\S]*?<\/pre>/g;
+const markedBlock = /<pre\b[^>]*\sdata-marks\b/;
+const codeLine = /<span class="line(?: [^"]*)?" data-line="(\d+)"/g;
 
+// Each block keeps the marks its fence's `{…}` gave it, which `rich-content.css` already greys.
+export function steppedBlocks(html: string): string[] {
+  const blocks = html.match(wholeCodeBlock) ?? [];
+  if (blocks.length < 2)
+    throw componentError(
+      "Stepper",
+      `it has ${String(blocks.length)} code block${blocks.length === 1 ? "" : "s"} and none of \`diagram\`, \`figure\` or \`lines\`: give it one fenced code block per step, at least two, or \`lines\` to step through one block`,
+    );
+  return blocks;
+}
+
+// The block marks lines as `rich-content.css` greys them, with its lines outside the step `data-off`.
 export function steppedCode(
   html: string,
   lines: string[],
 ): { html: string; linesOfStep: number[][] } {
-  if (html.match(codeBlock)?.length !== 1)
+  const blocks = html.match(codeBlock)?.length ?? 0;
+  if (blocks > 1)
+    throw componentError(
+      "Stepper",
+      `\`lines\` steps through one code block, but it has ${String(blocks)}: keep one block, or take \`lines\` off to show one code block per step`,
+    );
+  if (blocks === 0)
     throw componentError("Stepper", "put exactly one fenced code block inside `<Stepper lines>`");
-  const lineCount = html.match(codeLine)?.length ?? 0;
-  const linesOfStep = lines.map((list) => parseNumberList(list, lineCount, "lines"));
-  let line = 0;
+  if (markedBlock.test(html))
+    throw componentError(
+      "Stepper",
+      "its code block marks lines with `{…}`, but a one-block Stepper marks them itself, step by step, with `lines`: take `{…}` off the fence",
+    );
+  const shown = [...html.matchAll(codeLine)].map(([, line]) => Number(line));
+  const linesOfStep = lines.map((list) => listed(list, shown[0] ?? 1, shown.at(-1) ?? 0, "lines"));
   return {
-    html: html.replace(codeLine, (lineTag) => {
-      line += 1;
+    html: html.replace(codeBlock, "<pre data-marks").replace(codeLine, (lineTag, line: string) => {
       const steps = linesOfStep.flatMap((stepLines, index) =>
-        stepLines.includes(line) ? [index + 1] : [],
+        stepLines.includes(Number(line)) ? [index + 1] : [],
       );
       return lineTag + inStepsText(steps);
     }),

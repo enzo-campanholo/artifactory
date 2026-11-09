@@ -4,15 +4,16 @@ import { splitAtRule } from "./split-at-rule.ts";
 import { statementParts, withRunInLabel } from "./statements.ts";
 
 /**
- * A definition, theorem, lemma, corollary or worked example, numbered by the page as a clause of
- * its section so that it can be cited ("Teorema 2.1"). Its number stands in the margin in the
- * paragraphs' series, its label runs in at the start of its first line ("**Teorema** (Valor
- * médio)."), and a theorem, lemma or corollary reads in italic while a definition or example stays
- * upright. Use it for each definition or result the subject names and the owner should be able to
- * cite, and for each worked example: a problem solved in full, with its solution shown openly after
- * "Solução." / "Solution.". An example teaches; when the owner should work the problem out
- * themselves, ask it as a question instead (`OpenQuestion`, `NumericQuestion`). Keep explanations in
- * paragraphs, and asides in a `Note`. Cite it anywhere in the artifact with `Ref`.
+ * A definition, theorem, proposition, lemma, corollary or worked example, numbered by the page as a
+ * clause of its section so that it can be cited ("Teorema 2.1"). Its number stands in the margin in
+ * the paragraphs' series, its label runs in at the start of its first line ("**Teorema** (Valor
+ * médio)."), and a claim (a theorem, proposition, lemma or corollary, which a `Proof` can prove)
+ * reads in italic while a definition or example stays upright. Use it for each definition or result
+ * the subject names and the owner should be able to cite, with the kind the subject gives it, and
+ * for each worked example: a problem solved in full, with its solution shown openly after "Solução."
+ * / "Solution.". An example teaches; when the owner should work the problem out themselves, ask it
+ * as a question instead (`OpenQuestion`, `NumericQuestion`). Keep explanations in paragraphs, and a
+ * remark or aside in a `Note`, never in a `Statement`. Cite it anywhere in the artifact with `Ref`.
  *
  * Write it at the top level of a section, after the first `##` heading: never inside a list, a
  * question or another component. Its content is ordinary Markdown (paragraphs, math, lists, and in
@@ -51,10 +52,12 @@ import { statementParts, withRunInLabel } from "./statements.ts";
 interface Props {
   /**
    * What it states. The page writes the kind's label in the artifact's main language
-   * ("Definição", "Teorema", "Lema", "Corolário", "Exemplo" / "Definition", "Theorem", "Lemma",
-   * "Corollary", "Example").
+   * ("Definição", "Teorema", "Proposição", "Lema", "Corolário", "Exemplo" / "Definition",
+   * "Theorem", "Proposition", "Lemma", "Corollary", "Example"). A theorem, proposition, lemma or
+   * corollary is a claim: it reads in italic, and a `Proof` can prove it. A remark or aside is no
+   * kind: write it in a `Note`.
    */
-  kind: "definition" | "theorem" | "lemma" | "corollary" | "example";
+  kind: "definition" | "theorem" | "proposition" | "lemma" | "corollary" | "example";
   /**
    * The statement's ID: readable lowercase kebab-case, unique among the artifact's statements.
    * `<Ref to="…">` cites it, and `#S-<id>` links to it.
@@ -97,11 +100,7 @@ const body = withRunInLabel(parts?.before ?? content, label) + (solution ?? "");
       }
     }
 
-    :is(
-      [data-statement-kind="theorem"],
-      [data-statement-kind="lemma"],
-      [data-statement-kind="corollary"]
-    ) {
+    [data-statement-claim] {
       font-style: italic;
     }
 

@@ -1,25 +1,42 @@
-import type { Build, Mark, Typed } from "./stage-build.ts";
-
-// More steps than this is no longer a walkthrough.
-const mostSteps = 200;
+import {
+  MachineFault,
+  MachineProblems,
+  mostSteps,
+  type Build,
+  type CodeLine,
+  type Content,
+  type Mark,
+  type Typed,
+  type WrittenTable,
+} from "./stage-build.ts";
+import { mostSwatches } from "./swatches.ts";
 
 // What each mark changes in a drawn part, after the Stage's styles for the marks and the colour
 // classes in figure-colours.css: `muted` and `reversed` swap the colours `-text`, `-accent` and
-// `-surface` paint with, and a label with no fill of its own paints in its part's colour.
-const unclassedLabel = 'text:not([fill]):not([class*="fill-"])';
+// `-surface` paint with, and a label with no fill of its own paints in its part's colour. A
+// swatch takes every mark: an outline at 4 or dashed, drawn if it has none, a grey hatching, or
+// an ink fill. So does a part on a step that colours it, and an uncoloured part's empty label
+// counts for nothing.
+const unlabelled = ':not([data-swatch=""])';
+const unclassedLabel = `text:not([fill]):not([class*="fill-"])${unlabelled}`;
+const swatch = '[class*="fill-swatch-"]';
 const changes: Record<Mark, { selector: string; actsOn: string }> = {
   strong: {
-    selector: '[class*="stroke-"], text',
-    actsOn: "shapes with a `stroke-` class and labels",
+    selector: `[class*="stroke-"], ${swatch}, text${unlabelled}`,
+    actsOn: "shapes with a `stroke-` or `fill-swatch-` class and labels",
   },
-  dashed: { selector: '[class*="stroke-"]', actsOn: "shapes with a `stroke-` class" },
+  dashed: {
+    selector: `[class*="stroke-"], ${swatch}`,
+    actsOn: "shapes with a `stroke-` or `fill-swatch-` class",
+  },
   muted: {
-    selector: `[class*="-text"], [class*="-accent"], ${unclassedLabel}`,
-    actsOn: "`-text` and `-accent` colours and labels with no fill of their own",
+    selector: `[class*="-text"], [class*="-accent"], ${swatch}, ${unclassedLabel}`,
+    actsOn: "`-text` and `-accent` colours, swatches and labels with no fill of their own",
   },
   reversed: {
-    selector: `[class*="-text"], [class*="-accent"], [class*="-surface"], ${unclassedLabel}`,
-    actsOn: "`-surface`, `-text` and `-accent` colours and labels with no fill of their own",
+    selector: `[class*="-text"], [class*="-accent"], [class*="-surface"], ${swatch}, ${unclassedLabel}`,
+    actsOn:
+      "`-surface`, `-text` and `-accent` colours, swatches and labels with no fill of their own",
   },
 };
 const marks = new Set<unknown>(Object.keys(changes));
@@ -30,10 +47,15 @@ export interface StageNodes {
   parts: Element[];
   tables: { header: Element[]; rows: Element[][] }[];
   code: Element[][];
+  colours: string[];
 }
 
+// The Stage carries its colours' names on its drawing, numerals included when it names none.
 export function stageNodes(stage: ParentNode): StageNodes {
   return {
+    colours: JSON.parse(
+      stage.querySelector(".stage-figure")?.getAttribute("data-colours") ?? "[]",
+    ) as string[],
     parts: [...stage.querySelectorAll(".stage-figure [data-part]")],
     tables: [...stage.querySelectorAll(".stage-content table")].map((table) => ({
       header: [...table.querySelectorAll("thead th")],
@@ -46,10 +68,14 @@ export function stageNodes(stage: ParentNode): StageNodes {
 }
 
 export interface Written {
-  parts: { name: string; takes: Mark[] }[];
-  tables: { columns: string[]; rows: string[][] }[];
-  codeLineCounts: number[];
+  parts: { name: string; takes: Mark[]; labelled: boolean }[];
+  tables: WrittenTable[];
+  code: CodeLine[][];
+  colours: string[];
 }
+
+// A step colours a part through the label it holds, so only a part holding one takes a colour.
+export const colourLabel = "text[data-swatch]";
 
 const textOf = (element: Element) => element.textContent.trim();
 
@@ -59,17 +85,24 @@ const marksTaken = (part: Element): Mark[] =>
       part.matches(changes[mark].selector) || part.querySelector(changes[mark].selector) !== null,
   );
 
-export function writtenContent({ parts, tables, code }: StageNodes): Written {
+export function writtenContent({ parts, tables, code, colours }: StageNodes): Written {
   return {
+    colours,
     parts: parts.map((part) => ({
       name: part.getAttribute("data-part") ?? "",
       takes: marksTaken(part),
+      labelled: part.querySelector(colourLabel) !== null,
     })),
     tables: tables.map(({ header, rows }) => ({
       columns: header.map(textOf),
       rows: rows.map((cells) => cells.map(textOf)),
     })),
-    codeLineCounts: code.map((lines) => lines.length),
+    code: code.map((lines) =>
+      lines.map((line) => ({
+        line: Number(line.getAttribute("data-line")),
+        text: line.textContent,
+      })),
+    ),
   };
 }
 
@@ -81,6 +114,7 @@ interface ShownCell {
 export interface Shown {
   say: string;
   parts: Map<string, Mark>;
+  colours: Map<string, number | null>;
   tables: ShownCell[][][];
   rowsFromBody: boolean;
   lines: Map<number, Mark>;
@@ -98,13 +132,77 @@ export type Run =
   | { refused: "not-a-list" }
   | { refused: "no-steps" }
   | { refused: "too-many"; most: number }
+  | { refused: "fault"; line: number; fault: MachineFault["fault"] }
+  | { refused: "unfit"; problems: MachineProblems["problems"] }
   | { refused: "problems"; problems: StepProblem[] };
 
-export interface Field {
+// Which control a Stage has, as its page carries it. The input a build gets can't say: a choice
+// among several groups hands it named values, as typed input does.
+export type Control = "choose" | "input";
+
+// What a build's `steps` takes, by what gives it: one group's option as text, or values by name,
+// each of a kind, from several choice groups or from typed fields.
+export type Takes = { shape: "option" } | { shape: "groups" | "fields"; values: NamedValue[] };
+
+export interface NamedValue {
+  name: string;
+  kind: Field["kind"];
+}
+
+export function stageControl(stage: Element): { control: Control; takes: Takes } {
+  const control = stage.getAttribute("data-control") as Control;
+  if (control === "choose") {
+    const groups = stageGroups(stage);
+    return groups.length === 0
+      ? { control, takes: { shape: "option" } }
+      : {
+          control,
+          takes: { shape: "groups", values: groups.map(({ name }) => ({ name, kind: "text" })) },
+        };
+  }
+  const values = stageFields(stage).map(({ name, kind }): NamedValue => ({ name, kind }));
+  return { control, takes: { shape: "fields", values } };
+}
+
+// A Stage with several choice groups names each group on its row; one group goes unnamed, and its
+// option reaches the build as text.
+export interface ChoiceGroup {
+  name: string;
+  options: HTMLInputElement[];
+}
+
+export function stageGroups(stage: Element): ChoiceGroup[] {
+  return [...stage.querySelectorAll(".stage-choice[data-group]")].map((group) => ({
+    name: group.getAttribute("data-group") ?? "",
+    options: [...group.querySelectorAll<HTMLInputElement>(".stage-option input")],
+  }));
+}
+
+// A typed field as the Stage defines it on its page, once: the page reads what the owner types by
+// it, and the Stage checks its examples and the check types the build by the same definition.
+export type Field = NumberField | TextField;
+
+interface NumberField {
   name: string;
   label?: string;
+  kind: "number";
   min: number;
   max: number;
+}
+
+interface TextField {
+  name: string;
+  label?: string;
+  kind: "text";
+  alphabet?: string[];
+  minLength: number;
+  maxLength: number;
+}
+
+export function stageFields(stage: Element): Field[] {
+  return JSON.parse(
+    stage.querySelector(".stage-input")?.getAttribute("data-fields") ?? "[]",
+  ) as Field[];
 }
 
 // A whole number as the owner types it: digits, with a hyphen or a minus sign before them.
@@ -113,24 +211,56 @@ export function typedNumber(text: string): number {
   return /^-?\d+$/.test(digits) ? Number(digits) : Number.NaN;
 }
 
-// The page refuses what the owner types, and the Stage refuses its examples, by the same rules.
-export function numberProblem(
-  { min, max }: Field,
-  value: unknown,
-): "not-whole" | "out-of-bounds" | undefined {
-  if (typeof value !== "number" || !Number.isInteger(value)) return "not-whole";
-  return value < min || value > max ? "out-of-bounds" : undefined;
+// Text as the owner types it, in NFC, so a symbol is one code point however it was typed. It isn't
+// trimmed: a trailing space is part of a hashing build's input.
+export function typedText(text: string): string {
+  return text.normalize("NFC");
+}
+
+type FieldProblem =
+  | { problem: "not-whole" | "out-of-bounds" | "not-text" | "not-nfc" | "too-long" | "too-short" }
+  | { problem: "outside-alphabet"; symbol: string };
+
+// The page refuses what the owner types, and the Stage refuses its examples, by the same rule.
+// Typed text reaches it in NFC, so only an example can be refused as "not-nfc".
+export function fieldProblem(field: Field, value: unknown): FieldProblem | undefined {
+  if (field.kind === "text") {
+    if (typeof value !== "string") return { problem: "not-text" };
+    if (value !== value.normalize("NFC")) return { problem: "not-nfc" };
+    const symbols = Array.from(value);
+    const outside = symbols.find((symbol) => field.alphabet?.includes(symbol) === false);
+    if (outside !== undefined) return { problem: "outside-alphabet", symbol: outside };
+    if (symbols.length > field.maxLength) return { problem: "too-long" };
+    return symbols.length < field.minLength ? { problem: "too-short" } : undefined;
+  }
+  if (typeof value !== "number" || !Number.isInteger(value)) return { problem: "not-whole" };
+  return value < field.min || value > field.max ? { problem: "out-of-bounds" } : undefined;
+}
+
+// Each run gets its own copy, so a build that changes the content it was given changes neither
+// the next run's nor what the step applier finds rows and columns in.
+function contentAsWritten({ tables, code }: Written, lang: Content["lang"]): Content {
+  return {
+    lang,
+    code: code.map((lines) => lines.map(({ line, text }) => ({ line, text }))),
+    tables: tables.map(({ columns, rows }) => ({
+      columns: [...columns],
+      rows: rows.map((cells) => [...cells]),
+    })),
+  };
 }
 
 // A build is the artifact agent's code, cast or not, so what it returns is checked here, where the
 // page and the check both run it.
 export function runBuild<Input extends string | Typed>(
   build: Build<Input>,
+  control: Control,
   input: Input,
   written: Written,
+  lang: Content["lang"],
 ): Run {
   try {
-    const steps: unknown = build.steps(input);
+    const steps: unknown = build.steps(input, contentAsWritten(written, lang));
     if (!Array.isArray(steps)) return { refused: "not-a-list" };
     if (steps.length === 0) return { refused: "no-steps" };
     if (steps.length > mostSteps) return { refused: "too-many", most: mostSteps };
@@ -140,7 +270,7 @@ export function runBuild<Input extends string | Typed>(
     // `body` in a run that rewrites them would show that result mid-run. With `choose` they're the
     // starting state, which a step may show again by leaving `body` out.
     const rewritesRows =
-      typeof input !== "string" &&
+      control === "input" &&
       steps.some((step: unknown) => isRecord(step) && step.body !== undefined);
     steps.forEach((step: unknown, index) => {
       const applied = applyStep(written, step);
@@ -156,6 +286,10 @@ export function runBuild<Input extends string | Typed>(
     });
     return problems.length > 0 ? { refused: "problems", problems } : { steps: shown };
   } catch (error) {
+    if (error instanceof MachineFault) {
+      return { refused: "fault", line: error.line, fault: error.fault };
+    }
+    if (error instanceof MachineProblems) return { refused: "unfit", problems: error.problems };
     return { refused: "threw", error };
   }
 }
@@ -196,6 +330,7 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
   const {
     say,
     parts: markedParts = {},
+    colours: colouredParts = {},
     lines: markedLines = {},
     body,
     rows: markedRows = {},
@@ -216,12 +351,48 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
     });
   };
 
+  const colours = new Map<string, number | null>();
+  if (!isRecord(colouredParts)) {
+    problems.push("has `colours` that isn't an object of colours by name");
+  }
+  for (const [name, colour] of Object.entries(isRecord(colouredParts) ? colouredParts : {})) {
+    if (colour === undefined) continue;
+    const withName = written.parts.filter((part) => part.name === name);
+    const named = written.colours.length;
+    if (withName.length === 0) {
+      problems.push(`colours the part \`${name}\`, which the drawing doesn't have`);
+    } else if (!withName.some(({ labelled }) => labelled)) {
+      problems.push(
+        `colours the part \`${name}\`, which holds no label: put a \`<text data-swatch>\` in its \`<g>\`, empty if it's uncoloured as written`,
+      );
+    } else if (colour === null) {
+      colours.set(name, null);
+    } else if (
+      typeof colour !== "number" ||
+      !Number.isInteger(colour) ||
+      colour < 1 ||
+      colour > mostSwatches
+    ) {
+      const given = typeof colour === "number" ? String(colour) : quoted(colour);
+      problems.push(
+        `colours the part \`${name}\` with ${given}, which isn't a swatch: give a whole number from 1 to ${String(mostSwatches)}, or \`null\` for uncoloured`,
+      );
+    } else if (colour > named) {
+      problems.push(
+        `colours the part \`${name}\` with ${String(colour)}, past the ${String(named)} colours \`colours\` names: add its name to \`colours\`, or use 1 to ${String(named)}`,
+      );
+    } else colours.set(name, colour);
+  }
+
   const parts = new Map<string, Mark>();
   for (const [name, mark] of marked("parts", markedParts)) {
     const withName = written.parts.filter((part) => part.name === name);
     if (withName.length === 0) {
       problems.push(`marks the part \`${name}\`, which the drawing doesn't have`);
-    } else if (!withName.some(({ takes }) => takes.includes(mark))) {
+    } else if (
+      typeof colours.get(name) !== "number" &&
+      !withName.some(({ takes }) => takes.includes(mark))
+    ) {
       problems.push(
         `marks the part \`${name}\` \`${mark}\`, which changes nothing in it: \`${mark}\` acts on ${changes[mark].actsOn}`,
       );
@@ -231,24 +402,20 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
   const lines = new Map<number, Mark>();
   let running: number | undefined;
   const lineMarks = marked("lines", markedLines);
-  const [lineCount, ...otherBlocks] = written.codeLineCounts;
-  if (lineMarks.length > 0 && (lineCount === undefined || otherBlocks.length > 0)) {
+  const [lineNumbers, ...otherBlocks] = written.code.map((lines) => lines.map(({ line }) => line));
+  if (lineMarks.length > 0 && (lineNumbers === undefined || otherBlocks.length > 0)) {
     const blocks =
-      lineCount === undefined
-        ? "no code block"
-        : `${String(written.codeLineCounts.length)} code blocks`;
+      lineNumbers === undefined ? "no code block" : `${String(written.code.length)} code blocks`;
     problems.push(
       `has \`lines\`, but the Stage holds ${blocks}: \`lines\` marks the lines of exactly one`,
     );
-  } else if (lineCount !== undefined) {
+  } else if (lineNumbers !== undefined) {
+    const [first, last] = [String(lineNumbers[0]), String(lineNumbers.at(-1))];
+    const range = first === last ? `only line ${first}` : `lines ${first} to ${last}`;
     for (const [name, mark] of lineMarks) {
-      const line = Number(name);
-      if (/^[1-9]\d*$/.test(name) && line <= lineCount) lines.set(line, mark);
-      else {
-        problems.push(
-          `marks the line \`${name}\`, which the code doesn't have: it has ${String(lineCount)} ${lineCount === 1 ? "line" : "lines"}`,
-        );
-      }
+      if (lineNumbers.map(String).includes(name)) lines.set(Number(name), mark);
+      else
+        problems.push(`marks the line \`${name}\`, which the code doesn't have: it has ${range}`);
     }
     const reversed = [...lines].flatMap(([line, mark]) => (mark === "reversed" ? [line] : []));
     if (reversed.length > 1) {
@@ -361,5 +528,5 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
 
   return problems.length > 0 || typeof say !== "string"
     ? { problems }
-    : { shown: { say, parts, tables, rowsFromBody, lines, running } };
+    : { shown: { say, parts, colours, tables, rowsFromBody, lines, running } };
 }

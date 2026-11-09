@@ -1,3 +1,5 @@
+import { inPageLanguage } from "./page-language.ts";
+import { rightAnswerShown, type ShownAnswer } from "./question-answer.ts";
 import { parseNumber, type NumericKey } from "./scoring.ts";
 import { TextQuestionElement } from "./text-question-element.ts";
 
@@ -69,8 +71,6 @@ const labels = {
 };
 
 class NumericQuestion extends TextQuestionElement {
-  static observedAttributes = ["data-status", "data-mark"];
-
   constructor() {
     super();
     // The browser's own messages follow the browser's language, not the page's.
@@ -78,7 +78,7 @@ class NumericQuestion extends TextQuestionElement {
       "invalid",
       (event) => {
         if (event.target instanceof HTMLInputElement && event.target.value === "")
-          event.target.setCustomValidity(this.inPageLanguage(labels).empty);
+          event.target.setCustomValidity(inPageLanguage(this, labels).empty);
       },
       { capture: true },
     );
@@ -92,7 +92,7 @@ class NumericQuestion extends TextQuestionElement {
         if ("number" in parsed) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        const text = this.inPageLanguage(labels);
+        const text = inPageLanguage(this, labels);
         field.setCustomValidity(
           parsed.refused === "ambiguous" ? text.ambiguous(typed) : text.notANumber,
         );
@@ -105,19 +105,20 @@ class NumericQuestion extends TextQuestionElement {
     });
   }
 
-  attributeChangedCallback() {
-    this.#showRightAnswer();
+  protected override answersShown(shown: readonly (ShownAnswer | undefined)[]): void {
+    super.answersShown(shown);
+    this.#showRightAnswer(rightAnswerShown(shown[0]));
   }
 
-  #showRightAnswer() {
+  #showRightAnswer(shown: boolean) {
     const lineId = `${this.id}--right-answer`;
     this.querySelector(`#${lineId}`)?.remove();
     const field = this.textField();
     const unit = this.querySelector(".numeric-question-unit");
     const described = unit === null ? [] : [unit.id];
-    if (this.wrongAnswerLocked && this.dataset.questionKey !== undefined) {
+    if (shown && this.dataset.questionKey !== undefined) {
       const key = JSON.parse(this.dataset.questionKey) as NumericKey;
-      const text = this.inPageLanguage(labels);
+      const text = inPageLanguage(this, labels);
       const line = document.createElement("p");
       line.id = lineId;
       line.className = "numeric-question-right-answer";

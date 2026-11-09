@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 224">
+  <g>
+    <line x1="120" y1="25.4" x2="220" y2="25.4" class="stroke-text" stroke-width="2" />
+    <text x="170" y="25.4" data-swatch="4">Yl</text>
+  </g>
+  <g>
+    <line x1="220" y1="25.4" x2="270" y2="112" class="stroke-text" stroke-width="2" />
+    <text x="245" y="68.7" data-swatch="5">Pu</text>
+  </g>
+  <g>
+    <line x1="270" y1="112" x2="220" y2="198.6" class="stroke-text" stroke-width="2" />
+    <text x="245" y="155.3" data-swatch="6">Or</text>
+  </g>
+  <g>
+    <line x1="220" y1="198.6" x2="120" y2="198.6" class="stroke-text" stroke-width="2" />
+    <text x="170" y="198.6" data-swatch="1">Rd</text>
+  </g>
+  <g>
+    <line x1="120" y1="198.6" x2="70" y2="112" class="stroke-text" stroke-width="2" />
+    <text x="95" y="155.3" data-swatch="2">Bl</text>
+  </g>
+  <g>
+    <line x1="70" y1="112" x2="120" y2="25.4" class="stroke-text" stroke-width="2" />
+    <text x="95" y="68.7" data-swatch="3">Gn</text>
+  </g>
+  <g>
+    <circle cx="120" cy="25.4" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" />
+    <text x="120" y="25.4" data-swatch="1">Rd</text>
+  </g>
+  <g>
+    <circle cx="220" cy="25.4" r="22" class="fill-swatch-2 stroke-text" stroke-width="2" />
+    <text x="220" y="25.4" data-swatch="2">Bl</text>
+  </g>
+  <g>
+    <circle cx="270" cy="112" r="22" class="fill-swatch-3 stroke-text" stroke-width="2" />
+    <text x="270" y="112" data-swatch="3">Gn</text>
+  </g>
+  <g>
+    <circle cx="220" cy="198.6" r="22" class="fill-swatch-4 stroke-text" stroke-width="2" />
+    <text x="220" y="198.6" data-swatch="4">Yl</text>
+  </g>
+  <g>
+    <circle cx="120" cy="198.6" r="22" class="fill-swatch-5 stroke-text" stroke-width="2" />
+    <text x="120" y="198.6" data-swatch="5">Pu</text>
+  </g>
+  <g>
+    <circle cx="70" cy="112" r="22" class="fill-swatch-6 stroke-text" stroke-width="2" />
+    <text x="70" y="112" data-swatch="6">Or</text>
+  </g>
+</svg>

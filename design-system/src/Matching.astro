@@ -1,0 +1,305 @@
+---
+import { matchingParts } from "./matching.ts";
+import Question from "./Question.astro";
+import { questionAnchor, questionMarkers, questionNumberSlot } from "./question-markers.ts";
+
+/**
+ * Several auto-checked questions, one per item, that share one list of options and are checked
+ * together: the owner picks an option's letter for each item and presses Check once. Each item is
+ * a question of its own, numbered in the page's series with its own answer, and locks with its
+ * own mark: a tick on the right letter, and on a wrong item its chosen letter crossed out. The
+ * page letters the options a), b), c) and numbers the items, so do neither yourself. Use it
+ * instead of separate `SingleChoice` questions when several questions would repeat the same
+ * options, such as matching items to categories, terms to definitions or code to its output. Any
+ * option may be right for any number of items, or for none; when each option should be used once,
+ * say so in the prompt, since the page doesn't enforce it. For one question, use `SingleChoice`.
+ *
+ * Write the prompt, then the options as one numbered list, then a blank line, `---`, another blank
+ * line and the items as one bulleted list. Options and items are one paragraph each of inline
+ * text, math and code.
+ *
+ * Then, optionally, a blank line, a second `---`, another blank line and one explanation for the
+ * whole set: why each item takes its option, with the reasons against likely wrong choices in its
+ * prose ("um objeto criado com `new` não fica na pilha, porque …"). It can hold paragraphs, math,
+ * code, lists and figures, which show their captions with no number. It shows, under the heading "Explicação" / "Explanation" after the item
+ * rows, only once every item locks, right or wrong. It reasons about the answers but never teaches
+ * a fact for the first time, since an owner who skips the questions never reads it, so put every
+ * fact they must learn in the text too. Write one whenever the source gives a reason:
+ *
+ * ```mdx
+ * import Matching from "@artifactory/design-system/matching";
+ *
+ * <Matching answers={{ "variavel-global": 2, "variavel-local": 3, "objeto-new": 4 }}>
+ *
+ * Em que área de memória fica cada item?
+ *
+ * 1. Código
+ * 2. Dados
+ * 3. Pilha
+ * 4. Heap
+ *
+ * ---
+ *
+ * - Uma variável global
+ * - Uma variável local
+ * - Um objeto criado com `new`
+ *
+ * ---
+ *
+ * Locais vivem no quadro da chamada, na pilha; `new` aloca no heap, e globais ficam na área de
+ * dados.
+ *
+ * </Matching>
+ * ```
+ */
+interface Props {
+  /**
+   * Each item's question ID, mapped to the number of its right option, counting from 1, in the
+   * items' order. Each key is a question ID with every rule a question's `id` has: readable
+   * kebab-case, unique among all the artifact's questions and never reused, even after the item is
+   * removed. The owner's answers to the item belong to it, and `#q-<id>` links to the item's row.
+   */
+  answers: Record<string, number>;
+}
+
+const { prompt, options, items, explanation } = matchingParts(
+  await Astro.slots.render("default"),
+  Astro.props.answers,
+);
+const first = items[0]?.id ?? "";
+const last = items.at(-1)?.id ?? "";
+const letter = (index: number) => String.fromCharCode("a".charCodeAt(0) + index);
+// Chromium drops MathML from a name taken from a <label>, but keeps it through aria-labelledby.
+const optionId = (index: number) => `${questionAnchor(first)}--option-${String(index + 1)}`;
+const itemTextId = (id: string) => `${questionAnchor(id)}--item`;
+---
+
+<Question kind="matching" id={first} lastId={last} prompt={prompt} explanation={explanation}>
+  <ol class="matching-options">
+    {options.map((option, index) => (
+      <li>
+        <span class="matching-letter">{letter(index)})</span>{" "}
+        <span id={optionId(index)} set:html={option} />
+      </li>
+    ))}
+  </ol>
+  <div class="matching-items">
+    {items.map(({ id, key, text }) => (
+      <div
+        {...questionMarkers({ id, kind: "single-choice", key })}
+        class="matching-item"
+        role="group"
+        aria-describedby={itemTextId(id)}
+      >
+        <fieldset>
+          <span class="matching-item-number" set:html={questionNumberSlot(id)} />
+          <span class="matching-item-text" id={itemTextId(id)} set:html={text} />
+          <span class="matching-choices">
+            {options.map((_, index) => (
+              <label>
+                <span class="matching-letter" aria-hidden="true">
+                  {letter(index)}
+                </span>
+                <input
+                  type="radio"
+                  name={questionAnchor(id)}
+                  value={index + 1}
+                  aria-labelledby={optionId(index)}
+                  required
+                />
+              </label>
+            ))}
+          </span>
+          <span class="matching-item-mark artifact-visually-hidden" role="status" />
+        </fieldset>
+      </div>
+    ))}
+  </div>
+</Question>
+
+<script>
+  import "./matching-element.ts";
+</script>
+
+<style is:global>
+  @layer components {
+    .matching-options {
+      margin: 0.625rem 0 0;
+      padding: 0;
+      list-style: none;
+
+      > li {
+        display: grid;
+        grid-template-columns: 1.5rem minmax(0, 1fr);
+        align-items: baseline;
+        padding-block: var(--space-1);
+      }
+    }
+
+    .matching-letter {
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame);
+      font-weight: var(--font-weight-frame-number);
+    }
+
+    .matching-items {
+      container-type: inline-size;
+      margin-block-start: var(--space-3);
+      border-block-end: var(--rule) solid var(--color-text);
+    }
+
+    .matching-item {
+      padding-block: var(--space-1);
+      border-block-start: var(--rule) solid var(--color-text);
+
+      @container (width < 30rem) {
+        padding-block-start: var(--space-2);
+      }
+
+      > fieldset {
+        display: grid;
+        grid-template-columns: 2.125rem minmax(0, 1fr) auto;
+        align-items: center;
+
+        @container (width < 30rem) {
+          grid-template-columns: 2.125rem minmax(0, 1fr);
+        }
+      }
+    }
+
+    .matching-item-number {
+      align-self: baseline;
+      font-family: var(--font-frame);
+      font-stretch: var(--font-stretch-frame);
+      font-size: var(--font-size-frame);
+      font-weight: var(--font-weight-frame-number);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .matching-item-text {
+      align-self: baseline;
+    }
+
+    .matching-choices {
+      display: flex;
+      flex-wrap: wrap;
+      margin-inline: var(--space-3) calc(-1 * var(--space-2));
+
+      @container (width < 30rem) {
+        grid-column: 2;
+        margin-inline: calc(-1 * var(--space-2));
+      }
+
+      label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        box-sizing: border-box;
+        min-block-size: var(--target);
+        min-inline-size: var(--target);
+        padding-inline: var(--space-2);
+        cursor: pointer;
+
+        @media (hover: hover) {
+          &:hover {
+            background: var(--color-surface-subtle);
+          }
+
+          &:has(:disabled):hover {
+            background: none;
+          }
+        }
+
+        &:has(:disabled) {
+          cursor: default;
+        }
+      }
+
+      input {
+        position: relative;
+        box-sizing: border-box;
+        inline-size: 1.125rem;
+        block-size: 1.125rem;
+        margin: 0;
+        padding: 3px;
+        border: var(--stroke) solid var(--color-text);
+        border-radius: 0;
+        background: none;
+        appearance: none;
+        cursor: inherit;
+        print-color-adjust: exact;
+
+        &:checked {
+          background: var(--color-text) content-box;
+        }
+
+        &::before {
+          content: none;
+        }
+
+        @media (forced-colors: active) {
+          forced-color-adjust: none;
+          border-color: CanvasText;
+
+          &:checked {
+            background: CanvasText content-box;
+          }
+        }
+      }
+    }
+
+    /* A locked item ticks its right letter: the chosen one when right, beside the crossed-out choice
+       when wrong. */
+    .matching-item:is([data-status="saved"], [data-status="answered-elsewhere"]) .matching-choices {
+      input:checked {
+        background: none;
+      }
+
+      :is(input:checked, [data-right-answer] input)::before {
+        content: "";
+        position: absolute;
+        inset: -5px;
+        background: var(--color-text);
+        mask: center / contain no-repeat;
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m7.5 12.5 3 3 6-7' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E");
+
+        @media (forced-colors: active) {
+          background: CanvasText;
+        }
+      }
+    }
+
+    .matching-item:is([data-status="saved"], [data-status="answered-elsewhere"])[data-mark="wrong"]
+      .matching-choices
+      input:checked::before {
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m2 2 20 20M22 2 2 22' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E");
+    }
+
+    /* The set is never right or wrong: each row carries its own mark, so its status has no sign. */
+    artifact-matching:is([data-status="saved"], [data-status="answered-elsewhere"])
+      > form
+      > .question-header
+      > .question-status::before {
+      content: none;
+    }
+
+    /* The rows' closing rule is the explanation's rule: a second one 16px under it would read as an
+       empty row. */
+    artifact-matching > form > .question-explanation {
+      margin-block-start: 0;
+
+      > .question-revealed {
+        border-block-start: 0;
+      }
+    }
+
+    /* Check stays while an item is open, even when another item's state heads the box. */
+    artifact-matching[data-status]:has([data-question-id]:not([data-status]))
+      > form
+      > fieldset
+      > .question-actions {
+      display: flex;
+    }
+  }
+</style>

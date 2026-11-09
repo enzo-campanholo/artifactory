@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 196">
+  <line data-part="E-A" x1="110" y1="30" x2="50" y2="90" class="stroke-text" stroke-width="2" />
+  <line data-part="E-B" x1="110" y1="30" x2="170" y2="90" class="stroke-text" stroke-width="2" />
+  <line data-part="A-B" x1="50" y1="90" x2="170" y2="90" class="stroke-text" stroke-width="2" />
+  <line data-part="A-D" x1="50" y1="90" x2="50" y2="166" class="stroke-text" stroke-width="2" />
+  <line data-part="B-C" x1="170" y1="90" x2="170" y2="166" class="stroke-text" stroke-width="2" />
+  <line data-part="C-D" x1="170" y1="166" x2="50" y2="166" class="stroke-text" stroke-width="2" />
+  <g data-part="E">
+    <circle cx="110" cy="30" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" />
+    <text x="110" y="30" data-swatch="1">R</text>
+  </g>
+  <g data-part="A">
+    <circle cx="50" cy="90" r="22" class="fill-swatch-2 stroke-text" stroke-width="2" />
+    <text x="50" y="90" data-swatch="2">G</text>
+  </g>
+  <g data-part="B">
+    <circle cx="170" cy="90" r="22" class="fill-swatch-3 stroke-text" stroke-width="2" />
+    <text x="170" y="90" data-swatch="3">Y</text>
+  </g>
+  <g data-part="C">
+    <circle cx="170" cy="166" r="22" class="fill-swatch-2 stroke-text" stroke-width="2" />
+    <text x="170" y="166" data-swatch="2">G</text>
+  </g>
+  <g data-part="D">
+    <circle cx="50" cy="166" r="22" class="fill-swatch-3 stroke-text" stroke-width="2" />
+    <text x="50" y="166" data-swatch="3">Y</text>
+  </g>
+</svg>

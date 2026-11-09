@@ -162,6 +162,26 @@ function stage(build: string, options: string[], content: string[]): string[] {
   ];
 }
 
+function groupsStage(build: string): string[] {
+  return [
+    "<Stage",
+    `  build="${build}"`,
+    "  choose={[",
+    '    { name: "inicio", label: "Começar em", options: ["A", "B", "C"] },',
+    '    { name: "busca", label: "Buscar em", options: ["largura", "profundidade"] },',
+    "  ]}",
+    '  prompt="Escolha um vértice e uma busca."',
+    "  figure={pontos}",
+    '  alt="Dois pontos, A e B."',
+    ">",
+    "",
+    ...vertexTable,
+    "",
+    "</Stage>",
+    "",
+  ];
+}
+
 function typedStage(build: string, examples: string, content: string[]): string[] {
   return [
     "<Stage",
@@ -210,10 +230,164 @@ function build(...lines: string[]): string {
 
 const oneStep = "export default defineBuild({ steps: () => [{ say: 'Começa.' }] });";
 
+const registersTable = [
+  "| Register | Value |",
+  "| -------- | ----: |",
+  "| i        |     2 |",
+  "| s        |    −1 |",
+  "| D[0]     |     0 |",
+  "| input    |  7, 2 |",
+  "| output   |     — |",
+];
+
+const memoryTable = [
+  "| Cell | Data | Role | Top |",
+  "| ---- | ---: | ---- | --- |",
+  "| M[0] |    ? |      |     |",
+];
+
+function machineStage(
+  build: string,
+  listing: string[],
+  {
+    fence = "```text start=0",
+    examples = "[{ x: 7, y: 2 }]",
+    tables = [...registersTable, "", ...memoryTable],
+  } = {},
+): string[] {
+  return [
+    "<Stage",
+    `  build="${build}"`,
+    "  input={{",
+    '    label: "Run",',
+    '    fields: [{ name: "x", min: 0, max: 9 }, { name: "y", min: 0, max: 9 }],',
+    `    examples: ${examples},`,
+    "  }}",
+    '  prompt="Type x and y and run the program."',
+    ">",
+    "",
+    fence,
+    ...listing,
+    "```",
+    "",
+    ...tables,
+    "",
+    "</Stage>",
+    "",
+  ];
+}
+
+function machineBuild(notes = 'reads: ["x", "y"]'): string {
+  return [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    `export default trace(mepa, { ${notes} });`,
+    "",
+  ].join("\n");
+}
+
+// Each Stage below refuses every run, except `unroled`'s, whose tables are its one example's
+// result, worked out by hand: x = 7 is stored in M[0], and y = 2 is pushed to M[1] and printed.
+const unfitMachineStages = [
+  ...machineStage("unknown", ["INPP", "PUSH 3", "PARA", "FIM"]),
+  ...machineStage("arguments", ["INPP", "AMEM", "CRVL 0", "ARMZ 0,x", "DSVS 3", "PARA", "FIM"], {
+    examples: "[{ x: 7, y: 2 }, { x: 1, y: 1 }]",
+  }),
+  ...machineStage("from-one", ["INPP", "PARA", "FIM"], { fence: "```text" }),
+  ...machineStage("no-input", ["INPP", "LEIT", "LEIT", "LEIT", "PARA", "FIM"]),
+  ...machineStage("bottom", ["INPP", "DMEM 1", "PARA", "FIM"]),
+  ...machineStage("not-started", ["AMEM 1", "PARA", "FIM"]),
+  ...machineStage("no-value", ["INPP", "AMEM 1", "CRVL 0,0", "PARA", "FIM"]),
+  ...machineStage("no-display", ["INPP", "CRVL 1,0", "PARA", "FIM"]),
+  ...machineStage("below-zero", ["INPP", "CRVL 0,-1", "PARA", "FIM"]),
+  ...machineStage("no-para", ["INPP", "FIM"]),
+  ...machineStage("notes", ["INPP", "PARA", "FIM"]),
+  ...machineStage("jumps", ["INPP", "DSVS L9", "L1: NADA", "PARA", "FIM"]),
+  ...machineStage("labelled", ["INPP", "L1: NADA", "L1: NADA", "L2:", "PARA", "FIM"]),
+  ...machineStage("labels", ["INPP", "PARA", "FIM"]),
+  ...machineStage("calls", ["INPP", "CHPR L9,1", "CHPR L1", "L1: NADA", "PARA", "FIM"]),
+  ...machineStage("subroutines", [
+    "INPP",
+    "AMEM 1",
+    "CHPR L1,1",
+    "PARA",
+    "L1: ENPR 1",
+    "RTPR 1,0",
+    "L2: NADA",
+    "FIM",
+  ]),
+  ...machineStage("reads", ["INPP", "PARA", "FIM"]),
+  ...machineStage("no-registers", ["INPP", "PARA", "FIM"], { tables: memoryTable }),
+  ...machineStage("no-top", ["INPP", "PARA", "FIM"], {
+    tables: [
+      ...registersTable,
+      "",
+      "| Cell | Data | Role |",
+      "| ---- | ---: | ---- |",
+      "| M[0] |    ? |      |",
+    ],
+  }),
+  ...machineStage(
+    "unroled",
+    ["INPP", "AMEM 1", "LEIT", "ARMZ 0,0", "LEIT", "IMPR", "DMEM 1", "PARA", "FIM"],
+    {
+      tables: [
+        "| Register | Value |",
+        "| -------- | ----: |",
+        "| i        |     7 |",
+        "| s        |    −1 |",
+        "| D[0]     |     0 |",
+        "| input    |     — |",
+        "| output   |     2 |",
+        "",
+        "| Cell | Data | Top |",
+        "| ---- | ---: | --- |",
+        "| M[0] |    7 |     |",
+        "| M[1] |    2 |     |",
+      ],
+    },
+  ),
+];
+
+const unfitMachineBuilds = {
+  ...Object.fromEntries(
+    [
+      "unknown",
+      "arguments",
+      "from-one",
+      "no-input",
+      "bottom",
+      "not-started",
+      "no-value",
+      "no-display",
+      "below-zero",
+      "no-para",
+      "jumps",
+      "labelled",
+      "calls",
+      "no-registers",
+      "no-top",
+      "unroled",
+    ].map((name) => [`artifacts/stack-machine/${name}.build.ts`, machineBuild()]),
+  ),
+  "artifacts/stack-machine/notes.build.ts": machineBuild(
+    'reads: ["x", "y"], roles: { 7: "x" }, after: { 9: "Done." }',
+  ),
+  "artifacts/stack-machine/reads.build.ts": machineBuild('reads: ["x", "z"]'),
+  "artifacts/stack-machine/labels.build.ts": machineBuild(
+    'reads: ["x", "y"], labels: { L2: "the end" }',
+  ),
+  "artifacts/stack-machine/subroutines.build.ts": machineBuild(
+    'reads: ["x", "y"], subroutines: { L1: { params: ["a"], returns: false }, L2: { params: [], returns: true } }',
+  ),
+};
+
 const customBuilds = {
   "artifacts/construcoes/index.mdx": artifact(fields("c0nstru1", "Biologia"), [
     'import Stage from "@artifactory/design-system/stage";',
     'import pontos from "./pontos.svg?raw";',
+    'import cores from "./cores.svg?raw";',
     "",
     ...stage("importa", ["A"], vertexTable),
     ...stage("alcanca", ["A"], vertexTable),
@@ -221,6 +395,15 @@ const customBuilds = {
     ...stage("vazia", ["A"], vertexTable),
     ...stage("forma", ["A", "B", "C"], vertexTable),
     ...stage("marca", ["A"], vertexTable),
+    "<Stage",
+    '  build="colore"',
+    '  choose={{ label: "Começar em", options: ["A"] }}',
+    '  prompt="Escolha um vértice."',
+    "  figure={cores}",
+    '  alt="Um vértice A sem cor, ligado a um vértice B da cor R."',
+    '  colours={["R", "G", "B"]}',
+    "/>",
+    "",
     ...stage("demais", ["A"], vertexTable),
     ...stage("trava", ["A", "B"], vertexTable),
     ...stage("dupla", ["A"], vertexTable),
@@ -246,8 +429,84 @@ const customBuilds = {
     ...typedStage("opcional", "[{ a: 48, b: 18 }]", ["Soma."]),
     ...typedStage("indice", "[{ a: 48, b: 18 }]", ["Soma."]),
     ...typedStage("uniao", "[{ a: 48, b: 18 }]", ["Soma."]),
+    "<Stage",
+    '  build="palavra-tipo"',
+    "  input={{",
+    '    label: "Aceita w?",',
+    '    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],',
+    '    examples: [{ w: "aabba" }],',
+    "  }}",
+    '  prompt="Digite uma palavra."',
+    ">",
+    "",
+    "Lê.",
+    "",
+    "</Stage>",
+    "",
+    "<Stage",
+    '  build="modulo-tipo"',
+    "  input={{",
+    '    label: "Calcular h(t, m)",',
+    '    fields: [{ name: "t", kind: "text", maxLength: 40 }, { name: "m", min: 1, max: 997 }],',
+    '    examples: [{ t: "olá mundo", m: 7 }],',
+    "  }}",
+    '  prompt="Digite um texto e um módulo."',
+    ">",
+    "",
+    "Lê.",
+    "",
+    "</Stage>",
+    "",
     ...stage("texto", ["A"], vertexTable),
+    "<Stage",
+    '  build="mepa-palavra"',
+    "  input={{",
+    '    label: "Ler w",',
+    '    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],',
+    '    examples: [{ w: "aabba" }],',
+    "  }}",
+    '  prompt="Digite uma palavra."',
+    ">",
+    "",
+    "```text start=0",
+    "INPP",
+    "PARA",
+    "FIM",
+    "```",
+    "",
+    "| Registrador | Valor |",
+    "| ----------- | ----: |",
+    "| i           |     1 |",
+    "| s           |    −1 |",
+    "| D[0]        |     0 |",
+    "| entrada     | aabba |",
+    "| saída       |     — |",
+    "",
+    "</Stage>",
+    "",
+    ...stage(
+      "mepa-opcao",
+      ["A"],
+      [
+        "```text start=0",
+        "INPP",
+        "PARA",
+        "FIM",
+        "```",
+        "",
+        "| Registrador | Valor |",
+        "| ----------- | ----: |",
+        "| i           |     0 |",
+      ],
+    ),
+    ...groupsStage("grupos"),
+    ...groupsStage("grupos-nomes"),
+    ...groupsStage("grupos-falta"),
+    ...groupsStage("grupos-sobra"),
+    ...groupsStage("grupos-numero"),
+    ...groupsStage("grupos-sem-tipo"),
     ...typedStage("linhas", "[{ a: 48, b: 18 }]", mdcCode),
+    ...stage("desde-zero", ["A"], ["```python start=0", ...mdcCode.slice(1)]),
     ...stage("sem-codigo", ["A"], vertexTable),
     ...stage("dois-codigos", ["A"], [...mdcCode, "", ...mdcCode]),
     ...stage("uma-linha", ["A"], ["```python", "print(1)", "```"]),
@@ -264,7 +523,122 @@ const customBuilds = {
       passTable,
     ),
     ...stage("mesa-volta", ["A"], passTable),
+    ...typedStage("conteudo", "[{ a: 48, b: 18 }, { a: 7, b: 0 }]", [
+      "```text start=0",
+      "push a",
+      "  add ; soma",
+      "```",
+      "",
+      "| Lido   | Texto |",
+      "| ------ | ----- |",
+      "| código | —     |",
+      "| tabela | —     |",
+      "| língua | —     |",
+    ]),
+    ...typedStage("mepa-campos", "[{ a: 48, b: 18 }]", [
+      "```text start=0",
+      "INPP",
+      "PARA",
+      "FIM",
+      "```",
+      "",
+      "| Registrador | Valor |",
+      "| ----------- | ----: |",
+      "| i           |     1 |",
+      "| s           |    −1 |",
+      "| D[0]        |     0 |",
+      "| entrada     |    48 |",
+      "| saída       |     — |",
+    ]),
   ]),
+  // The first example worked by hand: 7 div 2 leaves 3 in M[2], not the 4 the table has, and the
+  // second divides by zero at line 8.
+  "artifacts/stack-machine/index.mdx": artifact(
+    [
+      "id: st4ckm4c",
+      "title: A stack machine",
+      "subject: Compilers",
+      "lang: en",
+      "published: 2026-10-15",
+    ],
+    [
+      'import Stage from "@artifactory/design-system/stage";',
+      "",
+      "<Stage",
+      '  build="divide"',
+      "  input={{",
+      '    label: "Run",',
+      '    fields: [{ name: "x", min: 0, max: 9 }, { name: "y", min: 0, max: 9 }],',
+      "    examples: [{ x: 7, y: 2 }, { x: 7, y: 0 }],",
+      "  }}",
+      '  prompt="Type x and y and run the program."',
+      ">",
+      "",
+      "```text start=0",
+      "INPP",
+      "AMEM 2",
+      "LEIT",
+      "ARMZ 0,0",
+      "LEIT",
+      "ARMZ 0,1",
+      "CRVL 0,0",
+      "CRVL 0,1",
+      "DIVI",
+      "IMPR",
+      "DMEM 2",
+      "PARA",
+      "FIM",
+      "```",
+      "",
+      "| Register | Value |",
+      "| -------- | ----: |",
+      "| i        |    11 |",
+      "| s        |    −1 |",
+      "| D[0]     |     0 |",
+      "| input    |     — |",
+      "| output   |     3 |",
+      "",
+      "| Cell | Data | Role | Top |",
+      "| ---- | ---: | ---- | --- |",
+      "| M[0] |    7 |      |     |",
+      "| M[1] |    2 |      |     |",
+      "| M[2] |    4 |      |     |",
+      "| M[3] |    2 |      |     |",
+      "",
+      "</Stage>",
+      "",
+      ...unfitMachineStages,
+    ],
+  ),
+  ...unfitMachineBuilds,
+  "artifacts/stack-machine/divide.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["x", "y"], roles: { 1: ["x", "y"] } });',
+    "",
+  ].join("\n"),
+  "artifacts/construcoes/mepa-campos.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["a"] });',
+    "",
+  ].join("\n"),
+  "artifacts/construcoes/mepa-palavra.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["w"] });',
+    "",
+  ].join("\n"),
+  "artifacts/construcoes/mepa-opcao.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["a"] });',
+    "",
+  ].join("\n"),
   "artifacts/construcoes/pontos.svg": [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">',
     '  <circle data-part="A" cx="20" cy="20" r="10" class="stroke-text" />',
@@ -273,6 +647,34 @@ const customBuilds = {
     "</svg>",
     "",
   ].join("\n"),
+  "artifacts/construcoes/cores.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">',
+    '  <line data-part="AB" x1="20" y1="20" x2="80" y2="20" class="stroke-text" />',
+    '  <g data-part="A">',
+    '    <circle cx="20" cy="20" r="12" class="fill-surface stroke-text" />',
+    '    <text x="20" y="20" data-swatch=""></text>',
+    "  </g>",
+    '  <g data-part="B">',
+    '    <circle cx="80" cy="20" r="12" class="fill-swatch-1 stroke-text" />',
+    '    <text x="80" y="20" data-swatch="1">R</text>',
+    "  </g>",
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/construcoes/colore.build.ts": build(
+    "export default defineBuild({",
+    "  steps: () => [",
+    "    { say: 'A fica G e B fica sem cor.', colours: { A: 2, B: null } },",
+    "    { say: 'AB fica R.', colours: { AB: 1 } },",
+    "    { say: 'Z fica R.', colours: { Z: 1 } },",
+    "    { say: 'A fica com a cor 4.', colours: { A: 4 } },",
+    "    { say: 'A fica com a cor 7.', colours: { A: 7 } },",
+    "    { say: 'A fica com a cor 1,5.', colours: { A: 1.5 } },",
+    "    { say: 'A fica com a cor 0.', colours: { A: 0 } },",
+    "    { say: 'A fica sem lista.', colours: ['A'] as never },",
+    "  ],",
+    "});",
+  ),
   "artifacts/construcoes/importa.build.ts": build(
     'import { readFileSync } from "node:fs";',
     "",
@@ -348,6 +750,34 @@ const customBuilds = {
   "artifacts/construcoes/uniao.build.ts": build(
     "export default defineBuild<{ a: number; b: number } | { a: number; b: number; c: number }>({ steps: (input) => [{ say: `Soma ${String(input.a)}.` }] });",
   ),
+  "artifacts/construcoes/palavra-tipo.build.ts": build(
+    "export default defineBuild<{ w: number }>({ steps: (input) => [{ say: `Lê ${String(input.w)}.` }] });",
+  ),
+  "artifacts/construcoes/modulo-tipo.build.ts": build(
+    "export default defineBuild<{ t: string; m: string }>({ steps: (input) => [{ say: `Lê ${input.t} ${input.m}.` }] });",
+  ),
+  "artifacts/construcoes/grupos.build.ts": build(
+    "export default defineBuild<{ inicio: string; busca: string }>({",
+    "  steps({ inicio, busca }) {",
+    "    if (inicio === 'C' && busca === 'profundidade') throw new Error('C não tem vizinhos');",
+    "    if (inicio === 'B' && busca === 'largura') return [{ say: 'Marca Z.', parts: { Z: 'strong' } }];",
+    "    return [{ say: `Começa em ${inicio}, em ${busca}.` }];",
+    "  },",
+    "});",
+  ),
+  "artifacts/construcoes/grupos-nomes.build.ts": build(
+    "export default defineBuild<{ inicio: string; tipo: string }>({ steps: () => [{ say: 'Começa.' }] });",
+  ),
+  "artifacts/construcoes/grupos-falta.build.ts": build(
+    "export default defineBuild<{ inicio: string }>({ steps: () => [{ say: 'Começa.' }] });",
+  ),
+  "artifacts/construcoes/grupos-sobra.build.ts": build(
+    "export default defineBuild<{ inicio: string; busca: string; fim: string }>({ steps: () => [{ say: 'Começa.' }] });",
+  ),
+  "artifacts/construcoes/grupos-numero.build.ts": build(
+    "export default defineBuild<{ inicio: string; busca: number }>({ steps: () => [{ say: 'Começa.' }] });",
+  ),
+  "artifacts/construcoes/grupos-sem-tipo.build.ts": build(oneStep),
   "artifacts/construcoes/texto.build.ts": build(
     "export default defineBuild<{ a: number }>({ steps: (input) => [{ say: `Começa em ${String(input.a)}.` }] });",
   ),
@@ -358,6 +788,14 @@ const customBuilds = {
     "    { say: 'Devolve a.', lines: { 9: 'reversed' } },",
     "    { say: 'Roda o laço.', lines: { 2: 'reversed', 3: 'reversed' } },",
     "    { say: 'Marca.', lines: { 0: 'strong', 2: 'negrito' } } as never,",
+    "  ],",
+    "});",
+  ),
+  "artifacts/construcoes/desde-zero.build.ts": build(
+    "export default defineBuild({",
+    "  steps: () => [",
+    "    { say: 'Recebe a e b.', lines: { 0: 'reversed', 3: 'muted' } },",
+    "    { say: 'Devolve a.', lines: { 4: 'reversed' } },",
     "  ],",
     "});",
   ),
@@ -417,6 +855,23 @@ const customBuilds = {
   "artifacts/construcoes/mesa-volta.build.ts": build(
     "export default defineBuild({",
     "  steps: () => [{ say: 'Começa.', body: [['início', '48', '18']] }, { say: 'Volta.' }],",
+    "});",
+  ),
+  "artifacts/construcoes/conteudo.build.ts": build(
+    "export default defineBuild<{ a: number; b: number }>({",
+    "  steps(_input, { lang, code, tables }) {",
+    "    const [lines = []] = code;",
+    "    const [table] = tables;",
+    "    if (lines.length !== 2 || table?.rows[0]?.[1] !== '—') throw new Error('o conteúdo mudou');",
+    "    const seen = [",
+    "      lines.map(({ line, text }) => `${String(line)}:${text}`).join('|'),",
+    "      `${table.columns.join('/')} ${(table.rows[1] ?? []).join('/')}`,",
+    "      lang,",
+    "    ];",
+    "    code.length = 0;",
+    "    for (const row of table.rows) row.fill('mudou');",
+    "    return [{ say: 'Lê.', cells: ['código', 'tabela', 'língua'].map((row, at) => ({ row, column: 'Texto', text: seen[at] ?? '' })) }];",
+    "  },",
     "});",
   ),
   "artifacts/construcoes/sobra.build.ts": build(oneStep),
@@ -518,7 +973,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 96 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 148 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -619,14 +1074,15 @@ describe.each([
           run.summary.filter(
             (line) =>
               line.startsWith("artifacts/construcoes/index.mdx") ||
-              line.startsWith("artifacts/construcoes/pontos.svg"),
+              line.startsWith("artifacts/construcoes/pontos.svg") ||
+              line.startsWith("artifacts/construcoes/cores.svg"),
           ),
         ).toEqual([]);
       });
 
       it("fails a build that imports anything but the build contract, at the import", () => {
         expect(linesFor(run, "build-import")).toEqual([
-          "artifacts/construcoes/importa.build.ts:3:30 error build-import: `node:fs` isn't `@artifactory/design-system/stage-build`, the only module a build may import (artifact skill: Custom builds)",
+          "artifacts/construcoes/importa.build.ts:3:30 error build-import: `node:fs` isn't `@artifactory/design-system/stage-build` or a machine under `@artifactory/design-system/machines/`, the only modules a build may import (artifact skill: Custom builds)",
         ]);
       });
 
@@ -645,18 +1101,42 @@ describe.each([
       it("fails a build whose input type isn't what its Stage gives it, at the type", () => {
         expect(linesFor(run, "build-input")).toEqual([
           "artifacts/construcoes/falta.build.ts:3:28 error build-input: `steps` takes `{ a: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-falta.build.ts:3:28 error build-input: `steps` takes `{ inicio: string }`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-nomes.build.ts:3:28 error build-input: `steps` takes `{ inicio: string; tipo: string }`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-numero.build.ts:3:28 error build-input: `steps` takes `{ inicio: string; busca: number }`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-sem-tipo.build.ts:3:16 error build-input: `steps` takes `string`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-sobra.build.ts:3:28 error build-input: `steps` takes `{ inicio: string; busca: string; fim: string }`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/indice.build.ts:3:28 error build-input: `steps` takes `{ [name: string]: number; a: number; b: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/literal.build.ts:3:28 error build-input: `steps` takes `{ a: number; b: 7 }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/mepa-campos.build.ts:4:16 error build-input: `steps` takes `{ a: number }`, but the Stage's fields give it `{ a: number; b: number }`: name exactly the Stage's fields in `reads` (artifact skill: Custom builds)",
+          "artifacts/construcoes/mepa-opcao.build.ts:4:16 error build-input: `steps` takes `{ a: number }`, but the Stage's options give it text: a machine reads values by name, which one group's option doesn't have: give the Stage `input` or a list of choice groups (artifact skill: Custom builds)",
+          "artifacts/construcoes/mepa-palavra.build.ts:4:16 error build-input: `steps` takes `{ w: number }`, but the Stage's fields give it `{ w: string }`: the machine reads only numbers, and `w` gives it text (artifact skill: Custom builds)",
+          "artifacts/construcoes/modulo-tipo.build.ts:3:28 error build-input: `steps` takes `{ t: string; m: string }`, but the Stage's fields give it `{ t: string; m: number }`: write `defineBuild<{ t: string; m: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/opcional.build.ts:3:28 error build-input: `steps` takes `{ a: number; b?: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/palavra-tipo.build.ts:3:28 error build-input: `steps` takes `{ w: number }`, but the Stage's fields give it `{ w: string }`: write `defineBuild<{ w: string }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/texto.build.ts:3:28 error build-input: `steps` takes `{ a: number }`, but the Stage's options give it text: write `defineBuild` without a type (artifact skill: Custom builds)",
           "artifacts/construcoes/tipo.build.ts:3:28 error build-input: `steps` takes `{ a: number; c: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/uniao.build.ts:3:28 error build-input: `steps` takes `{ a: number; b: number } | { a: number; b: number; c: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/reads.build.ts:4:16 error build-input: `steps` takes `{ x: number; z: number }`, but the Stage's fields give it `{ x: number; y: number }`: name exactly the Stage's fields in `reads` (artifact skill: Custom builds)",
         ]);
       });
 
       it("runs every build on every option and example against the built page, naming it, the step and what's missing", () => {
-        expect(linesFor(run, "stage-run")).toEqual([
+        expect(
+          linesFor(run, "stage-run").filter((line) => !line.startsWith("artifacts/stack-machine/")),
+        ).toEqual([
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 2 colours the part `AB`, which holds no label: put a `<text data-swatch>` in its `<g>`, empty if it's uncoloured as written (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 3 colours the part `Z`, which the drawing doesn't have (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 4 colours the part `A` with 4, past the 3 colours `colours` names: add its name to `colours`, or use 1 to 3 (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 5 colours the part `A` with 7, which isn't a swatch: give a whole number from 1 to 6, or `null` for uncoloured (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 6 colours the part `A` with 1.5, which isn't a swatch: give a whole number from 1 to 6, or `null` for uncoloured (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 7 colours the part `A` with 0, which isn't a swatch: give a whole number from 1 to 6, or `null` for uncoloured (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 8 has `colours` that isn't an object of colours by name (artifact skill: Custom builds)",
+          "artifacts/construcoes/conteudo.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `0:push a|1:  add ; soma` in the row `código` and the column `Texto`, and the table as written has `—`; write the tables as the first example leaves them (artifact skill: Custom builds)",
+          "artifacts/construcoes/conteudo.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `Lido/Texto tabela/—` in the row `tabela` and the column `Texto`, and the table as written has `—`; write the tables as the first example leaves them (artifact skill: Custom builds)",
+          "artifacts/construcoes/conteudo.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `pt-BR` in the row `língua` and the column `Texto`, and the table as written has `—`; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/construcoes/demais.build.ts:1:1 error stage-run: with `A`, `steps` returns more than 200 steps (artifact skill: Custom builds)",
+          "artifacts/construcoes/desde-zero.build.ts:1:1 error stage-run: with `A`, step 2 marks the line `4`, which the code doesn't have: it has lines 0 to 3 (artifact skill: Custom builds)",
           "artifacts/construcoes/dois-codigos.build.ts:1:1 error stage-run: with `A`, step 1 has `lines`, but the Stage holds 2 code blocks: `lines` marks the lines of exactly one (artifact skill: Custom builds)",
           "artifacts/construcoes/duas-tabelas.build.ts:1:1 error stage-run: with `A`, step 1 has `body`, but the Stage holds 2 tables: `body` rewrites the rows of exactly one (artifact skill: Custom builds)",
           "artifacts/construcoes/escrita.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `0` in the row `b` and the column `Valor`, and the table as written has `12`; write the tables as the first example leaves them (artifact skill: Custom builds)",
@@ -665,6 +1145,8 @@ describe.each([
           "artifacts/construcoes/forma.build.ts:1:1 error stage-run: with `A`, `steps` returns something that isn't a list of steps (artifact skill: Custom builds)",
           "artifacts/construcoes/forma.build.ts:1:1 error stage-run: with `B`, step 1 has a `say` that isn't text (artifact skill: Custom builds)",
           "artifacts/construcoes/forma.build.ts:1:1 error stage-run: with `B`, step 1 marks `A` in `parts` with `negrito`, which isn't a mark (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos.build.ts:1:1 error stage-run: with `inicio = B, busca = largura`, step 1 marks the part `Z`, which the drawing doesn't have (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos.build.ts:5:59 error stage-run: with `inicio = C, busca = profundidade`, `steps` throws: C não tem vizinhos (artifact skill: Custom builds)",
           "artifacts/construcoes/lanca.build.ts:5:30 error stage-run: with `B`, `steps` throws: B não tem vizinhos (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 1 gives `body` a row of 1 cell (`3`), but the table has 3 columns: give every row one text per column (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 1 gives `body` a row of 2 cells (`1`, `18`), but the table has 3 columns: give every row one text per column (artifact skill: Custom builds)",
@@ -672,11 +1154,12 @@ describe.each([
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 2 marks the row `1`, which starts no row of this step's `body` (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 3 changes a cell in the row `1`, which this step's `body` doesn't have (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 4 has `body` that isn't a list of rows, each a list of texts (artifact skill: Custom builds)",
-          "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 2 marks the line `9`, which the code doesn't have: it has 4 lines (artifact skill: Custom builds)",
+          "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 2 marks the line `9`, which the code doesn't have: it has lines 1 to 4 (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 3 marks the lines 2 and 3 `reversed`, but only the one running line is `reversed` (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 4 marks `2` in `lines` with `negrito`, which isn't a mark (artifact skill: Custom builds)",
-          "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 4 marks the line `0`, which the code doesn't have: it has 4 lines (artifact skill: Custom builds)",
-          "artifacts/construcoes/marca.build.ts:1:1 error stage-run: with `A`, step 1 marks the part `D` `dashed`, which changes nothing in it: `dashed` acts on shapes with a `stroke-` class (artifact skill: Custom builds)",
+          "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 4 marks the line `0`, which the code doesn't have: it has lines 1 to 4 (artifact skill: Custom builds)",
+          "artifacts/construcoes/marca.build.ts:1:1 error stage-run: with `A`, step 1 marks the part `D` `dashed`, which changes nothing in it: `dashed` acts on shapes with a `stroke-` or `fill-swatch-` class (artifact skill: Custom builds)",
+          "artifacts/construcoes/mepa-opcao.build.ts:1:1 error stage-run: with `A`, the machine can't run: `reads` names `a`, which isn't one of the Stage's fields (artifact skill: Custom builds)",
           "artifacts/construcoes/mesa-cresce.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves the row `2` (`2`, `12`, `6`) after the table's last row as written; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/construcoes/mesa-encolhe.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the table as written has the row `1` (`1`, `18`, `12`) after the last step's last row; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/construcoes/mesa-lacunas.build.ts:1:1 error stage-run: with `a = 1, b = 0`, step 1 has no `body`, but this run's other steps rewrite the table's rows: give every step `body`, `[]` for no rows (artifact skill: Custom builds)",
@@ -692,8 +1175,42 @@ describe.each([
           "artifacts/construcoes/so-cabecalho.build.ts:1:1 error stage-run: with `A`, step 1 has `body`, but its table has no row as written for the new rows to copy: write one (artifact skill: Custom builds)",
           "artifacts/construcoes/trava.build.ts:1:1 error stage-run: with `A`, `steps` didn't return within 5 seconds (artifact skill: Custom builds)",
           "artifacts/construcoes/uma-coluna.build.ts:1:1 error stage-run: with `A`, step 1 gives `body` a row of 2 cells (`início`, `48`), but the table has 1 column: give every row one text per column (artifact skill: Custom builds)",
-          "artifacts/construcoes/uma-linha.build.ts:1:1 error stage-run: with `A`, step 1 marks the line `2`, which the code doesn't have: it has 1 line (artifact skill: Custom builds)",
+          "artifacts/construcoes/uma-linha.build.ts:1:1 error stage-run: with `A`, step 1 marks the line `2`, which the code doesn't have: it has only line 1 (artifact skill: Custom builds)",
           "artifacts/construcoes/vazia.build.ts:1:1 error stage-run: with `A`, `steps` returns no steps; give it at least one (artifact skill: Custom builds)",
+        ]);
+      });
+
+      it("fails a machine trace whose program or notes don't fit, or whose run faults, naming the example and the line", () => {
+        expect(
+          linesFor(run, "stage-run").filter((line) => line.startsWith("artifacts/stack-machine/")),
+        ).toEqual([
+          "artifacts/stack-machine/arguments.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: `AMEM` isn't `AMEM n`, with 1 whole number (artifact skill: Custom builds)",
+          "artifacts/stack-machine/arguments.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 2: `CRVL 0` isn't `CRVL k,n`, with 2 whole numbers (artifact skill: Custom builds)",
+          "artifacts/stack-machine/arguments.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 3: `ARMZ 0,x` isn't `ARMZ k,n`, with 2 whole numbers (artifact skill: Custom builds)",
+          "artifacts/stack-machine/arguments.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 4: `DSVS 3` isn't `DSVS L`, with a label (artifact skill: Custom builds)",
+          "artifacts/stack-machine/below-zero.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: M[−1] doesn't exist (artifact skill: Custom builds)",
+          "artifacts/stack-machine/bottom.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: the stack would drop below its bottom (artifact skill: Custom builds)",
+          "artifacts/stack-machine/calls.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: `CHPR L9,1` calls the label `L9`, which the listing doesn't have: it has `L1` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/calls.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 2: `CHPR L1` isn't `CHPR L,k`, with a label and 1 whole number (artifact skill: Custom builds)",
+          "artifacts/stack-machine/divide.build.ts:1:1 error stage-run: with `x = 7, y = 0`, the machine faults at line 8: division by zero (artifact skill: Custom builds)",
+          "artifacts/stack-machine/divide.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the first example, the last step leaves `3` in the row `M[2]` and the column `Data`, and the table as written has `4`; write the tables as the first example leaves them (artifact skill: Custom builds)",
+          "artifacts/stack-machine/from-one.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: the listing starts at address 0: fence it ` ```text start=0 ` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/jumps.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: `DSVS L9` jumps to the label `L9`, which the listing doesn't have: it has `L1` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/labelled.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 2: the label `L1` is already on line 1: give each line its own (artifact skill: Custom builds)",
+          "artifacts/stack-machine/labelled.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 3: `L2:` labels no instruction: write one after it, as `L2: NADA` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/labels.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `labels` names the label `L2`, which the listing doesn't have: it has no labels (artifact skill: Custom builds)",
+          "artifacts/stack-machine/no-display.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: D[1] has no value (artifact skill: Custom builds)",
+          "artifacts/stack-machine/no-input.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 3: no input is left to read (artifact skill: Custom builds)",
+          "artifacts/stack-machine/no-para.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: the program reaches FIM without PARA (artifact skill: Custom builds)",
+          "artifacts/stack-machine/no-registers.build.ts:1:1 error stage-run: with `x = 7, y = 2`, step 1 changes a cell in the column `Value`, which heads no table (artifact skill: Custom builds)",
+          "artifacts/stack-machine/no-top.build.ts:1:1 error stage-run: with `x = 7, y = 2`, step 1 changes a cell in the column `Top`, which heads no table (artifact skill: Custom builds)",
+          "artifacts/stack-machine/no-value.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 2: M[0] has no value (artifact skill: Custom builds)",
+          "artifacts/stack-machine/not-started.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 0: s has no value yet: a program starts with INPP (artifact skill: Custom builds)",
+          "artifacts/stack-machine/notes.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `after` names the address 9, which the listing doesn't have: it has addresses 0 to 2 (artifact skill: Custom builds)",
+          "artifacts/stack-machine/notes.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `roles` names the address 7, which the listing doesn't have: it has addresses 0 to 2 (artifact skill: Custom builds)",
+          "artifacts/stack-machine/reads.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `reads` names `z`, which isn't one of the Stage's fields (artifact skill: Custom builds)",
+          "artifacts/stack-machine/subroutines.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `subroutines` names the label `L2`, which no `CHPR` calls: the listing calls `L1` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/unknown.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: `PUSH 3` isn't a MEPA instruction (artifact skill: Custom builds)",
         ]);
       });
     });
@@ -733,7 +1250,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 97 failures" : "pnpm check: 96 failures",
+        fullScope ? "pnpm check: 149 failures" : "pnpm check: 148 failures",
       );
     });
   },

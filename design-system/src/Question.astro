@@ -1,36 +1,79 @@
 ---
-import { questionAnchor, questionMarkers } from "./question-markers.ts";
+import { questionAnchor, questionMarkers, questionRangeSlot } from "./question-markers.ts";
+import RevealedPart from "./RevealedPart.astro";
 import type { AutoCheckedKind, Json } from "./scoring.ts";
 
+// A matching's box holds its items' questions, whose rows carry their markers: `id` is its first
+// item's and `lastId` its last item's.
 type Props = { id: string; prompt: string } & (
-  | { kind: AutoCheckedKind; answerKey: Json; modelAnswer?: never }
-  | { kind: "open-question"; modelAnswer: string; answerKey?: never }
+  | {
+      kind: AutoCheckedKind;
+      answerKey: Json;
+      explanation?: string | undefined;
+      modelAnswer?: never;
+      lastId?: never;
+    }
+  | {
+      kind: "open-question";
+      modelAnswer: string;
+      answerKey?: never;
+      explanation?: never;
+      lastId?: never;
+    }
+  | {
+      kind: "matching";
+      lastId: string;
+      explanation?: string | undefined;
+      answerKey?: never;
+      modelAnswer?: never;
+    }
 );
 
 const { props } = Astro;
-const { id, kind, modelAnswer, prompt } = props;
+const { id, kind, modelAnswer, explanation, prompt } = props;
 const Tag = `artifact-${kind}` as const;
-const markers = questionMarkers(
-  props.kind === "open-question" ? { id, kind } : { id, kind: props.kind, key: props.answerKey },
-);
+const markers =
+  props.kind === "matching"
+    ? {}
+    : questionMarkers(
+        props.kind === "open-question"
+          ? { id, kind }
+          : { id, kind: props.kind, key: props.answerKey },
+      );
 const anchor = questionAnchor(id);
+const rangeId = `${anchor}--range`;
 // Question IDs are kebab-case, so no question's anchor can end in "--prompt".
 const promptId = `${anchor}--prompt`;
 const hints = {
   "single-choice": { en: "Choose one", pt: "Escolha uma" },
   numeric: { en: "Work it out", pt: "Calcule" },
   "open-question": { en: "Answer in your own words", pt: "Responda com suas palavras" },
+  matching: { en: "Match", pt: "Associe" },
 } satisfies Record<Props["kind"], { en: string; pt: string }>;
 const hint = hints[kind];
 ---
 
-<Tag {...markers} class="question" role="group" inert="">
+<Tag
+  {...markers}
+  class="question"
+  role="group"
+  aria-labelledby={props.kind === "matching" ? rangeId : undefined}
+  inert=""
+>
   <form>
     <div class="question-header">
-      <span class="question-number">
-        <span data-lang="en">Question</span>
-        <span data-lang="pt">Questão</span>
-      </span>
+      {props.kind === "matching" ? (
+        <span class="question-number" id={rangeId}>
+          <span data-lang="en">Questions</span>
+          <span data-lang="pt">Questões</span>
+          <Fragment set:html={questionRangeSlot(id, props.lastId)} />
+        </span>
+      ) : (
+        <span class="question-number">
+          <span data-lang="en">Question</span>
+          <span data-lang="pt">Questão</span>
+        </span>
+      )}
       <span class="question-hint" data-hint="open">
         <span data-lang="en">{hint.en}</span>
         <span data-lang="pt">{hint.pt}</span>
@@ -55,19 +98,22 @@ const hint = hints[kind];
         </div>
       )}
     </fieldset>
+    {explanation !== undefined && (
+      <div class="question-explanation" hidden>
+        <RevealedPart heading={{ en: "Explanation", pt: "Explicação" }} content={explanation} />
+      </div>
+    )}
     {modelAnswer !== undefined && (
       <details class="question-model-answer">
         <summary class="control-button" aria-disabled="true">
           <span data-lang="en">Show the model answer</span>
           <span data-lang="pt">Ver a resposta-modelo</span>
         </summary>
-        <div class="question-model-answer-body" tabindex="-1">
-          <p class="question-model-answer-heading">
-            <span data-lang="en">Model answer</span>
-            <span data-lang="pt">Resposta-modelo</span>
-          </p>
-          <div class="question-model-answer-text" set:html={modelAnswer} />
-        </div>
+        <RevealedPart
+          heading={{ en: "Model answer", pt: "Resposta-modelo" }}
+          content={modelAnswer}
+          tabindex="-1"
+        />
         <fieldset class="question-actions question-own-mark">
           <button
             type="submit"
@@ -260,6 +306,10 @@ const hint = hints[kind];
       display: none;
     }
 
+    .question-explanation {
+      margin-block-start: var(--space-3);
+    }
+
     .question-model-answer {
       margin-block-start: var(--space-3);
 
@@ -287,30 +337,6 @@ const hint = hints[kind];
 
       .question[data-status] & > .question-own-mark {
         display: none;
-      }
-    }
-
-    .question-model-answer-body {
-      padding-block-start: var(--inset);
-      border-block-start: var(--rule) solid var(--color-text);
-    }
-
-    .question-model-answer-heading {
-      margin: 0 0 0.125rem;
-      font-family: var(--font-frame);
-      font-stretch: var(--font-stretch-frame);
-      font-size: var(--font-size-caption);
-      font-weight: var(--font-weight-frame-strong);
-      line-height: var(--line-height-frame);
-    }
-
-    .question-model-answer-text {
-      > :first-child {
-        margin-block-start: 0;
-      }
-
-      > :last-child {
-        margin-block-end: 0;
       }
     }
   }

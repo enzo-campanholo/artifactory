@@ -3,12 +3,18 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 import { Window } from "happy-dom";
-import type { Typed } from "@artifactory/design-system/stage-build";
+import { mainLanguage } from "@artifactory/design-system/page-language";
+import type { Content, Typed } from "@artifactory/design-system/stage-build";
 import {
   rowTexts,
+  stageControl,
+  stageGroups,
   stageNodes,
   writtenContent,
+  type ChoiceGroup,
+  type Control,
   type Shown,
+  type Takes,
   type Written,
 } from "@artifactory/design-system/step-applier";
 import type { Failure } from "../../../src/check-failure.ts";
@@ -22,10 +28,11 @@ const timeoutSeconds = 5;
 
 interface StageOnPage {
   file: string;
-  // The fields' names with `input`; nothing with `choose`.
-  fields: string[] | undefined;
+  control: Control;
+  takes: Takes;
   inputs: (string | Typed)[];
   written: Written;
+  lang: Content["lang"];
 }
 
 // Each Stage's build runs on every option or example against the content as the built page holds
@@ -54,31 +61,45 @@ async function stagesOnPages(root: string): Promise<StageOnPage[]> {
     for (const element of document.querySelectorAll("artifact-stage")) {
       const file = (element.getAttribute("data-build") ?? "").replace(/^\//, "");
       if (!existsSync(join(root, file))) continue;
-      const examples = element.querySelector(".stage-input")?.getAttribute("data-examples");
+      const stage = element as unknown as Element;
+      const { control, takes } = stageControl(stage);
       stages.push({
         file,
-        fields:
-          examples == null
-            ? undefined
-            : [...element.querySelectorAll(".stage-field input")].map(
-                (input) => input.getAttribute("name") ?? "",
-              ),
+        control,
+        takes,
         inputs:
-          examples == null
-            ? [...element.querySelectorAll(".stage-option input")].map(
-                (input) => input.getAttribute("value") ?? "",
-              )
-            : (JSON.parse(examples) as Typed[]),
-        written: writtenContent(stageNodes(element as unknown as Element)),
+          takes.shape === "fields"
+            ? (JSON.parse(
+                element.querySelector(".stage-input")?.getAttribute("data-examples") ?? "[]",
+              ) as Typed[])
+            : takes.shape === "groups"
+              ? combinations(stageGroups(stage))
+              : [...element.querySelectorAll(".stage-option input")].map(
+                  (input) => input.getAttribute("value") ?? "",
+                ),
+        written: writtenContent(stageNodes(stage)),
+        lang: mainLanguage(stage),
       });
     }
   }
   return stages;
 }
 
+// Every combination, one option from each group, in the groups' order and each group's options'
+// order, so the first is what the page shows on choosing each group's first option.
+function combinations(groups: ChoiceGroup[]): Typed[] {
+  return groups.reduce<Typed[]>(
+    (chosen, { name, options }) =>
+      chosen.flatMap((before) =>
+        options.map((option) => ({ ...before, [name]: option.getAttribute("value") ?? "" })),
+      ),
+    [{}],
+  );
+}
+
 function runStage(
   root: string,
-  { file, fields, inputs, written }: StageOnPage,
+  { file, control, takes, inputs, written, lang }: StageOnPage,
 ): Promise<Failure[]> {
   const failures: Failure[] = [];
   const fail = (message: string, line = 1, column = 1) => {
@@ -91,9 +112,12 @@ function runStage(
       skillSection: "Custom builds",
     });
   };
-  const job: Job = { file: join(root, file), inputs, written };
+  const job: Job = { file: join(root, file), control, inputs, written, lang };
   const worker = new Worker(new URL("../build-runner.ts", import.meta.url), { workerData: job });
   const waiting = [...inputs];
+  // A program or notes that don't fit refuse every example alike, so each problem is named once,
+  // with the first example it refuses.
+  const unfitReported = new Set<string>();
   return new Promise((resolve) => {
     let timer: NodeJS.Timeout | undefined;
     const finish = () => {
@@ -109,7 +133,7 @@ function runStage(
       }
       timer = setTimeout(() => {
         fail(
-          `with \`${named(waiting[0] ?? "", fields)}\`, \`steps\` didn't return within ${String(timeoutSeconds)} seconds`,
+          `with \`${named(waiting[0] ?? "", takes)}\`, \`steps\` didn't return within ${String(timeoutSeconds)} seconds`,
         );
         finish();
       }, timeoutSeconds * 1000);
@@ -123,10 +147,10 @@ function runStage(
       const first = waiting.length === inputs.length;
       waiting.shift();
       const { input, run } = result;
-      const withOption = `with \`${named(input, fields)}\`,`;
+      const withOption = `with \`${named(input, takes)}\`,`;
       if (!("refused" in run)) {
         const last = run.steps.at(-1);
-        if (first && fields !== undefined && last !== undefined) {
+        if (first && control === "input" && last !== undefined) {
           for (const difference of writtenResultDifferences(written, last)) {
             fail(`${withOption} the first example, ${difference}`);
           }
@@ -135,8 +159,21 @@ function runStage(
         return;
       }
       if (run.refused === "problems") {
+        // A machine's view writes the same cells every step, so a column the content lacks would
+        // otherwise be named again for every step and row.
+        const reported = new Set<string>();
         for (const { step, problem } of run.problems) {
+          if (reported.has(problem)) continue;
+          reported.add(problem);
           fail(`${withOption} step ${String(step)} ${problem}`);
+        }
+      } else if (run.refused === "unfit") {
+        for (const { line, problem } of run.problems) {
+          const where = line === undefined ? "run" : `read line ${String(line)}`;
+          const message = `the machine can't ${where}: ${problem}`;
+          if (unfitReported.has(message)) continue;
+          unfitReported.add(message);
+          fail(`${withOption} ${message}`);
         }
       } else if (run.refused === "threw") {
         fail(
@@ -145,6 +182,8 @@ function runStage(
         );
       } else if (run.refused === "no-steps") {
         fail(`${withOption} \`steps\` returns no steps; give it at least one`);
+      } else if (run.refused === "fault") {
+        fail(`${withOption} the machine faults at line ${String(run.line)}: ${run.fault.en}`);
       } else if (run.refused === "not-a-list") {
         fail(`${withOption} \`steps\` returns something that isn't a list of steps`);
       } else {
@@ -161,10 +200,10 @@ function runStage(
 }
 
 // An example reads as its numbers in the fields' order, as `pnpm look` prints it: `a = 48, b = 18`.
-function named(input: string | Typed, fields: string[] | undefined): string {
-  return typeof input === "string"
-    ? input
-    : (fields ?? []).map((name) => `${name} = ${String(input[name])}`).join(", ");
+function named(input: string | Typed, takes: Takes): string {
+  return takes.shape === "option"
+    ? (input as string)
+    : takes.values.map(({ name }) => `${name} = ${String((input as Typed)[name])}`).join(", ");
 }
 
 // With `input`, the content as written is the first example's result, so its tables are what that

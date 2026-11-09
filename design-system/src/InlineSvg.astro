@@ -1,13 +1,16 @@
 ---
 import { componentError } from "./component-errors.ts";
+import { platedLabels, swatchPatterns } from "./swatches.ts";
 
 interface Props {
   svg: string;
-  alt: string;
+  alt?: string | undefined;
   minScale?: number | undefined;
+  swatches?: "plain" | "marked" | undefined;
+  colours?: readonly string[] | undefined;
 }
 
-const { svg, alt, minScale = 2 / 3 } = Astro.props;
+const { svg, alt, minScale = 2 / 3, swatches, colours } = Astro.props;
 
 const root = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(svg);
 if (root === null)
@@ -25,9 +28,19 @@ const ownAttributes = Object.fromEntries(
 );
 
 // DESIGN.md's Square Corner Rule, for figures and D2's boxes alike.
-const content = drawing.replace(/<rect\b[^>]*>/g, (rect) =>
+const squared = drawing.replace(/<rect\b[^>]*>/g, (rect) =>
   rect.replace(/\s(?:rx|ry)\s*=\s*(?:"[^"]*"|'[^']*')/g, ""),
 );
+
+// Only a drawing that fills with swatches gets their patterns, and only one that labels colours
+// gets plates, so every other drawing stays as written. A Stage's step can colour any part that
+// holds a label, so a Stage drawing with one gets the patterns even if it's uncoloured as written.
+const content = swatches === undefined ? squared : platedLabels(squared, colours);
+const swatched =
+  (swatches === "plain" && content.includes("fill-swatch-")) ||
+  (swatches === "marked" && /fill-swatch-|data-swatch=/.test(content))
+    ? swatchPatterns(swatches === "marked")
+    : undefined;
 
 const viewBox = ownAttributes.viewBox ?? viewBoxOfSize(ownAttributes.width, ownAttributes.height);
 if (viewBox === undefined) {
@@ -60,8 +73,18 @@ const minWidthStyle =
     : `--min-drawing-width: ${String(Math.ceil(Number(width) * minScale))}px`;
 ---
 
-<svg {...attributes} style={minWidthStyle} role="img" aria-label={alt}>
-  <g aria-hidden="true" set:html={content} />
+<svg
+  {...attributes}
+  style={minWidthStyle}
+  role={alt === undefined ? undefined : "img"}
+  aria-label={alt}
+  aria-hidden={alt === undefined ? "true" : undefined}
+>
+  <g
+    aria-hidden="true"
+    style={swatched?.style}
+    set:html={swatched ? swatched.defs + content : content}
+  />
 </svg>
 
 <style>

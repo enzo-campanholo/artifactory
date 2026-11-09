@@ -1,7 +1,18 @@
+import Diagram from "../src/Diagram.astro";
+import Figure from "../src/Figure.astro";
+import Matching from "../src/Matching.astro";
 import NumericQuestion from "../src/NumericQuestion.astro";
 import OpenQuestion from "../src/OpenQuestion.astro";
 import SingleChoice from "../src/SingleChoice.astro";
-import { numericKey, questionIds } from "./states.ts";
+import areaSteps from "./area-steps.d2";
+import dimensions from "./dimensions.svg?raw";
+import discInSquare from "./disc-in-square.svg?raw";
+import powers from "./powers.d2";
+import radiusThree from "./radius-three.svg?raw";
+import rings from "./rings.svg?raw";
+import scaledDiscs from "./scaled-discs.svg?raw";
+import { matchingAnswers, numericKey, questionIds } from "./states.ts";
+import unrolled from "./unrolled.svg?raw";
 
 ## The formula
 
@@ -12,6 +23,20 @@ Which expression gives the area of a circle of radius $r$?
 1. $2 \pi r$
 2. $\pi r^2$
 3. $\frac{4}{3} \pi r^3$
+
+---
+
+An area is a length times a length, so its formula carries $r^2$; only b) does. a) is the circumference, a length, and c) is the volume of a ball of radius $r$, a length cubed. Scaling the radius by $k$ scales the area by $k^2$:
+
+$$
+\pi (k r)^2 = k^2 \cdot \pi r^2
+$$
+
+<Figure
+  src={scaledDiscs}
+  alt="A circle of radius r beside a circle of radius 2r. A shaded square of side r sits under the first; under the second, a square of side 2r split into four squares of side r."
+  caption="Twice the radius covers four squares of side r where the first covered one."
+/>
 
 </SingleChoice>
 
@@ -24,7 +49,74 @@ Which expression gives the area of a circle of radius $r$?
 
 What is the area of a circle of radius $3\,\mathrm{cm}$, to two decimal places?
 
+<Figure
+  src={radiusThree}
+  alt="A shaded disc with its centre marked and a radius of 3 cm drawn from it."
+  caption="The circle, of radius 3 cm."
+/>
+
+---
+
+Square the radius first, then multiply by $\pi$:
+
+$$
+\pi r^2 = \pi \cdot (3\,\mathrm{cm})^2 = 9 \pi\,\mathrm{cm}^2 \approx 28.27\,\mathrm{cm}^2
+$$
+
+<Diagram
+  src={areaSteps}
+  alt="The radius, 3 cm, is squared to 9 square centimetres, which times pi gives about 28.27 square centimetres."
+  caption="The order of the two steps."
+/>
+
+Squaring after multiplying, $(3 \pi)^2 \approx 88.83$, gives the area of a circle of radius $3 \pi\,\mathrm{cm}$ instead.
+
 </NumericQuestion>
+
+<Matching answers={matchingAnswers}>
+
+What does each formula give, for a radius $r$?
+
+1. The circumference of a circle
+2. The area of a circle
+3. The surface area of a ball
+4. The volume of a ball
+
+---
+
+- $2 \pi r$
+- $\pi r^2$
+- $\frac{4}{3} \pi r^3$
+
+---
+
+Count the powers of $r$: a length carries $r$, an area $r^2$ and a volume $r^3$. So $2 \pi r$ is the circumference and $\frac{4}{3} \pi r^3$ the volume of the ball. The disc and the ball's surface are both areas, and the factor tells them apart:
+
+- the disc's area is $\pi r^2$;
+- the ball's surface is four discs of its radius, $4 \pi r^2$, so c) is right for no item.
+
+<Figure
+  src={dimensions}
+  alt="A segment labelled r, a square labelled r squared and a cube labelled r cubed."
+/>
+
+</Matching>
+
+A disc fills $\frac{\pi}{4}$ of the square around it, about 79 %, whatever its radius:
+
+<Figure
+  src={discInSquare}
+  alt="A shaded disc inside the square that just holds it, labelled pi over four."
+  caption="The disc's share of its square."
+/>
+
+Each formula multiplies the one before it by another length:
+
+<Diagram
+  src={powers}
+  alt="A length r, times r, gives an area r squared, which times r gives a volume r cubed."
+  caption="From a length to a volume."
+/>
 
 ## Where it comes from
 
@@ -36,7 +128,21 @@ Why is the area of a circle $\pi r^2$?
 
 Cut the disc into thin rings. The ring at radius $\rho$ has length $2 \pi \rho$ and width $\mathrm{d}\rho$, so the area adds up to $\int_0^r 2 \pi \rho \, \mathrm{d}\rho = \pi r^2$.
 
+<Figure
+  src={rings}
+  alt="A disc cut into concentric rings, with one ring at radius rho drawn thick."
+  caption="The ring at radius ρ."
+/>
+
 </OpenQuestion>
+
+Unrolled, the rings stack into a triangle of base $2 \pi r$ and height $r$, whose area is $\frac{1}{2} \cdot 2 \pi r \cdot r = \pi r^2$:
+
+<Figure
+  src={unrolled}
+  alt="A right triangle of base 2 pi r and height r, shaded, with one thin strip across it at mid height."
+  caption="The rings unrolled into a triangle."
+/>
 
 ## What to remember
 

@@ -1,0 +1,91 @@
+import { componentError } from "./component-errors.ts";
+import { inlineItems, optionsList } from "./list-items.ts";
+import { splitAtRule } from "./split-at-rule.ts";
+
+export interface MatchingItem {
+  id: string;
+  key: number;
+  text: string;
+}
+
+const itemsList = /^<ul\b[^>]*>((?:(?!<\/?(?:ul|ol)\b)[\s\S])*)<\/ul>/;
+
+const shape =
+  "write the prompt, then its options as one numbered list, then a blank line, `---`, another blank line and its items as one bulleted list, with no list inside an option or item";
+
+const counted = (count: number, one: string, many: string) =>
+  `${String(count)} ${count === 1 ? one : many}`;
+
+function countProblems(options: number, items: number, answers: [string, number][]): string[] {
+  return [
+    ...(options < 2
+      ? [`it has ${counted(options, "option", "options")}; give it at least two`]
+      : []),
+    ...(items < 2 ? [`it has ${counted(items, "item", "items")}; give it at least two`] : []),
+    ...(answers.length === items
+      ? []
+      : [
+          `\`answers\` has ${counted(answers.length, "answer", "answers")} for its ${counted(items, "item", "items")}; give one per item, in the items' order`,
+        ]),
+    ...answers.flatMap(([id, key]) =>
+      Number.isInteger(key) && key >= 1 && key <= options
+        ? []
+        : [
+            `\`answers\` gives \`${id}\` ${String(key)}, but it must be the number of one of its ${counted(options, "option", "options")}`,
+          ],
+    ),
+  ];
+}
+
+export function matchingParts(
+  html: string,
+  answers: Record<string, number>,
+): {
+  prompt: string;
+  options: string[];
+  items: MatchingItem[];
+  explanation: string | undefined;
+} {
+  const parts = splitAtRule(html);
+  const question = parts?.before ?? "";
+  const rest = parts?.after ?? "";
+  const itemsAndExplanation = splitAtRule(rest);
+  const itemsPart = itemsAndExplanation?.before ?? rest;
+  const explanation = itemsAndExplanation?.after;
+  const options = optionsList.exec(question);
+  const items = itemsList.exec(itemsPart);
+  if (
+    options === null ||
+    items === null ||
+    question.match(/<(?:ul|ol)\b/g)?.length !== 1 ||
+    /<(?:ul|ol)\b/.test(options[1] ?? "")
+  ) {
+    throw componentError("Matching", shape);
+  }
+  if (itemsPart.slice(items[0].length).trim() !== "") {
+    throw componentError(
+      "Matching",
+      "after the items' bulleted list, write only a blank line, `---`, another blank line and the explanation",
+    );
+  }
+  if (explanation === "") {
+    throw componentError(
+      "Matching",
+      "write the explanation after the second `---`, or leave out that `---`",
+    );
+  }
+  const optionTexts = inlineItems(options[1] ?? "");
+  const itemTexts = inlineItems(items[1] ?? "");
+  if (optionTexts === undefined || itemTexts === undefined) {
+    throw componentError("Matching", "keep each option and each item to one paragraph");
+  }
+  const keys = Object.entries(answers);
+  const problems = countProblems(optionTexts.length, itemTexts.length, keys);
+  if (problems.length > 0) throw componentError("Matching", problems.join("; "));
+  return {
+    prompt: question.slice(0, options.index),
+    options: optionTexts,
+    items: keys.map(([id, key], index) => ({ id, key, text: itemTexts[index] ?? "" })),
+    explanation,
+  };
+}

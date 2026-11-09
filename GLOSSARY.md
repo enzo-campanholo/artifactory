@@ -45,12 +45,28 @@ The shared tokens, components, and rules every artifact is built from, so all ar
 _Avoid_: Component library, UI kit, theme (a theme is light or dark: see theme choice)
 
 **Custom build**:
-An interactive part of one artifact that its agent writes for that artifact alone, inside a stage. It never takes answers, so it holds no artifact state. When a second artifact needs the same thing, it becomes a component instead.
+An interactive part of one artifact that its agent writes for that artifact alone, inside a stage. It never takes answers, so it holds no artifact state. When a second artifact needs the same thing, it becomes a component, or a machine, instead.
 _Avoid_: Widget, island, local component
 
 **Stage**:
 The design system's container for a custom build. It supplies the look, the controls, the caption and the quality floor, so the custom build only adds behaviour.
 _Avoid_: Frame, sandbox, canvas
+
+**Machine**:
+An abstract machine the design system can run in a stage: its state, how one step changes it, and how each step is said. Unlike a component, it is subject content.
+_Avoid_: Simulator, interpreter, emulator, VM
+
+**Machine trace**:
+A stage whose custom build runs a machine on a program and the owner's input.
+_Avoid_: Simulation, execution trace
+
+**Program**:
+What a machine runs, as written in the stage's content: a listing, or a transition table.
+_Avoid_: Code (code is any code block), source
+
+**Swatch**:
+One of the design system's few hatchings, each standing for one colour in a drawing whose subject is a colouring, such as a graph colouring. The design system draws no hue, so a swatch and the label naming its colour show the colour together.
+_Avoid_: Category, colour class, palette
 
 **Catalog**:
 The design system's own site, which shows every component in every state. The design system is developed there, and the catalog is never part of the Library.
@@ -109,12 +125,12 @@ The running head's toggle that shows and changes the theme choice: open for ligh
 _Avoid_: Theme toggle, theme switch, icon
 
 **Statement**:
-A definition, theorem, lemma, corollary or example in an artifact, numbered by the page as a clause of its section so it can be cited.
+A definition, theorem, proposition, lemma, corollary or example in an artifact, numbered by the page as a clause of its section so it can be cited. An aside is a note, never a statement.
 _Avoid_: Block, environment, theorem box
 
 **Claim**:
-A statement that is a theorem, lemma or corollary: one a proof can prove. A definition or an example is a statement but not a claim.
-_Avoid_: Proposition, assertion
+A statement that is a theorem, proposition, lemma or corollary: one a proof can prove. A definition or an example is a statement but not a claim.
+_Avoid_: Assertion
 
 **Citation**:
 A mention of one of an artifact's statements in its text, which the page prints as the statement's label and number ("Teorema 2.1") and links to it. An artifact writes one with the `Ref` component, the only place the word "ref" names it.
@@ -140,12 +156,20 @@ _Avoid_: Item, exercise, prompt
 A question whose correct answer the artifact knows, such as multiple choice or a numeric question.
 _Avoid_: Objective question, graded question
 
+**Explanation**:
+The reasoning an auto-checked question shows once the owner's answer locks, right or wrong, and never before. There is one per question, or one per matching, shown once its last item locks. It's part of the artifact's content, never artifact state.
+_Avoid_: Feedback, rationale, solution, model answer
+
+**Matching**:
+A set of auto-checked questions, one per item, that share one list of options and are checked together. Each item is a question with its own answer, so the set itself takes none.
+_Avoid_: Matching question, matching exercise, pairing
+
 **Self-checked question**:
 An open question where the owner answers, reveals a model answer, and marks their own answer right or wrong.
 _Avoid_: Free-response question, essay question
 
 **Answer**:
-The owner's response to one question within one attempt, marked right or wrong. It locks once checked.
+The owner's response to one question within one attempt, marked right or wrong. It locks once it's saved, or once it arrives already answered from another device. While it's saving, not saved, or lost to a sign-out, it isn't locked yet.
 _Avoid_: Response, submission
 
 **Attempt**:

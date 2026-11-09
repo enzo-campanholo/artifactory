@@ -3,11 +3,12 @@ import "./statement-blocks.css";
 import { proofParts, withRunInLabel } from "./statements.ts";
 
 /**
- * The proof of a theorem, lemma or corollary written as a `Statement`. It is unnumbered: it opens
- * with a run-in "Demonstração." / "Proof." and its last line ends with a small square, so the owner
- * sees where the argument stops. Write it right after the statement it proves. A proof anywhere
- * else opens with what it proves, linked ("Demonstração do Teorema 2.1."), so write it elsewhere
- * only when the subject proves the result later. A definition has no proof.
+ * The proof of a theorem, proposition, lemma or corollary written as a `Statement`. It is
+ * unnumbered: it opens with a run-in "Demonstração." / "Proof." and its last line ends with a small
+ * square, so the owner sees where the argument stops. Write it right after the statement it proves.
+ * A proof anywhere else opens with what it proves, linked ("Demonstração do Teorema 2.1.",
+ * "Demonstração da Proposição 2.1."), so write it elsewhere only when the subject proves the result
+ * later. A definition or an example has no proof.
  *
  * Write it at the top level of a section, like its statement: nested in a list or a question, a
  * proof never counts as following its statement, so it always opens by naming it, and its equations
@@ -34,7 +35,7 @@ import { proofParts, withRunInLabel } from "./statements.ts";
  * ```
  */
 interface Props {
-  /** The `id` of the theorem, lemma or corollary it proves. */
+  /** The `id` of the theorem, proposition, lemma or corollary it proves. */
   of: string;
 }
 
