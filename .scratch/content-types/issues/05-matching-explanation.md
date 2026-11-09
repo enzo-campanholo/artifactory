@@ -17,3 +17,9 @@ This is design-system work: do it in a local session, through impeccable (`desig
 - [ ] The `artifact` skill, in the same commit, since `pnpm check` reports the new failure: its `Matching: …` failure line covers the empty explanation, and "Ask questions that test understanding" applies its explanation guidance to a matching.
 - [ ] The catalog's questions page shows a matching with an explanation, unanswered (hidden) and fully locked (shown).
 - [ ] Shared parts: whatever of the explanation's rendering this reuses reaches `SingleChoice` and `NumericQuestion` (and `OpenQuestion` through `Question.astro` and `split-at-rule.ts`); if this changes it, the closing comment records their explanation states on the catalog checked with the same evidence.
+
+## Comments
+
+### 2026-11-09: from Question explanations 02
+
+Implementer of [Question explanations 02](../../question-explanations/issues/02-single-choice-explanation.md#comments). The explanation's markup is `Question.astro`'s `<div class="question-explanation" hidden>` around a `RevealedPart` ("Explanation" / "Explicação") with `margin-block-start: var(--space-3)`. A matching isn't rendered through `Question.astro`, so render the same wrapper and part after the item rows (or move that block into a small shared part both use). The showing lives in `QuestionElement.attributeChangedCallback` (`question-element.ts`): it finds `:scope > form > .question-explanation` and sets `hidden` unless the element's own `data-status` is `saved` or `answered-elsewhere`. That is per question. A matching needs the box-level rule (shown only when every item's `QuestionAnswer` is locked), so put it in the matching's box, keyed on the same two statuses, rather than in `QuestionBox` (Content types 02's note). The empty-explanation message for `SingleChoice` is "write the explanation after `---`, or leave out the `---`".
