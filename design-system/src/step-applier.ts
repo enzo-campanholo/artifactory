@@ -9,17 +9,20 @@ import {
   type Typed,
   type WrittenTable,
 } from "./stage-build.ts";
+import { mostSwatches } from "./swatches.ts";
 
 // What each mark changes in a drawn part, after the Stage's styles for the marks and the colour
 // classes in figure-colours.css: `muted` and `reversed` swap the colours `-text`, `-accent` and
 // `-surface` paint with, and a label with no fill of its own paints in its part's colour. A
 // swatch takes every mark: an outline at 4 or dashed, drawn if it has none, a grey hatching, or
-// an ink fill.
-const unclassedLabel = 'text:not([fill]):not([class*="fill-"])';
+// an ink fill. So does a part on a step that colours it, and an uncoloured part's empty label
+// counts for nothing.
+const unlabelled = ':not([data-swatch=""])';
+const unclassedLabel = `text:not([fill]):not([class*="fill-"])${unlabelled}`;
 const swatch = '[class*="fill-swatch-"]';
 const changes: Record<Mark, { selector: string; actsOn: string }> = {
   strong: {
-    selector: `[class*="stroke-"], ${swatch}, text`,
+    selector: `[class*="stroke-"], ${swatch}, text${unlabelled}`,
     actsOn: "shapes with a `stroke-` or `fill-swatch-` class and labels",
   },
   dashed: {
@@ -44,10 +47,15 @@ export interface StageNodes {
   parts: Element[];
   tables: { header: Element[]; rows: Element[][] }[];
   code: Element[][];
+  colours: string[];
 }
 
+// The Stage carries its colours' names on its drawing, numerals included when it names none.
 export function stageNodes(stage: ParentNode): StageNodes {
   return {
+    colours: JSON.parse(
+      stage.querySelector(".stage-figure")?.getAttribute("data-colours") ?? "[]",
+    ) as string[],
     parts: [...stage.querySelectorAll(".stage-figure [data-part]")],
     tables: [...stage.querySelectorAll(".stage-content table")].map((table) => ({
       header: [...table.querySelectorAll("thead th")],
@@ -60,10 +68,14 @@ export function stageNodes(stage: ParentNode): StageNodes {
 }
 
 export interface Written {
-  parts: { name: string; takes: Mark[] }[];
+  parts: { name: string; takes: Mark[]; labelled: boolean }[];
   tables: WrittenTable[];
   code: CodeLine[][];
+  colours: string[];
 }
+
+// A step colours a part through the label it holds, so only a part holding one takes a colour.
+export const colourLabel = "text[data-swatch]";
 
 const textOf = (element: Element) => element.textContent.trim();
 
@@ -73,11 +85,13 @@ const marksTaken = (part: Element): Mark[] =>
       part.matches(changes[mark].selector) || part.querySelector(changes[mark].selector) !== null,
   );
 
-export function writtenContent({ parts, tables, code }: StageNodes): Written {
+export function writtenContent({ parts, tables, code, colours }: StageNodes): Written {
   return {
+    colours,
     parts: parts.map((part) => ({
       name: part.getAttribute("data-part") ?? "",
       takes: marksTaken(part),
+      labelled: part.querySelector(colourLabel) !== null,
     })),
     tables: tables.map(({ header, rows }) => ({
       columns: header.map(textOf),
@@ -100,6 +114,7 @@ interface ShownCell {
 export interface Shown {
   say: string;
   parts: Map<string, Mark>;
+  colours: Map<string, number | null>;
   tables: ShownCell[][][];
   rowsFromBody: boolean;
   lines: Map<number, Mark>;
@@ -298,6 +313,7 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
   const {
     say,
     parts: markedParts = {},
+    colours: colouredParts = {},
     lines: markedLines = {},
     body,
     rows: markedRows = {},
@@ -318,12 +334,48 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
     });
   };
 
+  const colours = new Map<string, number | null>();
+  if (!isRecord(colouredParts)) {
+    problems.push("has `colours` that isn't an object of colours by name");
+  }
+  for (const [name, colour] of Object.entries(isRecord(colouredParts) ? colouredParts : {})) {
+    if (colour === undefined) continue;
+    const withName = written.parts.filter((part) => part.name === name);
+    const named = written.colours.length;
+    if (withName.length === 0) {
+      problems.push(`colours the part \`${name}\`, which the drawing doesn't have`);
+    } else if (!withName.some(({ labelled }) => labelled)) {
+      problems.push(
+        `colours the part \`${name}\`, which holds no label: put a \`<text data-swatch>\` in its \`<g>\`, empty if it's uncoloured as written`,
+      );
+    } else if (colour === null) {
+      colours.set(name, null);
+    } else if (
+      typeof colour !== "number" ||
+      !Number.isInteger(colour) ||
+      colour < 1 ||
+      colour > mostSwatches
+    ) {
+      const given = typeof colour === "number" ? String(colour) : quoted(colour);
+      problems.push(
+        `colours the part \`${name}\` with ${given}, which isn't a swatch: give a whole number from 1 to ${String(mostSwatches)}, or \`null\` for uncoloured`,
+      );
+    } else if (colour > named) {
+      problems.push(
+        `colours the part \`${name}\` with ${String(colour)}, past the ${String(named)} colours \`colours\` names: add its name to \`colours\`, or use 1 to ${String(named)}`,
+      );
+    } else colours.set(name, colour);
+  }
+
   const parts = new Map<string, Mark>();
   for (const [name, mark] of marked("parts", markedParts)) {
     const withName = written.parts.filter((part) => part.name === name);
     if (withName.length === 0) {
       problems.push(`marks the part \`${name}\`, which the drawing doesn't have`);
-    } else if (!withName.some(({ takes }) => takes.includes(mark))) {
+    } else if (
+      typeof colours.get(name) !== "number" &&
+      !withName.some(({ takes }) => takes.includes(mark))
+    ) {
       problems.push(
         `marks the part \`${name}\` \`${mark}\`, which changes nothing in it: \`${mark}\` acts on ${changes[mark].actsOn}`,
       );
@@ -459,5 +511,5 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
 
   return problems.length > 0 || typeof say !== "string"
     ? { problems }
-    : { shown: { say, parts, tables, rowsFromBody, lines, running } };
+    : { shown: { say, parts, colours, tables, rowsFromBody, lines, running } };
 }

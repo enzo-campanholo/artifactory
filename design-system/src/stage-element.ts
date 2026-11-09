@@ -1,5 +1,6 @@
 import type { Build, Typed } from "./stage-build.ts";
 import {
+  colourLabel,
   fieldProblem,
   mainLanguage,
   runBuild,
@@ -155,13 +156,25 @@ let refusals = 0;
 // DESIGN.md's 44 px Cell Rule, for a drawn part at the drawing's smallest scale.
 const target = 44;
 
+// The shapes a step's colour fills: a coloured part's areas, never its label's plate.
+const areas = '.fill-surface:not([data-swatch-plate]), [class*="fill-swatch-"]';
+const fading = "data-colour-fading";
+
+// One hatching's `fill` can't transition into another's, so a colour change lays the old fill
+// under the new one and fades the new one in over it, as the marks' transitions take 0.2s.
+interface Fade {
+  under: Element;
+  animation: Animation;
+}
+
 class ArtifactStage extends HTMLElement {
   #build: Promise<Build<string | Typed> | undefined> = Promise.resolve(undefined);
-  #nodes: StageNodes = { parts: [], tables: [], code: [] };
-  #written: Written = { parts: [], tables: [], code: [] };
+  #nodes: StageNodes = { parts: [], tables: [], code: [], colours: [] };
+  #written: Written = { parts: [], tables: [], code: [], colours: [] };
   #control: Control = "choose";
   #retry: Retry = "choose";
   #asWritten = new Map<Element, Node[]>();
+  #fades = new Map<Element, Fade>();
   #rowToCopy: Element | undefined;
   #stepRows: Element[] = [];
   #steps: Shown[] = [];
@@ -215,13 +228,13 @@ class ArtifactStage extends HTMLElement {
           ? "text"
           : "numbers";
     this.#rowToCopy = this.#oneTableRowsAsWritten.at(-1)?.cloneNode(true) as Element | undefined;
-    for (const cells of this.#nodes.tables.flatMap(({ rows }) => rows)) {
-      for (const cell of cells) {
-        this.#asWritten.set(
-          cell,
-          [...cell.childNodes].map((node) => node.cloneNode(true)),
-        );
-      }
+    const labels = this.#nodes.parts.flatMap((part) => [...part.querySelectorAll(colourLabel)]);
+    const cells = this.#nodes.tables.flatMap(({ rows }) => rows.flat());
+    for (const element of [...cells, ...labels]) {
+      this.#asWritten.set(
+        element,
+        [...element.childNodes].map((node) => node.cloneNode(true)),
+      );
     }
     for (const button of this.querySelectorAll(".step-controls button")) {
       button.removeAttribute("disabled");
@@ -399,9 +412,11 @@ class ArtifactStage extends HTMLElement {
   // can show the content as written from CSS alone, even when `beforeprint` never fires.
   #paint(shown: Shown | undefined) {
     this.#nodes.parts.forEach((part, index) => {
-      const mark = shown?.parts.get(this.#written.parts[index]?.name ?? "");
+      const { name = "", labelled = false } = this.#written.parts[index] ?? {};
+      const mark = shown?.parts.get(name);
       if (mark === undefined) part.removeAttribute("data-mark");
       else part.setAttribute("data-mark", mark);
+      if (labelled) this.#colour(part, shown?.colours.get(name));
     });
     const lineNumbers = this.#written.code.flat().map(({ line }) => line);
     this.#nodes.code.flat().forEach((line, index) => {
@@ -441,6 +456,62 @@ class ArtifactStage extends HTMLElement {
       });
     });
     this.#rewrite(rowsFromBody ? shown.tables[0] : undefined);
+  }
+
+  // The part's colour as written stays in its classes and its label's written text for print, so a
+  // step's colour is an attribute the screen's styles paint from, and its name a second text.
+  #colour(part: Element, colour: number | null | undefined) {
+    const before = part.getAttribute("data-colour");
+    const after = colour === undefined ? null : colour === null ? "none" : String(colour);
+    if (before === after) return;
+    const fades = (
+      matchMedia("(prefers-reduced-motion: no-preference)").matches
+        ? [...part.querySelectorAll(areas)].filter((area) => !area.hasAttribute(fading))
+        : []
+    ).map((area) => {
+      const under = area.cloneNode() as SVGElement;
+      under.setAttribute(fading, "");
+      under.style.fill = getComputedStyle(area).fill;
+      under.style.stroke = "none";
+      return { area, under };
+    });
+    if (after === null) part.removeAttribute("data-colour");
+    else part.setAttribute("data-colour", after);
+    for (const { area, under } of fades) {
+      const earlier = this.#fades.get(area);
+      earlier?.animation.cancel();
+      earlier?.under.remove();
+      area.before(under);
+      const animation = area.animate({ fillOpacity: [0, 1] }, { duration: 200 });
+      this.#fades.set(area, { under, animation });
+      const done = () => {
+        under.remove();
+        if (this.#fades.get(area)?.under === under) this.#fades.delete(area);
+      };
+      animation.addEventListener("finish", done);
+      animation.addEventListener("cancel", done);
+    }
+    const name =
+      colour === undefined || colour === null ? undefined : this.#written.colours[colour - 1];
+    for (const label of part.querySelectorAll(colourLabel)) {
+      const asWritten = (this.#asWritten.get(label) ?? []).map((node) => node.cloneNode(true));
+      const writtenName = asWritten
+        .map((node) => node.textContent)
+        .join("")
+        .trim();
+      if (name === undefined || name === writtenName) {
+        label.replaceChildren(...asWritten);
+        continue;
+      }
+      const ns = "http://www.w3.org/2000/svg";
+      const written = document.createElementNS(ns, "tspan");
+      written.classList.add("stage-as-written");
+      written.append(...asWritten);
+      const stepText = document.createElementNS(ns, "tspan");
+      stepText.classList.add("stage-step-text");
+      stepText.textContent = name;
+      label.replaceChildren(written, stepText);
+    }
   }
 
   // The rows as written stay in the table for print, hidden on screen, and each of the step's rows

@@ -8,7 +8,7 @@ import StepControls from "./StepControls.astro";
 import { componentError } from "./component-errors.ts";
 import { buildModule } from "./stage-builds.ts";
 import { fieldProblem, type Control, type Field } from "./step-applier.ts";
-import { swatchProblems } from "./swatches.ts";
+import { colourNames, swatchProblems } from "./swatches.ts";
 
 interface Staged {
   /** The custom build: the name of the `<build>.build.ts` file next to the entry. */
@@ -447,6 +447,31 @@ interface Typed extends Staged {
  * swatch drawn without an outline takes the mark's own, at 4 for `strong`, dashed for `dashed`.
  * Name the coloured part's `<g>`, so the mark reaches its label too.
  *
+ * **Steps colour parts.** A step's `colours` colours parts by their `data-part` name, so a
+ * colouring algorithm can be stepped through: each a swatch number from 1, up to the names in
+ * `colours` (1 to 6 without it), or `null` for uncoloured. The part's `fill-surface` and
+ * `fill-swatch-N` shapes take the swatch and its label the colour's name, and it reads exactly as
+ * one coloured as written, hatching, label, plate and marks; `null` gives it the ground and hides
+ * its label. A part left out stays as written. Each part a step colours is a `<g>` holding a
+ * label `<text x y data-swatch>`, left empty, `<text x="50" y="90" data-swatch=""></text>`, while
+ * it's uncoloured as written, which only a Stage accepts. Steps are whole, so name every colour
+ * the step shows, and going back shows that step's colours. A part a step colours takes every mark
+ * on that step. Write `say` to name the colours it sets by name ("D takes Y, which none of its
+ * coloured neighbours has."). When motion is allowed, a part's hatching cross-fades into the next
+ * over 0.2s; print and the page without JavaScript show the drawing as written, so draw it as the
+ * starting state, usually uncoloured. `colours` takes `number | null`, so a colour a build
+ * computes needs no cast.
+ *
+ * ```ts
+ * // greedy.build.ts: each vertex takes the first colour no coloured neighbour has.
+ * const colours: Record<string, number> = {};
+ * steps.push({
+ *   say: "D takes Y, which none of its coloured neighbours has.",
+ *   colours: { ...colours, D: 3 },
+ *   parts: { D: "reversed", A: "strong", C: "strong" },
+ * });
+ * ```
+ *
  * **Tables** are found by their text: a row by its first cell, a column by its header, as the
  * page shows them with the formatting dropped, so a first cell `*a*` is the row `a`. Write first
  * cells and headers as plain words or symbols, without math. Keep each row's first cell and each
@@ -497,6 +522,8 @@ interface Typed extends Staged {
  * `pnpm check` runs the build on every option or example against the built page and fails on a
  * throw, no steps, more than 200, a step that isn't shaped like a `Step`, an empty `say`, a part,
  * row, column or code line the content doesn't have, a mark that changes nothing in its part,
+ * a colour on a part that holds no label, a colour that isn't a whole number from 1 to 6 or is
+ * past the names in `colours`,
  * `lines` in a Stage without exactly one code block, more than one `reversed` line, `body` in a
  * Stage without exactly one table or with no row as written, a `body` row without one text per
  * column, or, with `input`, a step without `body` in a run whose other steps give it, or tables as
@@ -553,7 +580,7 @@ const problems = [
   ...(input !== undefined && written === undefined ? ["give `input` at least one example"] : []),
   ...(input?.examples ?? []).flatMap((example, index) => exampleProblems(index + 1, example)),
   ...(figure !== undefined && alt === undefined ? ["give `alt` with `figure`"] : []),
-  ...(figure === undefined ? [] : swatchProblems(figure, colours)),
+  ...(figure === undefined ? [] : swatchProblems(figure, colours, "Stage")),
   ...(beside === true && figure === undefined ? ["set `beside` only with `figure`"] : []),
   ...(/<pre\b[^>]*\sdata-marks\b/.test(content)
     ? [
@@ -738,8 +765,8 @@ const width = (field: Field) =>
       </p>
     )}
     {figure && alt && (
-      <div class="figure-stage stage-figure">
-        <InlineSvg svg={figure} alt={alt} swatches="marked" />
+      <div class="figure-stage stage-figure" data-colours={JSON.stringify(colourNames(colours))}>
+        <InlineSvg svg={figure} alt={alt} swatches="marked" colours={colours} />
       </div>
     )}
     <div class="stage-content">
@@ -984,6 +1011,12 @@ const width = (field: Field) =>
       cursor: pointer;
     }
 
+    /* A part uncoloured as written holds an empty label for a step to fill, so its plate stays
+       hidden, on screen and in print, until a step colours it. */
+    .stage-figure [data-swatch-plate]:has(+ text[data-swatch=""]) {
+      visibility: hidden;
+    }
+
     /* Forced colours would flatten the reversed fill and the grey, so the Stage paints its marks
        in the system's own ink, ground and grey. */
     @media (forced-colors: active) {
@@ -1049,19 +1082,73 @@ const width = (field: Field) =>
         stroke-dasharray: 6 4;
       }
 
-      /* A swatch drawn without an outline takes the mark's own, so every mark reads on it. */
+      /* A step's colour is an attribute on the part, so print keeps the classes as written: its
+         areas take the swatch, as a `fill-swatch-` class would fill them, and its plate shows.
+         Uncoloured, its swatches take the ground and its label and plate hide. */
       .stage-figure
-        :is([data-mark="strong"], [data-mark="strong"] *)[class*="fill-swatch-"]:not(
-          [class*="stroke-"]
-        ) {
+        [data-colour="1"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-1);
+      }
+
+      .stage-figure
+        [data-colour="2"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-2);
+      }
+
+      .stage-figure
+        [data-colour="3"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-3);
+      }
+
+      .stage-figure
+        [data-colour="4"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-4);
+      }
+
+      .stage-figure
+        [data-colour="5"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-5);
+      }
+
+      .stage-figure
+        [data-colour="6"]
+        :is(.fill-surface, [class*="fill-swatch-"]):not([data-swatch-plate]) {
+        fill: var(--swatch-6);
+      }
+
+      .stage-figure [data-colour="none"] [class*="fill-swatch-"] {
+        fill: var(--color-surface);
+      }
+
+      .stage-figure [data-colour]:not([data-colour="none"]) [data-swatch-plate] {
+        visibility: visible;
+      }
+
+      .stage-figure [data-colour="none"] :is([data-swatch-plate], text[data-swatch]) {
+        visibility: hidden;
+      }
+
+      /* A swatch drawn without an outline takes the mark's own, so every mark reads on it, as
+         does a ground area a step colours. */
+      .stage-figure
+        :is([data-mark="strong"], [data-mark="strong"] *):is(
+          [class*="fill-swatch-"],
+          [data-colour]:not([data-colour="none"]) .fill-surface:not([data-swatch-plate])
+        ):not([class*="stroke-"]) {
         stroke: var(--color-text);
         stroke-width: 4;
       }
 
       .stage-figure
-        :is([data-mark="dashed"], [data-mark="dashed"] *)[class*="fill-swatch-"]:not(
-          [class*="stroke-"]
-        ) {
+        :is([data-mark="dashed"], [data-mark="dashed"] *):is(
+          [class*="fill-swatch-"],
+          [data-colour]:not([data-colour="none"]) .fill-surface:not([data-swatch-plate])
+        ):not([class*="stroke-"]) {
         stroke: var(--color-text);
         stroke-width: 2;
         stroke-dasharray: 6 4;
@@ -1220,7 +1307,8 @@ const width = (field: Field) =>
     @media print {
       .stage-controls,
       .stage-step-text,
-      .stage-step-row {
+      .stage-step-row,
+      .stage-figure [data-colour-fading] {
         display: none;
       }
     }

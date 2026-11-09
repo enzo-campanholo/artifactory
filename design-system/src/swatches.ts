@@ -61,6 +61,12 @@ export function swatchPatterns(marked: boolean): { defs: string; style: string }
 // the names are the swatches' numbers.
 const numerals = swatches.map((_, index) => String(index + 1));
 
+export const mostSwatches = swatches.length;
+
+export function colourNames(colours: readonly string[] | undefined): readonly string[] {
+  return colours ?? numerals;
+}
+
 function attributeOf(tag: string, name: string): string | undefined {
   const [, doubleQuoted, singleQuoted] =
     new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`).exec(tag) ?? [];
@@ -88,8 +94,14 @@ interface Label {
 
 // Reads a drawing as the label rule of ADR 0009 does: each `fill-swatch-N` shape and each
 // `<text data-swatch="N">` belongs to the `<g>` it sits in, and the drawing's top is one more.
-export function swatchProblems(drawing: string, colours: readonly string[] | undefined): string[] {
-  const names = colours ?? numerals;
+// In a Stage, a part a step colours but that is uncoloured as written holds an empty label,
+// `<text data-swatch="">`, for the step to fill.
+export function swatchProblems(
+  drawing: string,
+  colours: readonly string[] | undefined,
+  drawnIn: "Figure" | "Stage",
+): string[] {
+  const names = colourNames(colours);
   const named = Math.min(names.length, swatches.length);
   const problems = namesProblems(names);
   const label = (swatch: number) =>
@@ -107,9 +119,16 @@ export function swatchProblems(drawing: string, colours: readonly string[] | und
 
   const checkLabel = ({ tag, text }: Label, group: Group) => {
     const swatch = attributeOf(tag, "data-swatch") ?? "";
-    if (!/^\d+$/.test(swatch)) {
+    const uncoloured = drawnIn === "Stage" && swatch === "";
+    if (uncoloured) {
+      if (text.trim() !== "") {
+        problems.push(
+          `the label <text data-swatch=""> reads "${text.trim()}", but an uncoloured part's label is empty: write <text data-swatch=""></text>, or give data-swatch its colour's number`,
+        );
+      }
+    } else if (!/^\d+$/.test(swatch)) {
       problems.push(
-        `the label <text data-swatch="${swatch}"> names no swatch: write a number from 1 to ${String(named)}`,
+        `the label <text data-swatch="${swatch}"> names no swatch: write a number from 1 to ${String(named)}${drawnIn === "Stage" ? `, or leave it empty, <text data-swatch=""></text>, for an uncoloured part` : ""}`,
       );
     } else if (known(Number(swatch))) {
       group.labels.push(Number(swatch));
@@ -193,13 +212,15 @@ function namesProblems(names: readonly string[]): string[] {
 // figure-colours.css sets a label at 15 units and centres it on its x and y. Measured in Archivo
 // there, one character is at most 13 units wide and two up to 25, so one plate size holds every
 // label in the drawing, the smaller when all are one character, which shows more of the hatching.
+// A Stage's step can give a label any of its colours' names, so its plates fit those too.
 const plateSides = { one: 18, two: 24 };
 
-export function platedLabels(drawing: string): string {
+export function platedLabels(drawing: string, stepNames: readonly string[] = []): string {
   const label = /<text\b[^>]*\sdata-swatch\s*=[^>]*>([\s\S]*?)<\/text>/g;
-  const side = [...drawing.matchAll(label)].some(
-    ([, text = ""]) => characters(text.replace(/<[^>]*>/g, "").trim()).length > 1,
-  )
+  const side = [
+    ...[...drawing.matchAll(label)].map(([, text = ""]) => text.replace(/<[^>]*>/g, "")),
+    ...stepNames,
+  ].some((text) => characters(text.trim()).length > 1)
     ? plateSides.two
     : plateSides.one;
   return drawing.replace(/<text\b[^>]*\sdata-swatch\s*=[^>]*>/g, (tag) => {

@@ -42,6 +42,16 @@ export interface Step {
   /** Marks on the drawing's parts, by their `data-part` name. */
   parts?: Record<string, Mark>;
   /**
+   * Colours on the drawing's parts, by their `data-part` name, each a swatch number from 1 to the
+   * Stage's `colours` (1 to 6 without it), or `null` for uncoloured: its swatch shapes take the
+   * ground and its label hides. A part's `fill-surface` and `fill-swatch-` shapes take swatch N
+   * and its label colour N's name, as if written so. Each part must hold a label
+   * `<text data-swatch>`, empty if it's uncoloured as written. Leave a part out to keep it as
+   * written, and name every colour this step shows, not only the ones it changes. A number that
+   * isn't a whole number from 1 to 6 refuses the run.
+   */
+  colours?: Record<string, number | null>;
+  /**
    * Marks on the code block's lines, by the number the page shows for each: from 1, or from the
    * fence's `start` (` ```pascal start=0 ` makes the first line 0). Mark the line this step runs
    * `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage must hold

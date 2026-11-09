@@ -75,7 +75,7 @@ interface Props {
 
 const { src, alt, caption, colours } = Astro.props;
 
-const problems = swatchProblems(src, colours);
+const problems = swatchProblems(src, colours, "Figure");
 if (problems.length > 0) throw componentError("Figure", problems.join("; "));
 ---
 

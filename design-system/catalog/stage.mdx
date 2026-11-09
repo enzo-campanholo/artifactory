@@ -1,6 +1,7 @@
 import Stage from "../src/Stage.astro";
 import graph from "./prim-graph.svg?raw";
 import colouring from "./colouring.svg?raw";
+import greedyColouring from "./greedy-colouring.svg?raw";
 
 ## Before a choice
 
@@ -283,6 +284,24 @@ A Stage's drawing coloured as written, as a Figure's is: each vertex filled with
   alt="A house of five vertices: E at the roof's top has colour R; A and B under it have G and Y; C under B has G and D under A has Y."
   colours={["R", "G", "Y"]}
   caption="Checking a colouring vertex by vertex."
+/>
+
+</div>
+
+## A greedy colouring, mid-run
+
+A Stage whose drawing is uncoloured as written, every vertex on the ground with an empty label, and whose build colours it step by step with `colours`, `colours={["R", "G", "Y"]}`. Each step names every colour it shows, so going back takes a colour away again. Started at E and stepped to step 8, D tries R: D, provisional, is dashed with R's hatching and its label; C, whose R rules it out, is reversed, with the edge between them strong; A, D's other coloured neighbour, is strong; and E and B, coloured but not D's neighbours, are muted. When motion is allowed, a vertex's hatching cross-fades into the next over 0.2s. Without JavaScript and in print, the drawing is uncoloured, as written. Every vertex chooses on click, and on a device that hovers, the vertex under the pointer wipes its ground grey, its hatching's lines kept.
+
+<div data-catalog-run="E" data-catalog-step="8">
+
+<Stage
+  build="greedy-colouring"
+  choose={{ label: "Start at", options: ["A", "B", "C", "D", "E"] }}
+  prompt="Choose a vertex to start colouring from."
+  figure={greedyColouring}
+  alt="A house of five vertices, none coloured yet: E at the roof's top, A and B under it, C under B and D under A."
+  colours={["R", "G", "Y"]}
+  caption="A greedy colouring, vertex by vertex: each takes the first colour no coloured neighbour has."
 />
 
 </div>

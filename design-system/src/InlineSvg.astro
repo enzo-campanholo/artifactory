@@ -7,9 +7,10 @@ interface Props {
   alt: string;
   minScale?: number | undefined;
   swatches?: "plain" | "marked" | undefined;
+  colours?: readonly string[] | undefined;
 }
 
-const { svg, alt, minScale = 2 / 3, swatches } = Astro.props;
+const { svg, alt, minScale = 2 / 3, swatches, colours } = Astro.props;
 
 const root = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(svg);
 if (root === null)
@@ -32,10 +33,12 @@ const squared = drawing.replace(/<rect\b[^>]*>/g, (rect) =>
 );
 
 // Only a drawing that fills with swatches gets their patterns, and only one that labels colours
-// gets plates, so every other drawing stays as written.
-const content = swatches === undefined ? squared : platedLabels(squared);
+// gets plates, so every other drawing stays as written. A Stage's step can colour any part that
+// holds a label, so a Stage drawing with one gets the patterns even if it's uncoloured as written.
+const content = swatches === undefined ? squared : platedLabels(squared, colours);
 const swatched =
-  swatches !== undefined && content.includes("fill-swatch-")
+  (swatches === "plain" && content.includes("fill-swatch-")) ||
+  (swatches === "marked" && /fill-swatch-|data-swatch=/.test(content))
     ? swatchPatterns(swatches === "marked")
     : undefined;
 
