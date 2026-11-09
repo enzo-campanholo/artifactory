@@ -162,6 +162,26 @@ function stage(build: string, options: string[], content: string[]): string[] {
   ];
 }
 
+function groupsStage(build: string): string[] {
+  return [
+    "<Stage",
+    `  build="${build}"`,
+    "  choose={[",
+    '    { name: "inicio", label: "Começar em", options: ["A", "B", "C"] },',
+    '    { name: "busca", label: "Buscar em", options: ["largura", "profundidade"] },',
+    "  ]}",
+    '  prompt="Escolha um vértice e uma busca."',
+    "  figure={pontos}",
+    '  alt="Dois pontos, A e B."',
+    ">",
+    "",
+    ...vertexTable,
+    "",
+    "</Stage>",
+    "",
+  ];
+}
+
 function typedStage(build: string, examples: string, content: string[]): string[] {
   return [
     "<Stage",
@@ -438,6 +458,12 @@ const customBuilds = {
     "</Stage>",
     "",
     ...stage("texto", ["A"], vertexTable),
+    ...groupsStage("grupos"),
+    ...groupsStage("grupos-nomes"),
+    ...groupsStage("grupos-falta"),
+    ...groupsStage("grupos-sobra"),
+    ...groupsStage("grupos-numero"),
+    ...groupsStage("grupos-sem-tipo"),
     ...typedStage("linhas", "[{ a: 48, b: 18 }]", mdcCode),
     ...stage("desde-zero", ["A"], ["```python start=0", ...mdcCode.slice(1)]),
     ...stage("sem-codigo", ["A"], vertexTable),
@@ -675,6 +701,28 @@ const customBuilds = {
   "artifacts/construcoes/modulo-tipo.build.ts": build(
     "export default defineBuild<{ t: string; m: string }>({ steps: (input) => [{ say: `Lê ${input.t} ${input.m}.` }] });",
   ),
+  "artifacts/construcoes/grupos.build.ts": build(
+    "export default defineBuild<{ inicio: string; busca: string }>({",
+    "  steps({ inicio, busca }) {",
+    "    if (inicio === 'C' && busca === 'profundidade') throw new Error('C não tem vizinhos');",
+    "    if (inicio === 'B' && busca === 'largura') return [{ say: 'Marca Z.', parts: { Z: 'strong' } }];",
+    "    return [{ say: `Começa em ${inicio}, em ${busca}.` }];",
+    "  },",
+    "});",
+  ),
+  "artifacts/construcoes/grupos-nomes.build.ts": build(
+    "export default defineBuild<{ inicio: string; tipo: string }>({ steps: () => [{ say: 'Começa.' }] });",
+  ),
+  "artifacts/construcoes/grupos-falta.build.ts": build(
+    "export default defineBuild<{ inicio: string }>({ steps: () => [{ say: 'Começa.' }] });",
+  ),
+  "artifacts/construcoes/grupos-sobra.build.ts": build(
+    "export default defineBuild<{ inicio: string; busca: string; fim: string }>({ steps: () => [{ say: 'Começa.' }] });",
+  ),
+  "artifacts/construcoes/grupos-numero.build.ts": build(
+    "export default defineBuild<{ inicio: string; busca: number }>({ steps: () => [{ say: 'Começa.' }] });",
+  ),
+  "artifacts/construcoes/grupos-sem-tipo.build.ts": build(oneStep),
   "artifacts/construcoes/texto.build.ts": build(
     "export default defineBuild<{ a: number }>({ steps: (input) => [{ say: `Começa em ${String(input.a)}.` }] });",
   ),
@@ -870,7 +918,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 138 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 145 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -998,6 +1046,11 @@ describe.each([
       it("fails a build whose input type isn't what its Stage gives it, at the type", () => {
         expect(linesFor(run, "build-input")).toEqual([
           "artifacts/construcoes/falta.build.ts:3:28 error build-input: `steps` takes `{ a: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-falta.build.ts:3:28 error build-input: `steps` takes `{ inicio: string }`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-nomes.build.ts:3:28 error build-input: `steps` takes `{ inicio: string; tipo: string }`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-numero.build.ts:3:28 error build-input: `steps` takes `{ inicio: string; busca: number }`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-sem-tipo.build.ts:3:16 error build-input: `steps` takes `string`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos-sobra.build.ts:3:28 error build-input: `steps` takes `{ inicio: string; busca: string; fim: string }`, but the Stage's groups give it `{ inicio: string; busca: string }`: write `defineBuild<{ inicio: string; busca: string }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/indice.build.ts:3:28 error build-input: `steps` takes `{ [name: string]: number; a: number; b: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/literal.build.ts:3:28 error build-input: `steps` takes `{ a: number; b: 7 }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/mepa-campos.build.ts:4:16 error build-input: `steps` takes `{ a: number }`, but the Stage's fields give it `{ a: number; b: number }`: name exactly the Stage's fields in `reads` (artifact skill: Custom builds)",
@@ -1035,6 +1088,8 @@ describe.each([
           "artifacts/construcoes/forma.build.ts:1:1 error stage-run: with `A`, `steps` returns something that isn't a list of steps (artifact skill: Custom builds)",
           "artifacts/construcoes/forma.build.ts:1:1 error stage-run: with `B`, step 1 has a `say` that isn't text (artifact skill: Custom builds)",
           "artifacts/construcoes/forma.build.ts:1:1 error stage-run: with `B`, step 1 marks `A` in `parts` with `negrito`, which isn't a mark (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos.build.ts:1:1 error stage-run: with `inicio = B, busca = largura`, step 1 marks the part `Z`, which the drawing doesn't have (artifact skill: Custom builds)",
+          "artifacts/construcoes/grupos.build.ts:5:59 error stage-run: with `inicio = C, busca = profundidade`, `steps` throws: C não tem vizinhos (artifact skill: Custom builds)",
           "artifacts/construcoes/lanca.build.ts:5:30 error stage-run: with `B`, `steps` throws: B não tem vizinhos (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 1 gives `body` a row of 1 cell (`3`), but the table has 3 columns: give every row one text per column (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 1 gives `body` a row of 2 cells (`1`, `18`), but the table has 3 columns: give every row one text per column (artifact skill: Custom builds)",
@@ -1137,7 +1192,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 139 failures" : "pnpm check: 138 failures",
+        fullScope ? "pnpm check: 146 failures" : "pnpm check: 145 failures",
       );
     });
   },

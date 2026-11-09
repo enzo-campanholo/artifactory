@@ -647,6 +647,68 @@ const textAndNumberStage = {
   ].join("\n"),
 };
 
+// A star from B: breadth-first and depth-first visit it in the same order from B, and differently
+// from A or C, which every combination of the two groups runs.
+const groupsStage = {
+  "artifacts/busca-em-grafo/index.mdx": artifact(fields("bu5c4gr4", "Busca em grafo", "Grafos"), [
+    'import Stage from "@artifactory/design-system/stage";',
+    'import caminho from "./caminho.svg?raw";',
+    "",
+    "<Stage",
+    '  build="busca"',
+    "  choose={[",
+    '    { name: "inicio", label: "Começar em", options: ["A", "B", "C"] },',
+    '    { name: "busca", label: "Buscar em", options: ["largura", "profundidade"] },',
+    "  ]}",
+    '  prompt="Escolha um vértice e uma busca para começar."',
+    "  figure={caminho}",
+    '  alt="Um caminho de três vértices, A, B e C."',
+    ">",
+    "",
+    "| Vértice | Ordem |",
+    "| ------- | ----: |",
+    "| A       |     — |",
+    "| B       |     — |",
+    "| C       |     — |",
+    "",
+    "</Stage>",
+  ]),
+  "artifacts/busca-em-grafo/caminho.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">',
+    '  <g data-part="A"><circle cx="20" cy="30" r="12" class="fill-surface stroke-text" /></g>',
+    '  <g data-part="B"><circle cx="100" cy="30" r="12" class="fill-surface stroke-text" /></g>',
+    '  <g data-part="C"><circle cx="180" cy="30" r="12" class="fill-surface stroke-text" /></g>',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/busca-em-grafo/busca.build.ts": [
+    'import { defineBuild, type Step } from "@artifactory/design-system/stage-build";',
+    "",
+    "const neighbours: Record<string, string[]> = { A: ['B'], B: ['A', 'C'], C: ['B'] };",
+    "",
+    "export default defineBuild<{ inicio: string; busca: string }>({",
+    "  steps({ inicio, busca }) {",
+    "    const order: string[] = [];",
+    "    const waiting = [inicio];",
+    "    while (waiting.length > 0) {",
+    "      const vertex = (busca === 'largura' ? waiting.shift() : waiting.pop()) ?? inicio;",
+    "      if (order.includes(vertex)) continue;",
+    "      order.push(vertex);",
+    "      waiting.push(...(neighbours[vertex] ?? []));",
+    "    }",
+    "    return order.map((vertex, index): Step => ({",
+    "      say: `Visita ${vertex}, o ${String(index + 1)}º da busca em ${busca}.`,",
+    "      parts: { [vertex]: 'reversed' },",
+    "      cells: order",
+    "        .slice(0, index + 1)",
+    "        .map((visited, at) => ({ row: visited, column: 'Ordem', text: String(at + 1) })),",
+    "    }));",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+};
+
 const steppedFigures = {
   "artifacts/orbita/index.mdx": artifact(fields("0rb1t4s1", "Órbita", "Mecânica"), [
     'import Stepper from "@artifactory/design-system/stepper";',
@@ -1399,6 +1461,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ...rewrittenStage,
       ...wordStage,
       ...textAndNumberStage,
+      ...groupsStage,
       ...machineTrace,
       ...steppedFigures,
       ...colouring,
@@ -1967,6 +2030,35 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       expect(stage?.querySelector("figure.figure > figcaption")?.textContent).toContain(
         "O algoritmo de Prim a partir do vértice escolhido.",
       );
+    });
+
+    it("holds a Stage with choice groups as a labelled row of options per group, in the order written, each its own radio group, none chosen, its controls hidden and no example named", async () => {
+      const stage = parsed(await builtPage("busca-em-grafo")).querySelector("artifact-stage");
+      const controls = stage?.querySelector(".stage-controls");
+      expect(controls?.hasAttribute("hidden")).toBe(true);
+      const groups = [...(controls?.querySelectorAll("fieldset") ?? [])].map((group) => {
+        const options = [...group.querySelectorAll('input[type="radio"]')];
+        return {
+          label: group.querySelector("legend")?.textContent,
+          options: options.map((option) => option.getAttribute("value")),
+          names: [...new Set(options.map((option) => option.getAttribute("name")))].length,
+          checked: options.filter((option) => option.hasAttribute("checked")).length,
+        };
+      });
+      expect(groups).toEqual([
+        { label: "Começar em", options: ["A", "B", "C"], names: 1, checked: 0 },
+        { label: "Buscar em", options: ["largura", "profundidade"], names: 1, checked: 0 },
+      ]);
+      const [start, search] = [...(controls?.querySelectorAll("fieldset") ?? [])].map((group) =>
+        group.querySelector("input")?.getAttribute("name"),
+      );
+      expect(start).not.toBe(search);
+      expect(controls?.querySelector(".stage-counter")?.hasAttribute("hidden")).toBe(true);
+      expect(controls?.querySelector(".stage-say")?.textContent).toBe(
+        "Escolha um vértice e uma busca para começar.",
+      );
+      expect(stage?.querySelector(".stage-example")).toBeNull();
+      expect(stage?.querySelectorAll("[data-mark]")).toHaveLength(0);
     });
 
     it("holds a typed Stage's fields filled with its first example, a line after them naming that example's values, and its tables as that example's result", async () => {

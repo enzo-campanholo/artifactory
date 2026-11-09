@@ -841,6 +841,29 @@ describe.each([
     rule: "set `beside` only with `figure`",
     typeErrors: [],
   },
+  {
+    stage: "a Stage with a list of one choice group",
+    props: ['  choose={[{ name: "inicio", label: "Começar em", options: ["A", "B"] }]}'],
+    rule: "give `choose` at least two groups, or write one as `{ label, options }`",
+    typeErrors: [],
+  },
+  {
+    stage: "a Stage whose choice groups share a name and an option, with `beside` and no drawing",
+    props: [
+      "  choose={[",
+      '    { name: "inicio", label: "Começar em", options: ["A", "B"] },',
+      '    { name: "inicio", label: "Terminar em", options: ["C"] },',
+      '    { name: "busca", label: "Buscar em", options: ["largura", "A"] },',
+      "  ]}",
+      "  beside",
+    ],
+    rule: [
+      "two groups have the name `inicio`: give each group its own `name`",
+      "the option `A` is in the groups `inicio` and `busca`: give each option a name no other group has, since a drawn part named like it chooses it",
+      "set `beside` only with `figure`",
+    ].join("; "),
+    typeErrors: [],
+  },
 ])("$stage", ({ props, rule, typeErrors }) => {
   let repo: FixtureRepo;
   let run: CheckRun;

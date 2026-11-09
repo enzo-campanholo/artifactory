@@ -409,11 +409,11 @@ You write two things:
   without JavaScript and in print, so write it to make sense with no step on it. With `choose` it
   is the starting state; with `input` it is the first example's result.
 - **A custom build**, a `<build>.build.ts` file next to the entry, which turns the option the
-  owner chose, or what they typed, into steps. It imports only
+  owner chose, the options of several groups, or what they typed, into steps. It imports only
   `@artifactory/design-system/stage-build` (below), and holds no CSS, colours, HTML or DOM
   code, and nothing that outlives a reload.
 
-The Stage draws the rest: the row of options or the fields and Start, the step counter and
+The Stage draws the rest: the rows of options or the fields and Start, the step counter and
 arrows, the line that says each step, the number and the caption, for the keyboard, screen
 readers, the phone, dark mode and print. A drawn part whose `data-part` is an option's name also
 chooses that option when clicked or tapped. That's a shortcut for the pointer: the options stay
@@ -457,6 +457,44 @@ export default defineBuild({
     });
     // …one whole step per pass of the algorithm
     return steps;
+  },
+});
+```
+
+**Choice groups.** When the owner makes two or more choices before the run, such as the start
+vertex and the search, give `choose` a list of groups, each `{ name, label, options }`, rather
+than writing a Stage per choice. Each group is its own row of options under its label, the groups
+one under another in the order written, and the arrow keys move the choice within a group only.
+No group opens chosen, and the step's line holds the prompt, with the counter hidden, until every
+group has a choice: the run starts then, and again from step 1 whenever any group changes, so
+write the prompt to ask for every choice. Option names are unique across the Stage's groups, so a
+drawn part named like an option chooses that option in its own group and keeps the others' as
+they are: a vertex chooses the start while the search stays a row of options. `steps` gets one
+option per group, by the group's `name`, so type the build with the groups' names, each a
+`string`, as typed input types its fields. `pnpm check` runs the build on every combination,
+one option from each group, and names the combination it fails on as `inicio = C, busca =
+profundidade`. A run the page refuses ends "Escolha outras opções.". Without JavaScript and in
+print the content as written is the starting state, with no option named, as with one group.
+
+````mdx
+<Stage
+  build="busca"
+  choose={[
+    { name: "inicio", label: "Começar em", options: ["A", "B", "C", "D"] },
+    { name: "busca", label: "Buscar em", options: ["largura", "profundidade"] },
+  ]}
+  prompt="Escolha um vértice e uma busca para começar."
+  figure={grafo}
+  alt="Um grafo com quatro vértices."
+  caption="A busca escolhida, a partir do vértice escolhido."
+>
+````
+
+```ts
+// busca.build.ts
+export default defineBuild<{ inicio: string; busca: string }>({
+  steps({ inicio, busca }) {
+    // …a queue for "largura", a stack for "profundidade", from `inicio`
   },
 });
 ```
@@ -627,7 +665,7 @@ export default defineBuild<{ w: string }>({
 `aabba` has two b's, so its last step, the seventh, leaves `q0` and `sim`, as the table is
 written. Every step names `aceita`, "—" until the last, so the answer doesn't show mid-run.
 
-**Steps are whole.** `steps` returns every step for that option or that input, at least one
+**Steps are whole.** `steps` returns every step for that choice or that input, at least one
 and at most 200. The Stage starts each step from the content as written and applies only what it
 names, so name everything the step shows, not what changed since the step before. A build that
 throws, or gives more than 200 steps, is refused in the step's line: with `input`, typed input
@@ -836,7 +874,8 @@ reader reads `%` as "por cento" and other operators symbol by symbol. A screen r
 word such as `aabba` as one word, so when its symbols matter, spell them out ("lê a, a, b, b,
 a", "lê o terceiro símbolo, b"), and say "a palavra vazia", never "ε".
 
-`pnpm check` runs the build on every option or example against the built page and fails on a
+`pnpm check` runs the build on every option, every combination of groups' options, or every
+example against the built page and fails on a
 throw, no steps, more than 200, a step that isn't shaped like a `Step`, an empty `say`, a part,
 row, column or code line the content doesn't have, a mark that changes nothing in its part,
 a colour on a part that holds no label, a colour that isn't a whole number from 1 to 6 or is
@@ -860,9 +899,16 @@ Give one of these 2 sets of props.
 
 With `choose`:
 
-- `choose` (`{ label: string; options: string[] }`, required): What the owner chooses before the run: the label over the options, and the options, each a
-  short word or symbol, such as a vertex's name. `steps` gets the option chosen. On a 393px
-  phone, seven one-letter options fit on one line under the label; more, or longer names, wrap.
+- `choose` (`{ label: string; options: string[] } | { name: string; label: string; options: string[] }[]`, required): What the owner chooses before the run: the label over the options, and the options, each a
+  short word or symbol, such as a vertex's name. `steps` gets the option chosen, and the run
+  starts as soon as the owner chooses one. On a 393px phone, seven one-letter options fit on one
+  line under the label; more, or longer names, wrap.
+
+  For two or more choices, such as a start vertex and a search, give a list of groups instead,
+  each with the `name` `steps` gets its option by: `[{ name, label, options }, …]`. Each group is
+  a row of options under its label, one under another in the order written. None opens chosen,
+  and the run starts once every group has a choice, then again from step 1 whenever any group
+  changes. Give each option a name no other group of the Stage has (see **Choice groups**).
 - `build` (`string`, required): The custom build: the name of the `<build>.build.ts` file next to the entry.
 - `prompt` (`string`, required): What to do first, shown where each step's line will be: "Escolha um vértice para começar."
 - `figure` (`string`, optional): A drawing the build marks, imported with `?raw` from an `.svg` file next to the entry. Name
@@ -965,7 +1011,8 @@ what it names, so name everything this step shows, not what changed since the la
 #### `Typed`
 
 What the owner typed into a Stage's `input`, by each field's `name`: a number field's whole
-number, or a text field's text as a `string`, in NFC, `""` for the empty word.
+number, or a text field's text as a `string`, in NFC, `""` for the empty word. With a list of
+choice groups, the option chosen in each group, by the group's `name`, as a `string`.
 
 ```ts
 type Typed = Record<string, number | string>;
@@ -1002,21 +1049,25 @@ did with its own.
 #### `Build`
 
 A custom build: what turns the owner's choice into steps. With `choose`, `steps` gets the option
-as text; with `input`, it gets each field's value, typed as `Input`: a number field's whole
-number as a `number`, a text field's text as a `string`. Either way its second
+as text; with a list of choice groups, each group's option by the group's name, typed as
+`Input`, each a `string`; with `input`, it gets each field's value, typed as `Input`: a number
+field's whole number as a `number`, a text field's text as a `string`. Either way its second
 argument is the Stage's content as written (`Content`), which a build may leave out.
 
-- `steps` (`(input: Input, content: Content) => Step[]`, required): Every step for the option the owner chose or the input they typed, in order, at least one
-  and at most 200. Called again from step 1 whenever they choose again or press Start, with the
-  content as written each time.
+- `steps` (`(input: Input, content: Content) => Step[]`, required): Every step for the option the owner chose, the options of every group, or the input they
+  typed, in order, at least one and at most 200. Called again from step 1 whenever they choose
+  again (with groups, once every group has a choice) or press Start, with the content as written
+  each time.
 
 #### `defineBuild`
 
 Wraps the build so TypeScript checks it. A `.build.ts` file's default export. With `input`,
 give the fields' names as its type, a number field's as `number` and a text field's as `string`,
 `defineBuild<{ a: number; b: number }>({ … })` or `defineBuild<{ w: string; m: number }>({ … })`,
-so `steps` gets them typed: `pnpm check` fails when they aren't the Stage's fields and kinds. `steps` gets the
-content as written second, typed `Content`, without a type of its own.
+so `steps` gets them typed: `pnpm check` fails when they aren't the Stage's fields and kinds.
+With a list of choice groups, give the groups' names, each a `string`,
+`defineBuild<{ inicio: string; busca: string }>({ … })`; with one group, leave the type out.
+`steps` gets the content as written second, typed `Content`, without a type of its own.
 
 ```ts
 function defineBuild<Input extends string | Typed = string>(build: Build<Input>): Build<Input>;

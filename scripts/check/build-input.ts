@@ -9,7 +9,9 @@ interface StagedBuild {
   takes: Takes;
 }
 
-const givers: Record<Control, string> = { choose: "options", input: "fields" };
+// One group's options give the build text; several groups give it one option each, by name.
+const givers = (control: Control, takes: Takes) =>
+  control === "input" ? "fields" : takes.shape === "text" ? "options" : "groups";
 
 const kindTypes: Record<NamedValue["kind"], { name: string; flags: typescript.TypeFlags }> = {
   number: { name: "number", flags: typescript.TypeFlags.Number },
@@ -68,7 +70,7 @@ export function buildInputFailures(root: string, stages: StagedBuild[]): Failure
         line: line + 1,
         column: character + 1,
         ruleId: "build-input",
-        message: `\`steps\` takes \`${typeTaken}\`, but the Stage's ${givers[control]} give it ${
+        message: `\`steps\` takes \`${typeTaken}\`, but the Stage's ${givers(control, takes)} give it ${
           expected === undefined ? "text" : `\`${expected}\``
         }: ${fix}`,
         skillSection: "Custom builds",

@@ -150,9 +150,31 @@ export interface NamedValue {
 
 export function stageControl(stage: Element): { control: Control; takes: Takes } {
   const control = stage.getAttribute("data-control") as Control;
-  if (control === "choose") return { control, takes: { shape: "text" } };
+  if (control === "choose") {
+    const groups = stageGroups(stage);
+    return groups.length === 0
+      ? { control, takes: { shape: "text" } }
+      : {
+          control,
+          takes: { shape: "named", values: groups.map(({ name }) => ({ name, kind: "text" })) },
+        };
+  }
   const values = stageFields(stage).map(({ name, kind }): NamedValue => ({ name, kind }));
   return { control, takes: { shape: "named", values } };
+}
+
+// A Stage with several choice groups names each group on its row; one group goes unnamed, and its
+// option reaches the build as text.
+export interface ChoiceGroup {
+  name: string;
+  options: HTMLInputElement[];
+}
+
+export function stageGroups(stage: Element): ChoiceGroup[] {
+  return [...stage.querySelectorAll(".stage-choice[data-group]")].map((group) => ({
+    name: group.getAttribute("data-group") ?? "",
+    options: [...group.querySelectorAll<HTMLInputElement>(".stage-option input")],
+  }));
 }
 
 // A typed field as the Stage defines it on its page, once: the page reads what the owner types by

@@ -55,6 +55,33 @@ Started at A and stepped to step 3, where B joins the tree. B is reversed, the c
 
 </div>
 
+## Choice groups
+
+Two choices in one Stage: the start vertex and the search, each a labelled row of options, one under the other in the order written, and each its own radio group, so the arrow keys move within a row only. Neither opens chosen: the step's line holds the prompt and the counter stays hidden until both rows have a choice, and changing either afterwards runs again from step 1. A vertex in the drawing chooses the start, as with one row, while the search stays a row of options; option names are unique across the rows, so a vertex never chooses in the wrong one. Without JavaScript and in print the Stage shows the content as written, with no option named.
+
+<Stage
+  build="graph-search"
+  choose={[
+    { name: "start", label: "Start at", options: ["A", "B", "C", "D", "E"] },
+    { name: "search", label: "Search", options: ["breadth-first", "depth-first"] },
+  ]}
+  prompt="Choose a vertex and a search to start."
+  figure={graph}
+  alt="A graph of five vertices, A to E, joined by seven edges."
+  beside
+  caption="A breadth-first or depth-first search from the vertex chosen."
+>
+
+| Vertex | Order | Parent |
+| ------ | ----: | ------ |
+| A      |     — | —      |
+| B      |     — | —      |
+| C      |     — | —      |
+| D      |     — | —      |
+| E      |     — | —      |
+
+</Stage>
+
 ## Typed input
 
 With `input`, the owner types whole numbers and presses Start. The fields open filled with the first example, 48 and 18, and the table as written is that example's result. Without JavaScript and in print, where the fields don't show, a line names that example in their place: "Work out gcd(a, b) a = 48, b = 18".
