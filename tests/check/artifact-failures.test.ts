@@ -510,10 +510,10 @@ describe("a repo whose artifacts break math, code, diagram, link, question ID, s
 
   it("fails a proof of a definition or of no statement, at its `of` prop", () => {
     expect(linesFor(run, ["demonstracoes"])).toEqual([
-      "artifacts/demonstracoes/index.mdx:20:8 error proof-target: the proof of `arvore` names a statement of kind `definition`; give `of` the ID of the theorem, lemma or corollary it proves (artifact skill: Components)",
-      "artifacts/demonstracoes/index.mdx:26:8 error proof-target: the proof of `inexistente` names no statement in this artifact; give `of` the ID of the theorem, lemma or corollary it proves (artifact skill: Components)",
-      "artifacts/demonstracoes/index.mdx:32:8 error proof-target: the proof of `inexistente` names no statement in this artifact; give `of` the ID of the theorem, lemma or corollary it proves (artifact skill: Components)",
-      "artifacts/demonstracoes/index.mdx:48:8 error proof-target: the proof of `caminho` names a statement of kind `example`; give `of` the ID of the theorem, lemma or corollary it proves (artifact skill: Components)",
+      "artifacts/demonstracoes/index.mdx:20:8 error proof-target: the proof of `arvore` names a statement of kind `definition`; give `of` the ID of the theorem, proposition, lemma or corollary it proves (artifact skill: Components)",
+      "artifacts/demonstracoes/index.mdx:26:8 error proof-target: the proof of `inexistente` names no statement in this artifact; give `of` the ID of the theorem, proposition, lemma or corollary it proves (artifact skill: Components)",
+      "artifacts/demonstracoes/index.mdx:32:8 error proof-target: the proof of `inexistente` names no statement in this artifact; give `of` the ID of the theorem, proposition, lemma or corollary it proves (artifact skill: Components)",
+      "artifacts/demonstracoes/index.mdx:48:8 error proof-target: the proof of `caminho` names a statement of kind `example`; give `of` the ID of the theorem, proposition, lemma or corollary it proves (artifact skill: Components)",
     ]);
   });
 

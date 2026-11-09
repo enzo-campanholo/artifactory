@@ -1317,6 +1317,34 @@ const statementsAndCitations = {
     "</Statement>",
     "",
     'O <Ref to="seno" /> usa um teorema já provado.',
+    "",
+    "## Médias",
+    "",
+    '<Statement kind="proposition" id="media" name="Média">',
+    "",
+    "A média de $f'$ em $(a, b)$ é a inclinação da secante.",
+    "",
+    "</Statement>",
+    "",
+    '<Proof of="media">',
+    "",
+    'É o <Ref to="valor-medio" /> lido como média.',
+    "",
+    "</Proof>",
+    "",
+    '<Statement kind="proposition" id="limitada">',
+    "",
+    "Uma derivada limitada por $M$ dá $|f(b) - f(a)| \\le M(b - a)$.",
+    "",
+    "</Statement>",
+    "",
+    'A <Ref to="limitada" /> controla a variação.',
+    "",
+    '<Proof of="limitada">',
+    "",
+    "A inclinação da secante é $f'(c)$, e $|f'(c)| \\le M$.",
+    "",
+    "</Proof>",
   ]),
   "artifacts/mean-value/index.mdx": artifact(
     ["id: m34nv4lu", "title: Mean value", "subject: Cálculo", "lang: en", "published: 2026-10-15"],
@@ -1382,6 +1410,34 @@ const statementsAndCitations = {
       'Its derivative is positive on (0, 1), so by <Ref to="sign" /> every secant over it rises.',
       "",
       "</Statement>",
+      "",
+      "## Averages",
+      "",
+      '<Statement kind="proposition" id="average" name="Average slope">',
+      "",
+      "The average of $f'$ over $(a, b)$ is the secant's slope.",
+      "",
+      "</Statement>",
+      "",
+      '<Proof of="average">',
+      "",
+      "Read the mean value theorem as an average.",
+      "",
+      "</Proof>",
+      "",
+      '<Statement kind="proposition" id="bounded">',
+      "",
+      "A derivative bounded by $M$ gives $|f(b) - f(a)| \\le M(b - a)$.",
+      "",
+      "</Statement>",
+      "",
+      '<Ref to="bounded" /> limits how far $f$ moves.',
+      "",
+      '<Proof of="bounded">',
+      "",
+      "The secant's slope is $f'(c)$, and $|f'(c)| \\le M$.",
+      "",
+      "</Proof>",
     ],
   ),
   "artifacts/arvores/index.mdx": artifact(fields("4rv0r3s0", "Árvores", "Grafos"), [
@@ -2350,6 +2406,8 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             ["S-troca-name", "group", "Corolário 2.5"],
             ["S-seno", "group", "Exemplo 2.7 (Seno)"],
             ["S-cosseno", "group", "Corolário 2.8"],
+            ["S-media", "group", "Proposição 3.1 (Média)"],
+            ["S-limitada", "group", "Proposição 3.2"],
           ],
         ],
         [
@@ -2361,6 +2419,8 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             ["S-sign", "group", "Lemma 2.1"],
             ["S-increasing", "group", "Corollary 2.2 (Increasing functions)"],
             ["S-cube", "group", "Example 2.4"],
+            ["S-average", "group", "Proposition 3.1 (Average slope)"],
+            ["S-bounded", "group", "Proposition 3.2"],
           ],
         ],
       ] as const) {
@@ -2377,6 +2437,31 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       }
     });
 
+    // happy-dom computes no style from the page's cascade layers, so the test reads the mark the
+    // stylesheet sets in italic, and the catalog shows the italic itself.
+    it("marks every theorem, proposition, lemma and corollary, and no definition or example, as a claim, whose text reads in italic", async () => {
+      for (const [slug, expected] of [
+        [
+          "valor-medio",
+          [
+            "S-fermat",
+            "S-valor-medio",
+            "S-constante",
+            "S-troca",
+            "S-troca-name",
+            "S-cosseno",
+            "S-media",
+            "S-limitada",
+          ],
+        ],
+        ["mean-value", ["S-rolle", "S-sign", "S-increasing", "S-average", "S-bounded"]],
+      ] as const) {
+        const page = await main(slug);
+        const claims = [...page.querySelectorAll(".statement[data-statement-claim]")];
+        expect(claims.map(({ id }) => id)).toEqual(expected);
+      }
+    });
+
     it("prints each citation as its statement's label and number in the artifact's language, linking to the statement", async () => {
       for (const [slug, lang, expected] of [
         [
@@ -2389,6 +2474,8 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             ["#S-troca-name", "Corolário 2.5"],
             ["#S-valor-medio", "Teorema 2.1"],
             ["#S-seno", "Exemplo 2.7"],
+            ["#S-valor-medio", "Teorema 2.1"],
+            ["#S-limitada", "Proposição 3.2"],
           ],
         ],
         [
@@ -2399,6 +2486,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             ["#S-increasing", "Corollary 2.2"],
             ["#S-secant", "Definition 1.3"],
             ["#S-sign", "Lemma 2.1"],
+            ["#S-bounded", "Proposition 3.2"],
           ],
         ],
       ] as const) {
@@ -2457,28 +2545,33 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       }
     });
 
-    it("opens a proof right after its statement plainly and any other proof with its statement's label and number, linked, and ends each with the end square", async () => {
+    it("opens a proof right after its statement plainly, marked as following it, and any other proof with its statement's label and number, linked, the Portuguese preposition agreeing with the label, and ends each with the end square", async () => {
       for (const [slug, lang, expected] of [
         [
           "valor-medio",
           "pt",
           [
-            ["Demonstração.", null, "Fim da demonstração."],
-            ["Demonstração do Lema 1.5.", "#S-fermat", "Fim da demonstração."],
+            ["Demonstração.", true, null, "Fim da demonstração."],
+            ["Demonstração do Lema 1.5.", false, "#S-fermat", "Fim da demonstração."],
+            ["Demonstração.", true, null, "Fim da demonstração."],
+            ["Demonstração da Proposição 3.2.", false, "#S-limitada", "Fim da demonstração."],
           ],
         ],
         [
           "mean-value",
           "en",
           [
-            ["Proof.", null, "End of proof."],
-            ["Proof of Lemma 2.1.", "#S-sign", "End of proof."],
+            ["Proof.", true, null, "End of proof."],
+            ["Proof of Lemma 2.1.", false, "#S-sign", "End of proof."],
+            ["Proof.", true, null, "End of proof."],
+            ["Proof of Proposition 3.2.", false, "#S-bounded", "End of proof."],
           ],
         ],
       ] as const) {
         const page = await main(slug);
         const proofs = [...page.querySelectorAll(".proof")].map((proof) => [
           shown(proof.querySelector(".proof-label"), lang),
+          proof.hasAttribute("data-follows-statement"),
           proof.querySelector(".proof-label a")?.getAttribute("href") ?? null,
           shown(proof.querySelector(":scope > :last-child > .proof-end:last-child"), lang),
         ]);

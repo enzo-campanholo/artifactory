@@ -290,11 +290,12 @@ dados.
 
 `import Proof from "@artifactory/design-system/proof";`
 
-The proof of a theorem, lemma or corollary written as a `Statement`. It is unnumbered: it opens
-with a run-in "Demonstração." / "Proof." and its last line ends with a small square, so the owner
-sees where the argument stops. Write it right after the statement it proves. A proof anywhere
-else opens with what it proves, linked ("Demonstração do Teorema 2.1."), so write it elsewhere
-only when the subject proves the result later. A definition has no proof.
+The proof of a theorem, proposition, lemma or corollary written as a `Statement`. It is
+unnumbered: it opens with a run-in "Demonstração." / "Proof." and its last line ends with a small
+square, so the owner sees where the argument stops. Write it right after the statement it proves.
+A proof anywhere else opens with what it proves, linked ("Demonstração do Teorema 2.1.",
+"Demonstração da Proposição 2.1."), so write it elsewhere only when the subject proves the result
+later. A definition or an example has no proof.
 
 Write it at the top level of a section, like its statement: nested in a list or a question, a
 proof never counts as following its statement, so it always opens by naming it, and its equations
@@ -322,7 +323,7 @@ $h < 0$, então o limite, $f'(c)$, é $0$.
 
 ### Props
 
-- `of` (`string`, required): The `id` of the theorem, lemma or corollary it proves.
+- `of` (`string`, required): The `id` of the theorem, proposition, lemma or corollary it proves.
 
 ## Ref
 
@@ -1101,15 +1102,16 @@ function trace<Program, State, Notes, const Reads extends string>(machine: Machi
 
 `import Statement from "@artifactory/design-system/statement";`
 
-A definition, theorem, lemma, corollary or worked example, numbered by the page as a clause of
-its section so that it can be cited ("Teorema 2.1"). Its number stands in the margin in the
-paragraphs' series, its label runs in at the start of its first line ("**Teorema** (Valor
-médio)."), and a theorem, lemma or corollary reads in italic while a definition or example stays
-upright. Use it for each definition or result the subject names and the owner should be able to
-cite, and for each worked example: a problem solved in full, with its solution shown openly after
-"Solução." / "Solution.". An example teaches; when the owner should work the problem out
-themselves, ask it as a question instead (`OpenQuestion`, `NumericQuestion`). Keep explanations in
-paragraphs, and asides in a `Note`. Cite it anywhere in the artifact with `Ref`.
+A definition, theorem, proposition, lemma, corollary or worked example, numbered by the page as a
+clause of its section so that it can be cited ("Teorema 2.1"). Its number stands in the margin in
+the paragraphs' series, its label runs in at the start of its first line ("**Teorema** (Valor
+médio)."), and a claim (a theorem, proposition, lemma or corollary, which a `Proof` can prove)
+reads in italic while a definition or example stays upright. Use it for each definition or result
+the subject names and the owner should be able to cite, with the kind the subject gives it, and
+for each worked example: a problem solved in full, with its solution shown openly after "Solução."
+/ "Solution.". An example teaches; when the owner should work the problem out themselves, ask it
+as a question instead (`OpenQuestion`, `NumericQuestion`). Keep explanations in paragraphs, and a
+remark or aside in a `Note`, never in a `Statement`. Cite it anywhere in the artifact with `Ref`.
 
 Write it at the top level of a section, after the first `##` heading: never inside a list, a
 question or another component. Its content is ordinary Markdown (paragraphs, math, lists, and in
@@ -1147,9 +1149,11 @@ A secante tem inclinação $\frac{4 - 0}{2 - 0} = 2$ e $f'(c) = 2c$, então $c =
 
 ### Props
 
-- `kind` (`"definition" | "theorem" | "lemma" | "corollary" | "example"`, required): What it states. The page writes the kind's label in the artifact's main language
-  ("Definição", "Teorema", "Lema", "Corolário", "Exemplo" / "Definition", "Theorem", "Lemma",
-  "Corollary", "Example").
+- `kind` (`"definition" | "theorem" | "proposition" | "lemma" | "corollary" | "example"`, required): What it states. The page writes the kind's label in the artifact's main language
+  ("Definição", "Teorema", "Proposição", "Lema", "Corolário", "Exemplo" / "Definition",
+  "Theorem", "Proposition", "Lemma", "Corollary", "Example"). A theorem, proposition, lemma or
+  corollary is a claim: it reads in italic, and a `Proof` can prove it. A remark or aside is no
+  kind: write it in a `Note`.
 - `id` (`string`, required): The statement's ID: readable lowercase kebab-case, unique among the artifact's statements.
   `<Ref to="…">` cites it, and `#S-<id>` links to it.
 - `name` (`string`, optional): The name the subject gives it, in plain text, shown in parentheses after the label

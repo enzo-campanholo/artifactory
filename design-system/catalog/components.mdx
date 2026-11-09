@@ -187,6 +187,35 @@ both exist, since $f$ is continuous on $[a, b]$.
 
 </Proof>
 
+A proposition is a claim too, italic like a theorem, and its proof can follow it at once:
+
+<Statement kind="proposition" id="bounded-derivative" name="Bounded derivative">
+
+If $|f'(x)| \le M$ for every $x \in (a, b)$, then $|f(y) - f(x)| \le M\,|y - x|$ for all $x, y \in [a, b]$.
+
+</Statement>
+
+<Proof of="bounded-derivative">
+
+For $x < y$, <Ref to="mean-value" /> on $[x, y]$ gives some $c \in (x, y)$ with $|f(y) - f(x)| = |f'(c)|\,(y - x) \le M\,(y - x)$.
+
+</Proof>
+
+<Statement kind="proposition" id="uniformly-continuous">
+
+A function whose derivative is bounded on $(a, b)$ is uniformly continuous on $[a, b]$.
+
+</Statement>
+
+<Ref to="uniformly-continuous" /> is <Ref to="bounded-derivative" /> read with a tolerance. A proof
+of a proposition that doesn't follow it names it as any other does, "da Proposição" in Portuguese:
+
+<Proof of="uniformly-continuous">
+
+Given $\varepsilon > 0$, take $\delta = \varepsilon / M$, or any $\delta$ when $M = 0$. By <Ref to="bounded-derivative" />, $|y - x| < \delta$ gives $|f(y) - f(x)| < \varepsilon$.
+
+</Proof>
+
 ### Examples
 
 A worked example is a statement too. Its solution follows a run-in label, shown openly, and its equations, tables and figures keep the page's numbering:
