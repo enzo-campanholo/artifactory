@@ -1,6 +1,6 @@
 # 04: Figures inside a model answer or an explanation are unnumbered
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02
 
 Spec: [Question explanations](../spec.md), section Figures inside a question. The decisions are in the map ticket's `## Answer` (`artifact-generation-gaps` 01); don't reopen them. Needs 02 only so that a figure inside an explanation can be shown; it can run beside 03.
