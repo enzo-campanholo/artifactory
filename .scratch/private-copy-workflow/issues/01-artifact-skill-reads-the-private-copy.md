@@ -1,6 +1,6 @@
 # 01: The artifact skill reads the private copy and reports what it couldn't read
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Private copy workflow](../spec.md) › `gh` reads the private copy, Confirming a deploy, The site's address. Its decisions are in [Agent workflow in a private copy](../../artifact-generation-gaps/issues/09-agent-workflow-in-a-private-copy.md) › Answer. They bound this ticket, so don't reopen them.
