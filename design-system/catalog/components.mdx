@@ -9,6 +9,7 @@ import orbitSteps from "./orbit-steps.svg?raw";
 import plot from "./plot.svg?raw";
 import stateSync from "./state-sync.d2";
 import studySteps from "./study-steps.d2?steps";
+import swatchNumerals from "./swatch-numerals.svg?raw";
 import swatches from "./swatches.svg?raw";
 
 ## Text
@@ -240,12 +241,20 @@ the shaded area under the curve up to $T$.
   caption="The area under the velocity curve is the distance travelled."
 />
 
-A colouring, its six colours drawn as the six swatches on vertices 2.75rem across:
+A total colouring of a six-cycle in colours Rd, Bl, Gn, Yl, Pu and Or, drawn as the six swatches on vertices 2.75rem across, each vertex and each edge labelled with its colour:
 
 <Figure
   src={swatches}
-  alt="Six vertices on a hexagon, joined around it and across it, each in its own colour: 1 hatched with diagonal lines rising to the right, 2 with diagonal lines falling, 3 cross-hatched, 4 with horizontal lines, 5 with vertical lines and 6 dotted."
-  caption="Colours 1 to 6, one swatch each."
+  colours={["Rd", "Bl", "Gn", "Yl", "Pu", "Or"]}
+  alt="Six vertices on a hexagon, joined around it, each in its own colour: going round from the top left, Rd hatched with diagonal lines rising to the right, Bl with diagonal lines falling, Gn cross-hatched, Yl with horizontal lines, Pu with vertical lines and Or dotted. The edges, going round from Rd to Bl, are Yl, Pu, Or, Rd, Bl and Gn."
+  caption="Each part differs in colour from every part it touches."
+/>
+
+Without `colours`, the colours are named by their numbers: a triangle's vertices in colours 1 to 3.
+
+<Figure
+  src={swatchNumerals}
+  alt="A triangle of three vertices: the top one in colour 1, hatched with diagonal lines rising to the right, the bottom left in colour 2, with diagonal lines falling, and the bottom right in colour 3, cross-hatched."
 />
 
 ## Stepper

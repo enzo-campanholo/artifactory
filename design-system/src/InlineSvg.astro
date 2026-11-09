@@ -1,6 +1,6 @@
 ---
 import { componentError } from "./component-errors.ts";
-import { swatchPatterns } from "./swatches.ts";
+import { platedLabels, swatchPatterns } from "./swatches.ts";
 
 interface Props {
   svg: string;
@@ -27,11 +27,13 @@ const ownAttributes = Object.fromEntries(
 );
 
 // DESIGN.md's Square Corner Rule, for figures and D2's boxes alike.
-const content = drawing.replace(/<rect\b[^>]*>/g, (rect) =>
+const squared = drawing.replace(/<rect\b[^>]*>/g, (rect) =>
   rect.replace(/\s(?:rx|ry)\s*=\s*(?:"[^"]*"|'[^']*')/g, ""),
 );
 
-// Only a drawing that fills with swatches gets their patterns, so every other drawing stays as written.
+// Only a drawing that fills with swatches gets their patterns, and only one that labels colours
+// gets plates, so every other drawing stays as written.
+const content = swatches ? platedLabels(squared) : squared;
 const swatched = swatches && content.includes("fill-swatch-") ? swatchPatterns() : undefined;
 
 const viewBox = ownAttributes.viewBox ?? viewBoxOfSize(ownAttributes.width, ownAttributes.height);

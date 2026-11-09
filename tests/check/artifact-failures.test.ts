@@ -693,3 +693,98 @@ describe.each([
     ]);
   });
 });
+
+function vertex(x: number, swatch: number, label: string): string {
+  return [
+    "  <g>",
+    `    <circle cx="${String(x)}" cy="30" r="22" class="fill-swatch-${String(swatch)} stroke-text" stroke-width="2" />`,
+    `    <text x="${String(x)}" y="30" data-swatch="${String(swatch)}">${label}</text>`,
+    "  </g>",
+  ].join("\n");
+}
+
+describe.each([
+  {
+    drawing: "a Figure whose labels and swatches disagree",
+    tag: '<Figure src={cores} alt="Seis vértices coloridos." colours={["R", "B"]} />',
+    parts: [
+      vertex(30, 1, "B"),
+      [
+        "  <g>",
+        '    <circle cx="80" cy="30" r="22" class="fill-swatch-2 stroke-text" stroke-width="2" />',
+        '    <text x="80" y="30" data-swatch="1">R</text>',
+        "  </g>",
+      ].join("\n"),
+      '  <g><circle cx="130" cy="30" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" /></g>',
+      vertex(180, 3, "3"),
+      '  <g><text data-swatch="2">B</text></g>',
+      [
+        "  <g>",
+        '    <line x1="200" y1="30" x2="280" y2="30" class="stroke-text" stroke-width="2" />',
+        '    <text x="240" y="30" data-swatch="2">B</text>',
+        "  </g>",
+      ].join("\n"),
+    ],
+    failure:
+      'Figure: a label reads "B", but data-swatch="1" is colour 1, "R": write <text data-swatch="1">R</text>; a <g> filled with fill-swatch-2 holds a label of colour 1: label it <text data-swatch="2">B</text>; a <g> filled with fill-swatch-1 holds no label: put <text data-swatch="1">R</text> in it, at the centre of its area; swatch 3 is past the 2 colours `colours` names: add its name to `colours`, or use swatches 1 to 2; the label <text data-swatch="2"> has no x and y: give it both, at the centre of the part it names',
+  },
+  {
+    drawing: "a Figure with seven colours, one named in more than two characters",
+    tag: '<Figure src={cores} alt="Um vértice da cor 1." colours={["1", "2", "3", "4", "5", "6", "Sete"]} />',
+    parts: [vertex(30, 1, "1")],
+    failure:
+      'Figure: `colours` names 7 colours: name at most six, one per swatch; the colour "Sete" is named in more than two characters: name it in one or two, such as "Se"',
+  },
+  {
+    drawing: "a Figure whose drawing, without `colours`, labels a colour by a name of its own",
+    tag: '<Figure src={cores} alt="Um vértice da cor 1." />',
+    parts: [vertex(30, 1, "R"), vertex(80, 7, "7")],
+    failure:
+      'Figure: a label reads "R", but data-swatch="1" is colour 1, "1": write <text data-swatch="1">1</text>; swatch 7 is past the six swatches: use swatches 1 to 6',
+  },
+  {
+    drawing: "a figure Stepper that fills with a swatch",
+    tag: '<Stepper figure={cores} alt="Um vértice da cor 1." />',
+    parts: [
+      vertex(30, 1, "1"),
+      '  <circle cx="80" cy="30" r="22" class="stroke-text" fill="none" data-step="2" />',
+    ],
+    failure:
+      "Stepper: swatches are only for a Figure or a Stage, so a figure Stepper draws none: draw the colouring as a Figure, or step through it in a Stage",
+  },
+])("$drawing", ({ tag, parts, failure }) => {
+  let repo: FixtureRepo;
+  let run: CheckRun;
+
+  beforeAll(async () => {
+    const component = tag.startsWith("<Stepper") ? "stepper" : "figure";
+    const name = component === "stepper" ? "Stepper" : "Figure";
+    repo = await createFixtureRepo({
+      "artifacts/cores/index.mdx": artifact(fields("c0r3s001", "Cores", "Grafos"), [
+        `import ${name} from "@artifactory/design-system/${component}";`,
+        'import cores from "./cores.svg?raw";',
+        "",
+        "Os vértices têm as cores 1 e 2.",
+        "",
+        tag,
+      ]),
+      "artifacts/cores/cores.svg": [
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 60">',
+        ...parts,
+        "</svg>",
+        "",
+      ].join("\n"),
+    });
+    run = await repo.check(["--artifacts-only"]);
+  }, checkTimeout);
+
+  afterAll(() => repo.remove());
+
+  it("fails the build at the component, saying what to write instead", () => {
+    expect(run.exitCode).toBe(1);
+    expect(run.summary).toEqual([
+      "pnpm check: 1 failure",
+      `artifacts/cores/index.mdx:14:1 error build: ${failure} (artifact skill: Build failures)`,
+    ]);
+  });
+});

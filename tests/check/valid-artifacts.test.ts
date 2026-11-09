@@ -447,8 +447,13 @@ const colouring = {
     'import Figure from "@artifactory/design-system/figure";',
     'import Stage from "@artifactory/design-system/stage";',
     'import hexagono from "./hexagono.svg?raw";',
+    'import aresta from "./aresta.svg?raw";',
     "",
     '<Figure src={hexagono} alt="Seis vértices, um de cada cor, de 1 a 6." />',
+    "",
+    "Uma aresta da cor Vm liga um vértice da cor Az a um vértice sem cor.",
+    "",
+    '<Figure src={aresta} alt="Um vértice Az, ligado por uma aresta Vm a um vértice sem cor." colours={["Az", "Vm"]} />',
     "",
     '<Figure src={hexagono} alt="Os mesmos seis vértices outra vez." />',
     "",
@@ -474,10 +479,24 @@ const colouring = {
       return [
         `  <g data-part="${String(swatch)}">`,
         `    <circle cx="${x}" cy="30" r="22" class="fill-swatch-${String(swatch)} stroke-text" stroke-width="2" />`,
-        `    <text x="${x}" y="35" text-anchor="middle" font-size="15" data-swatch="${String(swatch)}">${String(swatch)}</text>`,
+        `    <text x="${x}" y="30" data-swatch="${String(swatch)}">${String(swatch)}</text>`,
         "  </g>",
       ].join("\n");
     }),
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/coloracao/aresta.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">',
+    "  <g>",
+    '    <line x1="30" y1="30" x2="170" y2="30" class="stroke-text" stroke-width="2" />',
+    '    <text x="100" y="30" data-swatch="2">Vm</text>',
+    "  </g>",
+    "  <g>",
+    '    <circle cx="30" cy="30" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" />',
+    '    <text x="30" y="30" data-swatch="1">Az</text>',
+    "  </g>",
+    '  <circle cx="170" cy="30" r="22" class="fill-surface stroke-text" stroke-width="2" />',
     "</svg>",
     "",
   ].join("\n"),
@@ -1130,13 +1149,37 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       const ids = [...page.querySelectorAll("[id]")].map((element) => element.id);
       expect(new Set(ids).size).toBe(ids.length);
       const drawings = [...page.querySelectorAll('svg[role="img"]')];
-      expect(drawings).toHaveLength(3);
+      expect(drawings).toHaveLength(4);
       for (const drawing of drawings) {
         const hatchings = [...drawing.outerHTML.matchAll(/url\(#([^)]+)\)/g)].map(([, id]) => id);
         expect(new Set(hatchings).size).toBe(6);
         for (const id of hatchings) {
           expect(drawing.querySelector(`pattern[id="${id ?? ""}"]`)).not.toBeNull();
         }
+      }
+    });
+
+    it("draws each colour label on a square ground plate centred on it", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("coloracao"),
+        "text/html",
+      ) as unknown as Document;
+      const labels = [...page.querySelectorAll("text[data-swatch]")];
+      expect(labels.map((label) => label.textContent)).toEqual([
+        ...["1", "2", "3", "4", "5", "6"],
+        ...["Vm", "Az"],
+        ...["1", "2", "3", "4", "5", "6"],
+        ...["1", "2", "3", "4", "5", "6"],
+      ]);
+      for (const label of labels) {
+        const plate = label.previousElementSibling;
+        const side = Number(plate?.getAttribute("width"));
+        expect(plate?.tagName.toLowerCase()).toBe("rect");
+        expect(plate?.getAttribute("class")).toBe("fill-surface");
+        expect(Number(plate?.getAttribute("height"))).toBe(side);
+        expect(side).toBeGreaterThan(0);
+        expect(Number(plate?.getAttribute("x")) + side / 2).toBe(Number(label.getAttribute("x")));
+        expect(Number(plate?.getAttribute("y")) + side / 2).toBe(Number(label.getAttribute("y")));
       }
     });
 

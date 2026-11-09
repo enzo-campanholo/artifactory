@@ -64,12 +64,25 @@
     fill: var(--swatch-6);
   }
 
-  /* Forced colours leave SVG paint as the tokens give it, so the hatchings take the system's own
-     ink and ground themselves, from the pattern their content inherits from. */
+  /* A colour's label sits centred on its x and y, at the size its plate (swatches.ts) was drawn
+     for, whatever the file says. */
+  .figure text[data-swatch] {
+    font-size: 15px;
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+
+  /* Forced colours leave SVG paint as the tokens give it, so the hatchings, and the labels and
+     plates over them, take the system's own ink and ground themselves: the hatchings from the
+     pattern their content inherits from. */
   @media (forced-colors: active) {
-    .figure pattern {
+    .figure :is(pattern, [data-swatch-plate]) {
       --color-text: CanvasText;
       --color-surface: Canvas;
+    }
+
+    .figure text[data-swatch] {
+      color: CanvasText;
     }
   }
 
