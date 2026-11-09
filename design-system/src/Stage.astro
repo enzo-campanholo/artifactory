@@ -554,7 +554,7 @@ function fieldPropsProblems(field: GivenField): string[] {
   const symbols = (field.alphabet ?? []).map((symbol) => symbol.normalize("NFC"));
   const alphabet = symbols.flatMap((symbol, index) => {
     const first = symbols.indexOf(symbol);
-    if ([...symbol].length !== 1) {
+    if (Array.from(symbol).length !== 1) {
       return first === index
         ? [`${named} has ${JSON.stringify(symbol)} in its alphabet, which isn't one code point`]
         : [];
@@ -563,24 +563,22 @@ function fieldPropsProblems(field: GivenField): string[] {
       ? [`${named} has ${JSON.stringify(symbol)} more than once in its alphabet`]
       : [];
   });
-  const { minLength, maxLength } = field;
-  const minLengthHolds = minLength === undefined || isWholeFrom(minLength, 0);
-  const maxLengthHolds = isWholeFrom(maxLength, 1);
+  const { minLength, maxLength } = given;
   return [
     ...alphabet,
-    ...(minLengthHolds
+    ...(minLength === undefined || isWholeFrom(minLength, 0)
       ? []
       : [
           `${named} has \`minLength\` ${JSON.stringify(minLength)}, which isn't a whole number of at least 0`,
         ]),
     ...(maxLength === undefined
       ? [`${named} has no \`maxLength\``]
-      : maxLengthHolds
+      : isWholeFrom(maxLength, 1)
         ? []
         : [
             `${named} has \`maxLength\` ${JSON.stringify(maxLength)}, which isn't a whole number of at least 1`,
           ]),
-    ...(minLengthHolds && maxLengthHolds && minLength !== undefined && minLength > maxLength
+    ...(isWholeFrom(minLength, 0) && isWholeFrom(maxLength, 1) && minLength > maxLength
       ? [
           `${named} has \`minLength\` ${String(minLength)}, above its \`maxLength\` ${String(maxLength)}`,
         ]

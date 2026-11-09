@@ -182,7 +182,7 @@ export function fieldProblem(field: Field, value: unknown): FieldProblem | undef
   if (field.kind === "text") {
     if (typeof value !== "string") return { problem: "not-text" };
     if (value !== value.normalize("NFC")) return { problem: "not-nfc" };
-    const symbols = [...value];
+    const symbols = Array.from(value);
     const outside = symbols.find((symbol) => field.alphabet?.includes(symbol) === false);
     if (outside !== undefined) return { problem: "outside-alphabet", symbol: outside };
     if (symbols.length > field.maxLength) return { problem: "too-long" };
