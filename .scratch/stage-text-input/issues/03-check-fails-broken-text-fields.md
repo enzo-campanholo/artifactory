@@ -58,3 +58,7 @@ Implementer of 03. Result: `pnpm check` fails a Stage's broken text fields as `b
 - **Commits:** d8bab0b (rule, failures, test, skill, doc comment, `COMPONENTS.md`), c7b693c (lint: `Array.from` for code points), the merge of `impeccable-gaps-implementation` at 56951d4 (code display 03; no conflicts), and this closing commit.
 - **Validation:** the Stage-failures test went red, then green (22 of 22 in `artifact-failures.test.ts`). The full `scripts/heavy pnpm check` on the merged HEAD first failed on three ESLint errors in this change (string spread, an unnecessary `?.`), which also failed the fixture-repo tests that lint the same code. After the fix, ESLint and Prettier pass on both files. The final gate's result is recorded in the next comment.
 - **Left undone:** the page's refusal of text (04).
+
+### 2026-11-09: gate
+
+The full `scripts/heavy pnpm check` on 0d00228 passed with 0 failures, Vitest included, and `scripts/heavy --status --json` showed `check.applicability: current` for that HEAD. In the built catalog and `rsa-from-scratch`, every Stage's `data-fields` matches its props as written: the number fields are unchanged, and the text Stage's alphabet is `["a","b"]`. `README.md` was set to mode 644 before the run, as the brief's known-flake note says.
