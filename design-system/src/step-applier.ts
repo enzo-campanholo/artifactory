@@ -172,14 +172,24 @@ export function typedText(text: string): string {
   return text.normalize("NFC");
 }
 
+type FieldProblem =
+  | { problem: "not-whole" | "out-of-bounds" | "not-text" | "not-nfc" | "too-long" | "too-short" }
+  | { problem: "outside-alphabet"; symbol: string };
+
 // The page refuses what the owner types, and the Stage refuses its examples, by the same rule.
-export function fieldProblem(
-  field: Field,
-  value: unknown,
-): "not-whole" | "out-of-bounds" | "not-text" | undefined {
-  if (field.kind === "text") return typeof value === "string" ? undefined : "not-text";
-  if (typeof value !== "number" || !Number.isInteger(value)) return "not-whole";
-  return value < field.min || value > field.max ? "out-of-bounds" : undefined;
+// Typed text reaches it in NFC, so only an example can be refused as "not-nfc".
+export function fieldProblem(field: Field, value: unknown): FieldProblem | undefined {
+  if (field.kind === "text") {
+    if (typeof value !== "string") return { problem: "not-text" };
+    if (value !== value.normalize("NFC")) return { problem: "not-nfc" };
+    const symbols = [...value];
+    const outside = symbols.find((symbol) => field.alphabet?.includes(symbol) === false);
+    if (outside !== undefined) return { problem: "outside-alphabet", symbol: outside };
+    if (symbols.length > field.maxLength) return { problem: "too-long" };
+    return symbols.length < field.minLength ? { problem: "too-short" } : undefined;
+  }
+  if (typeof value !== "number" || !Number.isInteger(value)) return { problem: "not-whole" };
+  return value < field.min || value > field.max ? { problem: "out-of-bounds" } : undefined;
 }
 
 // The Stage says its own lines in the language of the nearest `lang`, and hands builds the same.
