@@ -11,7 +11,7 @@ This is design-system work: do it in a local session, through impeccable (`desig
 
 - [x] A matching with a second `---` and an explanation builds; a second `---` with nothing after it fails with a component error naming `Matching`, tested at the `pnpm check` seam; a matching without one builds as before.
 - [x] On the page, tested at the store seam: the explanation stays hidden while any item is unanswered, shows once the last item locks (checked here, or loaded from the device copy or the server), hides again on Start over, and, when an added item reopens an answered set, hides until that item locks too. Focus doesn't move when it appears.
-- [ ] In print it shows only once every item is locked, as an explanation does elsewhere; a figure inside it is unnumbered.
+- [x] In print it shows only once every item is locked, as an explanation does elsewhere; a figure inside it is unnumbered.
 - [x] `Matching`'s doc comments say how to write the explanation and that it shows once every item locks; `pnpm components` regenerates `COMPONENTS.md`.
 - [x] `DESIGN.md` › Questions says the matching's explanation follows its rows and shows once the last item locks.
 - [x] The `artifact` skill, in the same commit, since `pnpm check` reports the new failure: its `Matching: …` failure line covers the empty explanation, and "Ask questions that test understanding" applies its explanation guidance to a matching.
@@ -48,3 +48,7 @@ Implementer, impeccable-gaps-implementation pass, branch `t3/ef5ce6f7`.
   - The `Matching: …` failure for content after the items names the whole allowed tail (second `---` and explanation), so a stray paragraph tells the agent where an explanation goes.
   - A matching with an explanation went into the pt-BR fixture, and the English one kept none, so both "builds as before" and the pt-BR heading are asserted on `dist/`.
 - **Left undone:** "a figure inside it is unnumbered" is Question explanations 04's rule, still `ready-for-agent`; it keys on `.question-revealed`, which a matching's explanation is, and a note on 04 asks it to include the catalog matching's explanation. Today a figure in any explanation is still numbered, so the print item stays unticked for that half alone: its print half is met (see Validation). The README mode flake (`chmod 644 README.md`) was applied in this worktree.
+
+### 2026-11-09: print item ticked from Question explanations 04
+
+[Question explanations 04](../../question-explanations/issues/04-unnumbered-figures-in-questions.md#comments) made a figure inside any `.question-revealed` part unnumbered. The catalog matching's explanation now holds an uncaptioned figure: on `/catalog/saved-right/` and `/catalog/saved-wrong/`, screen and print, English and pt-BR, it shows with no number and no caption line, and the numbered Figure 1.2 after the matching keeps its number; on `/catalog/unanswered/` and `/catalog/model-answer-shown/` (two of three items chosen) the explanation stays hidden, in print too. So the print item is ticked.

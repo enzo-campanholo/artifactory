@@ -1,6 +1,6 @@
 # 04: Figures inside a model answer or an explanation are unnumbered
 
-Status: claimed
+Status: resolved
 Blocked by: 02
 
 Spec: [Question explanations](../spec.md), section Figures inside a question. The decisions are in the map ticket's `## Answer` (`artifact-generation-gaps` 01); don't reopen them. Needs 02 only so that a figure inside an explanation can be shown; it can run beside 03.
@@ -9,15 +9,15 @@ Spec: [Question explanations](../spec.md), section Figures inside a question. Th
 
 Design-system work: run it in a local session with impeccable (`design-system/CLAUDE.md`).
 
-- [ ] A figure, a diagram and a Stage inside a model answer or an explanation show their caption without number or label, and one with no caption leaves no empty caption line; screen readers hear no number for them.
-- [ ] A figure in a question's prompt keeps its number on its section's series.
-- [ ] The first numbered figure after a question with a figure in its model answer or explanation carries the same number with the model answer closed and open, the question unanswered and locked, on screen and in print.
-- [ ] `DESIGN.md` › Questions says a figure inside a model answer or explanation is unnumbered and keeps its caption, and › Numbering's paragraph ("The page numbers everything with CSS counters…") names the exception.
-- [ ] `OpenQuestion`'s and `Figure`'s doc comments say a figure in a model answer or explanation is unnumbered; `pnpm components` regenerates `COMPONENTS.md`.
-- [ ] The `artifact` skill, in the same commit: its line on what the page numbers ("Write paragraphs that can be cited") says a figure inside a model answer or explanation is unnumbered, so an agent never cites one by number.
-- [ ] The catalog's questions page shows an `OpenQuestion` whose model answer holds a figure, a figure inside the `SingleChoice`'s or `NumericQuestion`'s explanation, and a numbered figure after those questions, checked closed and open, unanswered, right and wrong, in both languages and in print.
-- [ ] Shared parts: the figure counter in the artifact page's frame reaches `Figure`, `Diagram`, `Stage` and `Stepper` figures; check a numbered figure and a numbered diagram elsewhere on the catalog (the components page) keep their numbers, with the same evidence. If `figure.css` or `SvgImage.astro` change, they reach `Figure`, `Diagram` and `Stage`: check each on its catalog page.
-- [ ] Figure numbers are CSS and not tested automatically (`docs/agents/test-seams.md` › Not tested automatically): the evidence is the catalog captures above, and no test is added.
+- [x] A figure, a diagram and a Stage inside a model answer or an explanation show their caption without number or label, and one with no caption leaves no empty caption line; screen readers hear no number for them.
+- [x] A figure in a question's prompt keeps its number on its section's series.
+- [x] The first numbered figure after a question with a figure in its model answer or explanation carries the same number with the model answer closed and open, the question unanswered and locked, on screen and in print.
+- [x] `DESIGN.md` › Questions says a figure inside a model answer or explanation is unnumbered and keeps its caption, and › Numbering's paragraph ("The page numbers everything with CSS counters…") names the exception.
+- [x] `OpenQuestion`'s and `Figure`'s doc comments say a figure in a model answer or explanation is unnumbered; `pnpm components` regenerates `COMPONENTS.md`.
+- [x] The `artifact` skill, in the same commit: its line on what the page numbers ("Write paragraphs that can be cited") says a figure inside a model answer or explanation is unnumbered, so an agent never cites one by number.
+- [x] The catalog's questions page shows an `OpenQuestion` whose model answer holds a figure, a figure inside the `SingleChoice`'s or `NumericQuestion`'s explanation, and a numbered figure after those questions, checked closed and open, unanswered, right and wrong, in both languages and in print.
+- [x] Shared parts: the figure counter in the artifact page's frame reaches `Figure`, `Diagram`, `Stage` and `Stepper` figures; check a numbered figure and a numbered diagram elsewhere on the catalog (the components page) keep their numbers, with the same evidence. If `figure.css` or `SvgImage.astro` change, they reach `Figure`, `Diagram` and `Stage`: check each on its catalog page.
+- [x] Figure numbers are CSS and not tested automatically (`docs/agents/test-seams.md` › Not tested automatically): the evidence is the catalog captures above, and no test is added.
 
 ## Comments
 
@@ -32,3 +32,14 @@ Implementer of [02](02-single-choice-explanation.md#comments). An explanation is
 ### 2026-11-09: from Content types 05
 
 Implementer of [Content types 05](../../content-types/issues/05-matching-explanation.md#comments). A `Matching` now takes an explanation too, after a second `---`: it is the same `.question-explanation[hidden] > .question-revealed`, rendered by `Question.astro` after the box's `<fieldset>`, so the `.question-revealed` key covers it with no change. It stays `hidden` until every item locks. Content types 05 left its "a figure inside it is unnumbered" to this ticket: include the catalog matching's explanation (`catalog/questions.mdx`, between the numeric and the open question) when you check the counters, or add the figure there.
+
+### 2026-11-09: resolved
+
+- **Result:** a `Figure`, `Diagram` or `Stage` inside a `.question-revealed` part (a model answer, or any explanation: single choice, numeric, matching) takes no count on the figure or diagram series and shows its caption alone: `ArtifactFrame.astro`, beside the counters, sets `counter-increment: none` on `.question-revealed :is(figure.figure, figure.diagram)` and hides its `.figure-number`. A figure there with no caption hides its whole `figcaption`, which `SvgImage.astro` and `Stage.astro` now mark `data-uncaptioned` when `caption` is left out, so no empty caption line or margin stays. Figures in a question's prompt, and everywhere outside a revealed part, number as before.
+- **Commits:** claim `4ce99e5`; work `2fa2262`; this close.
+- **Docs:** `DESIGN.md` › Questions gains "Figures inside a question", › Numbering names the exception; doc comments of `Figure`, `Diagram`, `Stage`, `OpenQuestion`, `SingleChoice`, `NumericQuestion` and `Matching`, `COMPONENTS.md` regenerated; the `artifact` skill's "Write paragraphs that can be cited" says never to cite such a figure by number; `.impeccable/design.json`'s Stage entry names the exception.
+- **Catalog:** the questions page now holds a captioned figure in the `SingleChoice`'s explanation, a numbered figure in the `NumericQuestion`'s prompt (Figure 1.1) and a diagram in its explanation, an uncaptioned figure in the matching's explanation, a captioned figure in the `OpenQuestion`'s model answer, and after the questions a numbered figure and diagram in section 1 (Figure 1.2, Diagram 1.1) and a numbered figure in section 2 (Figure 2.1).
+- **Validation:** a browser script read every figure's number from the accessibility tree, and whether its number and caption show, on `/catalog/unanswered/`, `/catalog/model-answer-shown/`, `/catalog/saved-right/` and `/catalog/saved-wrong/`, each with its model answers as rendered and forced open, in English and pt-BR, on screen (light, dark) and in print, plus the components page `/catalog/`. Every one of the 54 readings gave the same series: prompt Figure 1.1, Figure 1.2, Diagram 1.1, Figure 2.1 ("Figura"/"Diagrama" in pt-BR), and the components page Figure 2.1, Diagram 3.1, Figure 4.1–4.3 as before. Every revealed figure, diagram and Stage, when shown, showed no number and screen readers heard only its caption; the uncaptioned ones showed no caption (height 0). Hidden explanations (unanswered, matching only partly chosen) stayed hidden on screen and in print. Element shots at 1280 (light, dark, print) and 393 looked right. A `Stage` in the single choice's explanation (captioned) and in the model answer (uncaptioned) was checked the same way on a temporary build and removed before commit, since the catalog needs none. No page errors. Gate: `scripts/heavy pnpm check` on the final HEAD after merging the integration tip.
+- **Decisions:** the rule lives beside the counters in `ArtifactFrame.astro`, not in `figure.css`, since numbering is the frame's; `figure.css` didn't change. An uncaptioned figure is marked in markup (`data-uncaptioned`) because CSS can't tell a `figcaption` holding only the hidden number from one with caption text. The explanation components' doc comments say it too, not only the two the ticket names, since an agent writing an explanation reads those. The catalog shows a diagram in an explanation and a numbered diagram after it, so the diagram series is covered on the questions page as well.
+- **Shared parts:** the frame's counter reaches `Figure`, `Diagram`, `Stage` and `Stepper`; `SvgImage.astro` (now with the marker) reaches `Figure` and `Diagram`. The components page's figures and diagram keep their numbers (above); `Stepper` renders no `figure.figure` or `figure.diagram`, so the counter never counts it, and its markup is unchanged. `Stage` changed only by the marker on an uncaptioned caption.
+- **Left undone:** none. `pnpm look` still can't shoot a figure inside an explanation; that's Look captures 06, which got a note.
