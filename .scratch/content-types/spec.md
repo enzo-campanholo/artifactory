@@ -91,3 +91,9 @@ Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, e
 
 - **The matching's status** (03), filling "the header's status reports the set": no score anywhere (`DESIGN.md`). While any item is saving, not saved, answered elsewhere or signed out, the header's status follows its most urgent item, and "Try saving again" retries every unsaved item. Once every item locks, the header says only that the set is answered, and each item carries its own right or wrong mark; no count such as "2 de 3 corretas" shows.
 - **Ordering with Question explanations:** 02 waits on Question explanations 01, since both prefactors rewrite the same seam of the question frame. The edge avoids conflicting rewrites; no behaviour depends on it. 05 waits on Question explanations 02, whose explanation it reuses.
+
+### 2026-11-09: owner authorizes the design-system pass
+
+Owner, impeccable-gaps-implementation session, 2026-11-09, the `/implement-spec` request that follows the first implementation pass (thread 3bbd72a3-5eba-484c-95f1-b5d71456b860, which left design-system tickets undone at the owner's choice). This supersedes that deferral for this spec's tickets.
+
+- **Approved:** implementing every unresolved, non-`wontfix` ticket here, design-system work included, through impeccable in a local session (`design-system/CLAUDE.md`); agents decide open implementation questions autonomously without asking, preserving every decision recorded above; and the first pass's and this pass's work are pushed and merged into `main` once the required checks and review pass.

@@ -83,3 +83,9 @@ Runs fail as `stage-run`, as today, naming the combination.
 Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
 
 - **A refused run with several groups** (02) says "Escolha outras opções." / "Choose other options.". A one-group Stage keeps today's line.
+
+### 2026-11-09: owner authorizes the design-system pass
+
+Owner, impeccable-gaps-implementation session, 2026-11-09, the `/implement-spec` request that follows the first implementation pass (thread 3bbd72a3-5eba-484c-95f1-b5d71456b860, which left design-system tickets undone at the owner's choice). This supersedes that deferral for this spec's tickets.
+
+- **Approved:** implementing every unresolved, non-`wontfix` ticket here, design-system work included, through impeccable in a local session (`design-system/CLAUDE.md`); agents decide open implementation questions autonomously without asking, preserving every decision recorded above; and the first pass's and this pass's work are pushed and merged into `main` once the required checks and review pass.

@@ -121,3 +121,9 @@ Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, e
 - **Gaps in Failures** (02, 03): an `input.examples` value that isn't in NFC fails the build; a missing `maxLength`, or one that isn't a whole number of at least 1, fails; a text field given a number reads "example 2 gives `w` 5, which isn't text"; an example with bad symbols names the first offending symbol.
 - **The failed-run line** (04): with a text field, a failed run reads "…para esta entrada." / "…for this input." and ends "Tente outra entrada." / "Try another input.".
 - **Ordering with Stage choice groups:** 01 waits on Stage choice groups 01, since both prefactors rewrite the same seam. The edge avoids conflicting rewrites; no behaviour depends on it.
+
+### 2026-11-09: owner authorizes the design-system pass
+
+Owner, impeccable-gaps-implementation session, 2026-11-09, the `/implement-spec` request that follows the first implementation pass (thread 3bbd72a3-5eba-484c-95f1-b5d71456b860, which left design-system tickets undone at the owner's choice). This supersedes that deferral for this spec's tickets.
+
+- **Approved:** implementing every unresolved, non-`wontfix` ticket here, design-system work included, through impeccable in a local session (`design-system/CLAUDE.md`); agents decide open implementation questions autonomously without asking, preserving every decision recorded above; and the first pass's and this pass's work are pushed and merged into `main` once the required checks and review pass.

@@ -57,3 +57,9 @@ The case the agents reported was a code rewrite drawn as a figure Stepper. [Code
 Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
 
 - **No swatch hatchings in printed steps**, amending "the patterns that Swatches' hatchings use" in Each printed step: swatches are only for `Figure` and `Stage` (Swatches), so a figure Stepper carries none, and ticket 03 is `wontfix`. A Stepper that needs swatches is a new proposal.
+
+### 2026-11-09: owner authorizes the design-system pass
+
+Owner, impeccable-gaps-implementation session, 2026-11-09, the `/implement-spec` request that follows the first implementation pass (thread 3bbd72a3-5eba-484c-95f1-b5d71456b860, which left design-system tickets undone at the owner's choice). This supersedes that deferral for this spec's tickets.
+
+- **Approved:** implementing every unresolved, non-`wontfix` ticket here, design-system work included, through impeccable in a local session (`design-system/CLAUDE.md`); agents decide open implementation questions autonomously without asking, preserving every decision recorded above; and the first pass's and this pass's work are pushed and merged into `main` once the required checks and review pass. Ticket 03 stays `wontfix`, as decided at ticketing.

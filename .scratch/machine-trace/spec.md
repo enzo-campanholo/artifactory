@@ -152,3 +152,9 @@ Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, e
 
 - **Machine faults** (02, 04), a gap in Failures: a fault (division by zero, a read with no input left, the stack dropping below its bottom, and any such fault the definition has) refuses the run. The trace names the instruction's shown line number and the fault in both languages, and `pnpm check` fails it as `stage-run`, never as "`steps` throws" pointing into design-system code. 02 gives the run loop's refusal and 04 the check's failure line.
 - **The main language reaches the build** (01) along with its content, so the narration can choose its sentences on the page and in the check alike.
+
+### 2026-11-09: owner authorizes the design-system pass
+
+Owner, impeccable-gaps-implementation session, 2026-11-09, the `/implement-spec` request that follows the first implementation pass (thread 3bbd72a3-5eba-484c-95f1-b5d71456b860, which left design-system tickets undone at the owner's choice). This supersedes that deferral for this spec's tickets.
+
+- **Approved:** implementing every unresolved, non-`wontfix` ticket here, design-system work included, through impeccable in a local session (`design-system/CLAUDE.md`); agents decide open implementation questions autonomously without asking, preserving every decision recorded above; and the first pass's and this pass's work are pushed and merged into `main` once the required checks and review pass. Ticket 07 (moving the private copy's MEPA builds onto the trace) is private-copy work and stays out of this pass: it runs in the private copy once 06 lands.

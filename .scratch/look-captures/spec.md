@@ -91,3 +91,9 @@ Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, e
 - **A Stepper with no captions prints "no caption"** (02) in place of an `alt`.
 - **The failure rule names every item look couldn't shoot in the run** (04), not only the first.
 - **A drawing in a matching's explanation** ([Content types](../content-types/spec.md)) is revealed the same way as one in a `SingleChoice` explanation (06), so 06 also waits on Content types 05.
+
+### 2026-11-09: owner authorizes the design-system pass
+
+Owner, impeccable-gaps-implementation session, 2026-11-09, the `/implement-spec` request that follows the first implementation pass (thread 3bbd72a3-5eba-484c-95f1-b5d71456b860, which left design-system tickets undone at the owner's choice). This supersedes that deferral for this spec's tickets.
+
+- **Approved:** implementing every unresolved, non-`wontfix` ticket here, design-system work included, through impeccable in a local session (`design-system/CLAUDE.md`); agents decide open implementation questions autonomously without asking, preserving every decision recorded above; and the first pass's and this pass's work are pushed and merged into `main` once the required checks and review pass.
