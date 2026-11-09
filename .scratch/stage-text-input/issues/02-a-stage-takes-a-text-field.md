@@ -1,6 +1,6 @@
 # 02: A Stage takes a text field and runs its build on the text typed
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01
 
 Spec: [Stage text input](../spec.md), sections "A text field", "The build", "The field", "Print and the page without JavaScript", "Say it for the ear", "Runs and Look" and "Documentation". The decisions are in [Typed words in a Stage](../../artifact-generation-gaps/issues/10-typed-words-in-a-stage.md) › Answer. Don't reopen them.
