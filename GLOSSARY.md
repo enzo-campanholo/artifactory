@@ -169,7 +169,7 @@ An open question where the owner answers, reveals a model answer, and marks thei
 _Avoid_: Free-response question, essay question
 
 **Answer**:
-The owner's response to one question within one attempt, marked right or wrong. It locks once checked.
+The owner's response to one question within one attempt, marked right or wrong. It locks once it's saved, or once it arrives already answered from another device. While it's saving, not saved, or lost to a sign-out, it isn't locked yet.
 _Avoid_: Response, submission
 
 **Attempt**:

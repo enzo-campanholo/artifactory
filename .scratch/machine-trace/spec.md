@@ -143,3 +143,12 @@ A private-copy ticket moves the three MEPA builds onto `trace(mepa, …)`. Their
 - Raising the 200-step limit.
 - A component that replaces the Stage and renders a machine's listing and tables itself.
 - A Stage whose code changes between steps: the trace doesn't need it, since a program doesn't change while it runs.
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **Machine faults** (02, 04), a gap in Failures: a fault (division by zero, a read with no input left, the stack dropping below its bottom, and any such fault the definition has) refuses the run. The trace names the instruction's shown line number and the fault in both languages, and `pnpm check` fails it as `stage-run`, never as "`steps` throws" pointing into design-system code. 02 gives the run loop's refusal and 04 the check's failure line.
+- **The main language reaches the build** (01) along with its content, so the narration can choose its sentences on the page and in the check alike.

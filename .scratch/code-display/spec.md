@@ -86,3 +86,12 @@ Component errors name the component:
 - Diff marks between a block-per-step Stepper's blocks.
 - A Stage whose code changes between steps: Stage changes are [Stage controls and drawing](../artifact-generation-gaps/issues/03-stage-controls-and-drawing.md)'s.
 - What a figure Stepper prints: [Printed Steppers](../printed-steppers/spec.md).
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **A plain block's highlight stays visual only** (03), since the prose names the lines: screen readers hear the block as they do without `{…}`.
+- **`font-code` in `COMPONENTS.md`** (05): the script that generates the colour-class listing is extended to list `font-code`, so `COMPONENTS.md` stays generated.

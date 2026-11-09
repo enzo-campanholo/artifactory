@@ -80,3 +80,14 @@ At seam 1 only, extending the fixtures `tests/check/browser-verification.test.ts
 - Shooting plain code blocks, tables or questions.
 - Checking fixed layers for overlap instead of hiding them.
 - Shooting every option or example of a Stage: `pnpm check` runs them, as today.
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **The model-answer reveal comes before the failure rule**, amending Sequencing: the reveal is 03 and the failure rule 04, so a figure inside a model answer is never failed while it waits for its reveal.
+- **A Stepper with no captions prints "no caption"** (02) in place of an `alt`.
+- **The failure rule names every item look couldn't shoot in the run** (04), not only the first.
+- **A drawing in a matching's explanation** ([Content types](../content-types/spec.md)) is revealed the same way as one in a `SingleChoice` explanation (06), so 06 also waits on Content types 05.

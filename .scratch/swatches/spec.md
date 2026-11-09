@@ -67,3 +67,12 @@ D2 draws only its theme colours and its check already fails `style.fill-pattern`
 - Hue as the subject's fact (optics, colour models, flame tests): a new rule by proposal when an artifact needs it.
 - A seventh swatch, a legend component, and swatches in D2.
 - Redrawing the private graph-colouring artifact with swatches: that is work in the private copy.
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **`Step.colours` takes `number | null`** (04), amending "Its `defineBuild` types reject a number outside 1 to 6": a colour outside 1 to 6 fails the build as `stage-run`, not through the type, so a build that computes its colour as a `number` needs no cast.
+- **No swatches in a Stepper** (01), settling the figure Stepper the spec left open: swatches are only for `Figure` and `Stage`, so a figure Stepper carries none. A Stepper that needs them is a new proposal. Printed Steppers 03 is `wontfix` for the same reason.

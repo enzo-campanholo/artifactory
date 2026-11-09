@@ -1,0 +1,20 @@
+# 01: The six swatch hatchings in figures
+
+Status: ready-for-agent
+Blocked by: None (can start immediately)
+
+Source: [Swatches](../spec.md) › Behaviour: the swatches; why: [ADR 0009](../../../docs/adr/0009-colour-as-the-subject-is-drawn-as-swatches.md).
+
+Design-system work: run it in a local session with impeccable, after `PRODUCT.md` and `DESIGN.md`.
+
+**What to build:** a hand-written figure can fill an area (a vertex, a region) with one of six **swatches**, `fill-swatch-1` to `fill-swatch-6`: ink hatchings on the ground, in swatch order diagonal `/`, diagonal `\`, cross-hatch, horizontal, vertical, dots. A Figure whose drawing uses them shows six fills that tell apart at a glance on a part as small as a 2.75rem vertex, in light and dark, in print and in forced colours. Ground stays "uncoloured": no swatch is ink, wiped grey, grey or figure grey. This ticket delivers the fills and their place in the design system's world; labels, names and the check come in 02.
+
+- [ ] `fill-swatch-1` to `fill-swatch-6` paint the six hatchings in swatch order, at one fixed line weight and spacing (dots: one size and pitch), chosen with impeccable so all six tell apart on a 2.75rem vertex at the drawing's smallest scale, with room left for a one- or two-character label plate in its middle (02 draws the plate; leave space for it now).
+- [ ] The hatchings follow the theme: ink lines on the ground, ink on near-black in dark mode; print paints them as written in light; forced colours paint them CanvasText on Canvas.
+- [ ] Two Figures with swatches on one page validate: whatever the hatchings reference (SVG patterns or otherwise) never repeats an ID on the page, since html-validate counts SVG IDs, and resolves inside every drawing that uses it.
+- [ ] `COMPONENTS.md`'s "Colours in figures" lists `fill-swatch-1` to `fill-swatch-6` with what each draws, separately from the token classes. Its generator currently refuses any `.figure .fill-…` rule that isn't `fill: var(--token)`, so teach it the swatches rather than writing them differently to slip past it; run `pnpm components`.
+- [ ] `DESIGN.md` › Colors gains the swatches' Named Rule beside the One Ink and Shape, Not Hue rules, which stay: six hatchings in ink, ground is uncoloured, the label is the colour, edges carry the label only and no line form ever stands for a colour, at most six per drawing (a seventh by proposal). It records the hatchings' weight and spacing, and that a hatching is a fill, not a rule, so the Three Weights Rule doesn't govern it (as with the proof's end square). `.impeccable/design.json` follows.
+- [ ] The catalog's Figure section shows a drawing with all six swatches on vertices of 2.75rem, checked in both themes, print and forced colours.
+- [ ] Shared parts: `figure-colours.css` reaches every Figure, every Stage drawing and every figure Stepper; if the hatchings' definitions go through `InlineSvg.astro` or `SvgImage.astro`, those also reach `Diagram` and every Stepper. Check the existing figure catalog entries, the Prim Stage (`prim-graph.svg`) and the mdc Stages, the orbit figure Stepper and a Diagram on their catalog pages, in both themes, print and forced colours, with the same evidence as the new swatches, and say in the closing comment that nothing else changed.
+
+Notes for the implementer: an SVG pattern's content inherits from where the pattern is defined, not from the shape that uses it. 03 needs `muted` to grey a part's hatching and hover to wipe its ground grey, part by part, so choose a construction that leaves room for that (a variant per state, a mask over a shape that takes the part's tokens, or another), and record the choice in the closing comment for 03. Swatches are for Figures and Stage drawings only (the owner's decision at ticketing, in the spec's `## Comments`). A figure Stepper loads the same colour classes but carries no swatches, so don't offer them in a Stepper, and make sure a Stepper figure is unchanged. A Stepper that needs swatches is a new proposal.

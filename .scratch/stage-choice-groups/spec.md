@@ -75,3 +75,11 @@ Runs fail as `stage-run`, as today, naming the combination.
 - A Stage that draws structure per run, and a fifth mark: kept as documented limits above.
 - A separate shown and spoken text for a step's line.
 - A Stage whose code changes between steps: no report asked for it. [Machine-trace component](../artifact-generation-gaps/issues/04-machine-trace-component.md) raises it again if the machine trace needs it.
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **A refused run with several groups** (02) says "Escolha outras opções." / "Choose other options.". A one-group Stage keeps today's line.

@@ -82,3 +82,12 @@ Locais vivem no quadro da chamada, na pilha; `new` aloca no heap, e globais fica
 - Statement kinds beyond the proposition (remark, notation, axiom, conjecture, …). Each joins by proposal when an artifact needs it.
 - A one-to-one matching the page enforces, partial credit, and per-item explanations.
 - Changing the private artifacts these gaps came from to use either feature: that is work in the private copy.
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **The matching's status** (03), filling "the header's status reports the set": no score anywhere (`DESIGN.md`). While any item is saving, not saved, answered elsewhere or signed out, the header's status follows its most urgent item, and "Try saving again" retries every unsaved item. Once every item locks, the header says only that the set is answered, and each item carries its own right or wrong mark; no count such as "2 de 3 corretas" shows.
+- **Ordering with Question explanations:** 02 waits on Question explanations 01, since both prefactors rewrite the same seam of the question frame. The edge avoids conflicting rewrites; no behaviour depends on it. 05 waits on Question explanations 02, whose explanation it reuses.

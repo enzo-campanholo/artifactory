@@ -111,3 +111,13 @@ A Stage's own rules fail as `build`, under the `artifact` skill's [Build failure
 - Multi-character symbols in an alphabet, multi-line text, and case-insensitive alphabets.
 - Machine definitions for finite automata and Turing machines: each joins by proposal when an artifact needs it, per [Machine trace](../machine-trace/spec.md).
 - Renaming `input.examples`, whose word clashes with the glossary's **Example**: on the map's Out of scope.
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **Gaps in Failures** (02, 03): an `input.examples` value that isn't in NFC fails the build; a missing `maxLength`, or one that isn't a whole number of at least 1, fails; a text field given a number reads "example 2 gives `w` 5, which isn't text"; an example with bad symbols names the first offending symbol.
+- **The failed-run line** (04): with a text field, a failed run reads "…para esta entrada." / "…for this input." and ends "Tente outra entrada." / "Try another input.".
+- **Ordering with Stage choice groups:** 01 waits on Stage choice groups 01, since both prefactors rewrite the same seam. The edge avoids conflicting rewrites; no behaviour depends on it.

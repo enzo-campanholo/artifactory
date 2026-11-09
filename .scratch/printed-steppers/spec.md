@@ -49,3 +49,11 @@ The case the agents reported was a code rewrite drawn as a figure Stepper. [Code
 - Cropping each printed step to its own box.
 - An author's choice between print forms.
 - Printing a Stage's run.
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **No swatch hatchings in printed steps**, amending "the patterns that Swatches' hatchings use" in Each printed step: swatches are only for `Figure` and `Stage` (Swatches), so a figure Stepper carries none, and ticket 03 is `wontfix`. A Stepper that needs swatches is a new proposal.

@@ -50,3 +50,11 @@ Source: [Question explanations](../artifact-generation-gaps/issues/01-question-e
 - One reason per option, shown for the chosen one.
 - An explanation on `OpenQuestion`.
 - Numbering figures inside questions on any series.
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **When it shows** (02, 03), filling what "locks" means: an explanation shows when the answer is locked in the code's and `DESIGN.md`'s sense, saved or answered elsewhere. It stays hidden while the answer is saving, not saved, or lost to a sign-out, exactly as the right option's tick does. `GLOSSARY.md` › Answer already says this.

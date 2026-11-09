@@ -58,3 +58,11 @@ All upstream, since the copy matches upstream outside `artifacts/`:
 - The token's permissions. That's the owner's account setting, already ruled out of scope on the map.
 - Any public version or deploy marker on the site.
 - Reading the domain from anywhere besides the repository variable.
+
+## Comments
+
+### 2026-11-08: owner decisions at ticketing
+
+Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
+
+- **A delegator verifies the child's check** (02), amending "only when … `check.applicability: current`": the delegator also accepts a successful `--last-passed` run of the child's HEAD with the source unchanged since. The implementer first confirms that `scripts/heavy --status --json` shows enough (mode, outcome, HEAD, source unchanged) to tell such a run apart, and stops and reports if it doesn't, rather than inventing a proxy.
