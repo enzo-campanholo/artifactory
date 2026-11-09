@@ -398,7 +398,7 @@ const control: Control = input === undefined ? "choose" : "input";
 const [written] = input?.examples ?? [];
 const fields = (input?.fields ?? []).map(({ name, label, min, max }): Field => ({
   name,
-  label,
+  ...(label === undefined ? {} : { label }),
   kind: "number",
   min,
   max,
