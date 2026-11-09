@@ -552,8 +552,12 @@ as typing them does. A multi-character symbol, such as a parser's `id`, is the b
 give that field no alphabet and tokenise it in the build. Number fields and text fields mix in
 one Stage, such as a hash's text and modulus, `defineBuild<{ t: string; m: number }>`. Without
 JavaScript and in print, the line naming the first example sets a text bare in the code face,
-with no quotation marks, and the empty word as `ε`: "Aceita w? w = `aabba`". This one runs an
-automaton on the word typed:
+with no quotation marks, and the empty word as `ε`: "Aceita w? w = `aabba`". The page refuses
+text that breaks the field's rule as it does a number: it draws the field dashed, keeps the text
+whole, and states the whole rule in the step's line, never the symbol that broke it ("Digite
+até 12 símbolos, só a e b, para w.", "Digite de 2 a 40 caracteres para t."). In a Stage with a
+text field, a run it refuses ends "Tente outra entrada." rather than "Tente outros números.".
+This one runs an automaton on the word typed:
 
 ````mdx
 <Stage
@@ -835,7 +839,8 @@ With `input`:
   it as a `string`, `""` for the empty word. `examples` are inputs, each giving every field a
   value it takes, and `pnpm check` runs the build on every one. The first fills the fields as
   written, so write the content as its result: each table as its last step leaves it. The page
-  refuses a number that isn't whole or is out of bounds, and input the build throws on.
+  refuses a number that isn't whole or is out of bounds, text that breaks its field's rule, and
+  input the build throws on.
 - `build` (`string`, required): The custom build: the name of the `<build>.build.ts` file next to the entry.
 - `prompt` (`string`, required): What to do first, shown where each step's line will be: "Escolha um vértice para começar."
 - `figure` (`string`, optional): A drawing the build marks, imported with `?raw` from an `.svg` file next to the entry. Name

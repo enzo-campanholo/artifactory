@@ -8,6 +8,7 @@ import {
   stageNodes,
   writtenContent,
   type Control,
+  type Field,
   type Shown,
   type StageNodes,
   type Written,
@@ -24,6 +25,46 @@ interface Refused {
   retry: string;
 }
 
+// What a refused run asks the owner to change: the option, or the input, which a Stage with a text
+// field can't call numbers.
+type Retry = "choose" | "numbers" | "text";
+
+type TextField = Extract<Field, { kind: "text" }>;
+
+interface Wording {
+  type: string;
+  upTo: string;
+  from: string;
+  to: string;
+  only: string;
+  and: string;
+  for: string;
+  symbol: [string, string];
+  character: [string, string];
+}
+
+// A text field's whole rule, never the symbol that broke it. The range keeps together on one line,
+// as a refused number's bounds do, and the field's name never stands alone on the last line.
+const textRule = (wording: Wording, name: string, field: TextField) => {
+  const { alphabet, minLength, maxLength } = field;
+  const [one, many] = alphabet === undefined ? wording.character : wording.symbol;
+  const most = `${String(maxLength)} ${maxLength === 1 ? one : many}`;
+  const length =
+    minLength === maxLength
+      ? most
+      : minLength === 0
+        ? `${wording.upTo}\u00a0${most}`
+        : `${wording.from}${String(minLength)}\u00a0${wording.to}\u00a0${most}`;
+  const last = alphabet?.at(-1);
+  const symbols =
+    alphabet === undefined || last === undefined
+      ? ""
+      : alphabet.length === 1
+        ? `, ${wording.only} ${last},`
+        : `, ${wording.only} ${alphabet.slice(0, -1).join(", ")} ${wording.and} ${last},`;
+  return `${wording.type} ${length}${symbols} ${wording.for}\u00a0${name}.`;
+};
+
 const texts = {
   en: {
     step: (step: number, count: number) => `Step ${String(step)} of ${String(count)}.`,
@@ -36,14 +77,35 @@ const texts = {
         failed: "The steps for this option couldn't be worked out. Choose another option.",
         retry: "Choose another option.",
       },
-      input: {
+      numbers: {
         tooMany: (most: number) => `That takes more than ${String(most)} steps. Try other numbers.`,
         failed: "The steps for these numbers couldn't be worked out. Try other numbers.",
         retry: "Try other numbers.",
       },
-    } satisfies Record<Control, Refused>,
+      text: {
+        tooMany: (most: number) => `That takes more than ${String(most)} steps. Try another input.`,
+        failed: "The steps for this input couldn't be worked out. Try another input.",
+        retry: "Try another input.",
+      },
+    } satisfies Record<Retry, Refused>,
     refusedNumber: (name: string, min: number, max: number) =>
       `Type a whole number from ${withMinus(min)}\u00a0to\u00a0${withMinus(max)} for ${name}.`,
+    refusedText: (name: string, field: TextField) =>
+      textRule(
+        {
+          type: "Type",
+          upTo: "up\u00a0to",
+          from: "",
+          to: "to",
+          only: "only",
+          and: "and",
+          for: "for",
+          symbol: ["symbol", "symbols"],
+          character: ["character", "characters"],
+        },
+        name,
+        field,
+      ),
   },
   pt: {
     step: (step: number, count: number) => `Passo ${String(step)} de ${String(count)}.`,
@@ -55,14 +117,35 @@ const texts = {
         failed: "Não foi possível montar os passos desta opção. Escolha outra opção.",
         retry: "Escolha outra opção.",
       },
-      input: {
+      numbers: {
         tooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Tente outros números.`,
         failed: "Não foi possível montar os passos para esses números. Tente outros números.",
         retry: "Tente outros números.",
       },
-    } satisfies Record<Control, Refused>,
+      text: {
+        tooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Tente outra entrada.`,
+        failed: "Não foi possível montar os passos para esta entrada. Tente outra entrada.",
+        retry: "Tente outra entrada.",
+      },
+    } satisfies Record<Retry, Refused>,
     refusedNumber: (name: string, min: number, max: number) =>
       `Digite um número inteiro de ${withMinus(min)}\u00a0a\u00a0${withMinus(max)} para ${name}.`,
+    refusedText: (name: string, field: TextField) =>
+      textRule(
+        {
+          type: "Digite",
+          upTo: "até",
+          from: "de ",
+          to: "a",
+          only: "só",
+          and: "e",
+          for: "para",
+          symbol: ["símbolo", "símbolos"],
+          character: ["caractere", "caracteres"],
+        },
+        name,
+        field,
+      ),
   },
 };
 
@@ -77,6 +160,7 @@ class ArtifactStage extends HTMLElement {
   #nodes: StageNodes = { parts: [], tables: [], code: [] };
   #written: Written = { parts: [], tables: [], code: [] };
   #control: Control = "choose";
+  #retry: Retry = "choose";
   #asWritten = new Map<Element, Node[]>();
   #rowToCopy: Element | undefined;
   #stepRows: Element[] = [];
@@ -124,6 +208,12 @@ class ArtifactStage extends HTMLElement {
     this.#nodes = stageNodes(this);
     this.#written = writtenContent(this.#nodes);
     this.#control = stageControl(this).control;
+    this.#retry =
+      this.#control === "choose"
+        ? "choose"
+        : stageFields(this).some(({ kind }) => kind === "text")
+          ? "text"
+          : "numbers";
     this.#rowToCopy = this.#oneTableRowsAsWritten.at(-1)?.cloneNode(true) as Element | undefined;
     for (const cells of this.#nodes.tables.flatMap(({ rows }) => rows)) {
       for (const cell of cells) {
@@ -222,9 +312,13 @@ class ArtifactStage extends HTMLElement {
         `.stage-field input[name="${CSS.escape(definition.name)}"]`,
       ) as HTMLInputElement;
       const value = definition.kind === "text" ? typedText(field.value) : typedNumber(field.value);
-      if (definition.kind === "number" && fieldProblem(definition, value) !== undefined) {
-        const { label = definition.name, min, max } = definition;
-        this.#refuse(this.#texts.refusedNumber(label, min, max));
+      if (fieldProblem(definition, value) !== undefined) {
+        const label = definition.label ?? definition.name;
+        this.#refuse(
+          definition.kind === "text"
+            ? this.#texts.refusedText(label, definition)
+            : this.#texts.refusedNumber(label, definition.min, definition.max),
+        );
         field.setAttribute("aria-invalid", "true");
         const say = this.#part(".stage-say");
         say.id ||= `stage-say-${String(++refusals)}`;
@@ -246,7 +340,7 @@ class ArtifactStage extends HTMLElement {
         ? { refused: "no-steps" as const }
         : runBuild(build, this.#control, input, this.#written, mainLanguage(this));
     if ("refused" in run) {
-      const refused = this.#texts.refused[this.#control];
+      const refused = this.#texts.refused[this.#retry];
       this.#refuse(
         run.refused === "too-many"
           ? refused.tooMany(run.most)
