@@ -123,24 +123,30 @@ export type Takes = { shape: "text" } | { shape: "named"; values: NamedValue[] }
 
 export interface NamedValue {
   name: string;
-  kind: "number";
+  kind: Field["kind"];
 }
 
 export function stageControl(stage: Element): { control: Control; takes: Takes } {
   const control = stage.getAttribute("data-control") as Control;
   if (control === "choose") return { control, takes: { shape: "text" } };
-  const values = [...stage.querySelectorAll(".stage-field input")].map((field): NamedValue => ({
-    name: field.getAttribute("name") ?? "",
-    kind: "number",
-  }));
+  const values = stageFields(stage).map(({ name, kind }): NamedValue => ({ name, kind }));
   return { control, takes: { shape: "named", values } };
 }
 
+// A typed field as the Stage defines it on its page, once: the page reads what the owner types by
+// it, and the Stage checks its examples and the check types the build by the same definition.
 export interface Field {
   name: string;
   label?: string;
+  kind: "number";
   min: number;
   max: number;
+}
+
+export function stageFields(stage: Element): Field[] {
+  return JSON.parse(
+    stage.querySelector(".stage-input")?.getAttribute("data-fields") ?? "[]",
+  ) as Field[];
 }
 
 // A whole number as the owner types it: digits, with a hyphen or a minus sign before them.
@@ -149,8 +155,8 @@ export function typedNumber(text: string): number {
   return /^-?\d+$/.test(digits) ? Number(digits) : Number.NaN;
 }
 
-// The page refuses what the owner types, and the Stage refuses its examples, by the same rules.
-export function numberProblem(
+// The page refuses what the owner types, and the Stage refuses its examples, by the same rule.
+export function fieldProblem(
   { min, max }: Field,
   value: unknown,
 ): "not-whole" | "out-of-bounds" | undefined {

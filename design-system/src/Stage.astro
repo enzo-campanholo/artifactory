@@ -7,7 +7,7 @@ import InlineSvg from "./InlineSvg.astro";
 import StepControls from "./StepControls.astro";
 import { componentError } from "./component-errors.ts";
 import { buildModule } from "./stage-builds.ts";
-import { numberProblem, type Control, type Field } from "./step-applier.ts";
+import { fieldProblem, type Control, type Field } from "./step-applier.ts";
 
 interface Staged {
   /** The custom build: the name of the `<build>.build.ts` file next to the entry. */
@@ -396,6 +396,13 @@ const choose = "choose" in props ? props.choose : undefined;
 const input = "input" in props ? props.input : undefined;
 const control: Control = input === undefined ? "choose" : "input";
 const [written] = input?.examples ?? [];
+const fields = (input?.fields ?? []).map(({ name, label, min, max }): Field => ({
+  name,
+  label,
+  kind: "number",
+  min,
+  max,
+}));
 // A catalog page's builds sit in `catalog/`, as an artifact's sit beside its entry.
 const slug = Astro.params.slug;
 const buildFile = `/${slug === undefined ? "design-system/catalog" : `artifacts/${slug}`}/${build}.build.ts`;
@@ -418,7 +425,6 @@ const problems = [
 if (problems.length > 0) throw componentError("Stage", problems.join("; "));
 
 function exampleProblems(number: number, example: Record<string, unknown>): string[] {
-  const fields: Field[] = input?.fields ?? [];
   const named = `example ${String(number)}`;
   return [
     ...Object.keys(example)
@@ -427,7 +433,7 @@ function exampleProblems(number: number, example: Record<string, unknown>): stri
     ...fields.flatMap((field) => {
       const value = example[field.name];
       if (value === undefined) return [`${named} has no \`${field.name}\``];
-      const problem = numberProblem(field, value);
+      const problem = fieldProblem(field, value);
       const given = `${named} gives \`${field.name}\` ${JSON.stringify(value)}`;
       return problem === "not-whole"
         ? [`${given}, which isn't a whole number`]
@@ -443,7 +449,7 @@ function exampleProblems(number: number, example: Record<string, unknown>): stri
 const digits = ({ min, max }: Field) => Math.max(String(min).length, String(max).length) + 1;
 
 const example = (values: Record<string, number>) =>
-  (input?.fields ?? []).map(({ name }) => `${name} = ${String(values[name])}`).join(", ");
+  fields.map(({ name }) => `${name} = ${String(values[name])}`).join(", ");
 ---
 
 <artifact-stage data-build={buildFile} data-module={buildModule(buildFile)} data-control={control}>
@@ -463,11 +469,15 @@ const example = (values: Record<string, number>) =>
         </fieldset>
       )}
       {input && (
-        <form class="stage-input" data-examples={JSON.stringify(input.examples)}>
+        <form
+          class="stage-input"
+          data-fields={JSON.stringify(fields)}
+          data-examples={JSON.stringify(input.examples)}
+        >
           <fieldset class="stage-choice">
             <legend>{input.label}</legend>
             <div class="stage-fields">
-              {input.fields.map((field) => (
+              {fields.map((field) => (
                 <label class="stage-field">
                   <span>{field.label ?? field.name}</span>
                   <input
@@ -478,8 +488,6 @@ const example = (values: Record<string, number>) =>
                     autocomplete="off"
                     autocorrect="off"
                     spellcheck="false"
-                    data-min={field.min}
-                    data-max={field.max}
                     style={`--stage-field-digits: ${String(digits(field))}`}
                   />
                 </label>
