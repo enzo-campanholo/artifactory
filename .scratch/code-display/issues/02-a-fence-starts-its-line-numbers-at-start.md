@@ -43,6 +43,7 @@ From code display 01's implementation:
 **Validation.**
 
 - Test-first at `tests/check`: the built-output case now checks `start=0`, `start=10` and no `start` (0…, 10…, 1…), and a new case checks a one-block Stepper over a `start=0` block with `lines={["0", "1-"]}`: each line's steps and the printed list "1 (linha 0)", "2 (linhas 1–3)". Both failed first (the Stepper refused `"0"`, and every block counted from 1), then passed.
+- The Stage-run seam sees which `lines` keys a step may take, not what the page announces, so the announcement is checked in the browser (below): the catalog is English, and "Linha L." is the pt-BR text of the same `line` call, fed the same shown number.
 - Failure fixtures: `start=-1`, `start=x`, `start=1.5`, a bare `start` and `start=01` each fail at the `start` in the fence as `code-start`; a new fixture repo fails `lines={["0", "4"]}` on a four-line `start=0` block as a `Stepper` component error naming 0 to 3; a Stage over a `start=0` block takes `lines: { 0: "reversed" }` and fails `4` as `stage-run` with "it has lines 0 to 3". The existing Stage cases' "it has 4 lines" and "it has 1 line" are reworded.
 - `valid-artifacts`, `artifact-failures` and `artifact-checks`: 83 tests pass. Full `pnpm check` at the merged HEAD, in the final report.
 
