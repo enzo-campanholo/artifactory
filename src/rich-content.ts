@@ -63,7 +63,8 @@ declare module "satteri" {
 // `data-off`, the lines `rich-content.css` greys. Satteri hands Shiki no info string once raw HTML
 // is on, as math needs, so a Shiki transformer can't see `start` or `{…}`: the code visitor keeps
 // each fence's in the document's data, and this plugin, which runs after highlighting, finds a
-// block's by its code.
+// block's by its code. Both walk the compiled document in order, before any component places its
+// slot, so of two blocks with the same code each takes its own fence's.
 const shownLines = defineHastPlugin({
   name: "artifactory-shown-lines",
   element: {

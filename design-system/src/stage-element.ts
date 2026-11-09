@@ -1,8 +1,8 @@
+import { inPageLanguage, mainLanguage } from "./page-language.ts";
 import type { Build, Typed } from "./stage-build.ts";
 import {
   colourLabel,
   fieldProblem,
-  mainLanguage,
   runBuild,
   stageControl,
   stageFields,
@@ -232,15 +232,16 @@ class ArtifactStage extends HTMLElement {
     }
     this.#nodes = stageNodes(this);
     this.#written = writtenContent(this.#nodes);
-    this.#control = stageControl(this).control;
+    const { control, takes } = stageControl(this);
+    this.#control = control;
     this.#retry =
-      this.#control === "choose"
-        ? stageGroups(this).length > 0
+      takes.shape === "option"
+        ? "option"
+        : takes.shape === "groups"
           ? "options"
-          : "option"
-        : stageFields(this).some(({ kind }) => kind === "text")
-          ? "text"
-          : "numbers";
+          : takes.values.some(({ kind }) => kind === "text")
+            ? "text"
+            : "numbers";
     this.#rowToCopy = this.#oneTableRowsAsWritten.at(-1)?.cloneNode(true) as Element | undefined;
     const labels = this.#nodes.parts.flatMap((part) => [...part.querySelectorAll(colourLabel)]);
     const cells = this.#nodes.tables.flatMap(({ rows }) => rows.flat());
@@ -278,7 +279,7 @@ class ArtifactStage extends HTMLElement {
   }
 
   get #texts() {
-    return mainLanguage(this) === "pt-BR" ? texts.pt : texts.en;
+    return inPageLanguage(this, texts);
   }
 
   #part(selector: string): HTMLElement {

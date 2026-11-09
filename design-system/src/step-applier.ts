@@ -140,8 +140,9 @@ export type Run =
 // among several groups hands it named values, as typed input does.
 export type Control = "choose" | "input";
 
-// What a build's `steps` takes: the option chosen as text, or values by name, each of a kind.
-export type Takes = { shape: "text" } | { shape: "named"; values: NamedValue[] };
+// What a build's `steps` takes, by what gives it: one group's option as text, or values by name,
+// each of a kind, from several choice groups or from typed fields.
+export type Takes = { shape: "option" } | { shape: "groups" | "fields"; values: NamedValue[] };
 
 export interface NamedValue {
   name: string;
@@ -153,14 +154,14 @@ export function stageControl(stage: Element): { control: Control; takes: Takes }
   if (control === "choose") {
     const groups = stageGroups(stage);
     return groups.length === 0
-      ? { control, takes: { shape: "text" } }
+      ? { control, takes: { shape: "option" } }
       : {
           control,
-          takes: { shape: "named", values: groups.map(({ name }) => ({ name, kind: "text" })) },
+          takes: { shape: "groups", values: groups.map(({ name }) => ({ name, kind: "text" })) },
         };
   }
   const values = stageFields(stage).map(({ name, kind }): NamedValue => ({ name, kind }));
-  return { control, takes: { shape: "named", values } };
+  return { control, takes: { shape: "fields", values } };
 }
 
 // A Stage with several choice groups names each group on its row; one group goes unnamed, and its
@@ -234,12 +235,6 @@ export function fieldProblem(field: Field, value: unknown): FieldProblem | undef
   }
   if (typeof value !== "number" || !Number.isInteger(value)) return { problem: "not-whole" };
   return value < field.min || value > field.max ? { problem: "out-of-bounds" } : undefined;
-}
-
-// The Stage says its own lines in the language of the nearest `lang`, and hands builds the same.
-export function mainLanguage(stage: Element): Content["lang"] {
-  const lang = stage.closest("[lang]")?.getAttribute("lang") ?? "en";
-  return lang.startsWith("pt") ? "pt-BR" : "en";
 }
 
 // Each run gets its own copy, so a build that changes the content it was given changes neither

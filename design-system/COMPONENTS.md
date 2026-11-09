@@ -965,7 +965,7 @@ With `input`:
 
 ### The build: `@artifactory/design-system/stage-build`
 
-A build file imports only this module and the machines under `@artifactory/design-system/machines/`. Its default export is `defineBuild({ steps(choice) { … } })` with `choose`, or `defineBuild<{ a: number; b: number }>({ steps(input) { … } })` with `input`, or, for a machine the design system holds, `trace(machine, notes)`.
+A build file imports only this module and the machines under `@artifactory/design-system/machines/`. Its default export is `defineBuild({ steps(choice) { … } })` with one choice group, `defineBuild<{ inicio: string; busca: string }>({ steps(chosen) { … } })` with a list of choice groups, or `defineBuild<{ a: number; w: string }>({ steps(input) { … } })` with `input`, or, for a machine the design system holds, `trace(machine, notes)`.
 
 #### `Mark`
 
@@ -1097,9 +1097,11 @@ export, `export default trace(mepa, { reads: ["x", "y"], … })`. The machine re
 from the Stage's content as written (MEPA's from the code block), so the program is written
 once, and says each step in the artifact's main language. `notes` are the program's own data,
 keyed by address, in the artifact's language, never read from the code's comments: `reads`
-names the Stage's fields in the order the machine reads them, exactly the Stage's fields, or
-`pnpm check` fails as `build-input`. Each machine's entry under "Machines" lists its other notes
-and its tables.
+names the Stage's fields in the order the machine reads them, exactly the Stage's fields, each
+of the kind the machine reads (number fields for MEPA), or `pnpm check` fails as `build-input`.
+With a list of choice groups, `reads` names the groups, for a machine that reads text; one
+group's option has no name to read it by, so a trace takes `input` or a list of groups. Each
+machine's entry under "Machines" lists the kind it reads, its other notes and its tables.
 
 The first step shows the starting state, then one step follows per step of the machine until it
 halts, at most 200 in all, as for any build: a run past them is refused, so keep runs short
@@ -1109,7 +1111,7 @@ notes that don't fit the machine, a `reads` name that isn't one of the Stage's f
 refuse every run, `pnpm check` naming each problem and the code line it's on.
 
 ```ts
-function trace<Program, State, Notes, const Reads extends string>(machine: Machine<Program, State, Notes>, notes: NoInfer<Notes> & { reads: readonly Reads[] }): Build<Record<Reads, number>>;
+function trace<Program, State, Notes, Value extends number | string, const Reads extends string>(machine: Machine<Program, State, Notes, Value>, notes: NoInfer<Notes> & { reads: readonly Reads[] }): Build<Record<Reads, Value>>;
 ```
 
 ## Statement
@@ -1405,7 +1407,8 @@ arguments and an optional `; comment`, and the last line is `FIM`:
 
 - `INPP` starts the program: `s` gets −1 and `D[0]` 0.
 - `AMEM n` reserves n cells on the stack, and `DMEM n` frees n.
-- `LEIT` reads the next field, in the order `reads` names them, onto the stack.
+- `LEIT` reads the next field, in the order `reads` names them, onto the stack. MEPA reads only
+  whole numbers, so `reads` names only number fields: a text field fails as `build-input`.
 - `ARMZ k,n` stores the top in `M[D[k] + n]` and pops it; `CRVL k,n` pushes a copy of it. n may
   be negative: `CRVL 1,-5` reads a subroutine's parameter.
 - `CRCT c` pushes the constant c.
@@ -1520,7 +1523,7 @@ The `text`, `muted` and `accent` classes are ink: use them for lines and labels.
 
 ### Code in figures
 
-Text takes the face of the page's headings, Archivo. `font-code` sets a `<text>` in the code face instead, Recursive in mono mode, as code blocks are: give it to code, identifiers and instructions (`push 2`, `head`, `x := 0`), and nothing else. It combines with a colour class, as `class="font-code fill-muted"`, and a Stage's `strong` mark still sets it in bold.
+Text takes the face of the page's headings, Archivo. `font-code` sets a `<text>` in the code face instead, Recursive in mono mode, as code blocks are: give it to code, identifiers and instructions (`push 2`, `head`, `x := 0`), and nothing else. It combines with one of the classes above, as `class="font-code fill-muted"`, and a Stage's `strong` mark still sets it in bold.
 
 ### Swatches
 

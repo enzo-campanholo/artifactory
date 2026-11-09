@@ -1,3 +1,5 @@
+import { escapedAttribute, unescapedAttribute } from "./html-attributes.ts";
+
 // `ptOf` is "of" in Portuguese, agreeing with the label's gender: "Demonstração do Teorema 2.1" but
 // "Demonstração da Proposição 3.2".
 const labels = {
@@ -29,15 +31,6 @@ export function statementAnchor(statementId: string): string {
 
 function escapedText(text: string): string {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
-// As Astro writes attribute values, so the frame reads a slot's ID the way it reads a marker's.
-function escapedAttribute(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
-}
-
-function unescapedAttribute(written: string): string {
-  return written.replaceAll("&quot;", '"').replaceAll("&amp;", "&");
 }
 
 function bilingual({ en, pt }: { en: string; pt: string }, after = ""): string {

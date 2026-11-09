@@ -458,6 +458,47 @@ const customBuilds = {
     "</Stage>",
     "",
     ...stage("texto", ["A"], vertexTable),
+    "<Stage",
+    '  build="mepa-palavra"',
+    "  input={{",
+    '    label: "Ler w",',
+    '    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],',
+    '    examples: [{ w: "aabba" }],',
+    "  }}",
+    '  prompt="Digite uma palavra."',
+    ">",
+    "",
+    "```text start=0",
+    "INPP",
+    "PARA",
+    "FIM",
+    "```",
+    "",
+    "| Registrador | Valor |",
+    "| ----------- | ----: |",
+    "| i           |     1 |",
+    "| s           |    −1 |",
+    "| D[0]        |     0 |",
+    "| entrada     | aabba |",
+    "| saída       |     — |",
+    "",
+    "</Stage>",
+    "",
+    ...stage(
+      "mepa-opcao",
+      ["A"],
+      [
+        "```text start=0",
+        "INPP",
+        "PARA",
+        "FIM",
+        "```",
+        "",
+        "| Registrador | Valor |",
+        "| ----------- | ----: |",
+        "| i           |     0 |",
+      ],
+    ),
     ...groupsStage("grupos"),
     ...groupsStage("grupos-nomes"),
     ...groupsStage("grupos-falta"),
@@ -578,6 +619,20 @@ const customBuilds = {
     "",
   ].join("\n"),
   "artifacts/construcoes/mepa-campos.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["a"] });',
+    "",
+  ].join("\n"),
+  "artifacts/construcoes/mepa-palavra.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["w"] });',
+    "",
+  ].join("\n"),
+  "artifacts/construcoes/mepa-opcao.build.ts": [
     'import { trace } from "@artifactory/design-system/stage-build";',
     'import mepa from "@artifactory/design-system/machines/mepa";',
     "",
@@ -918,7 +973,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 145 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 148 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -1054,6 +1109,8 @@ describe.each([
           "artifacts/construcoes/indice.build.ts:3:28 error build-input: `steps` takes `{ [name: string]: number; a: number; b: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/literal.build.ts:3:28 error build-input: `steps` takes `{ a: number; b: 7 }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/mepa-campos.build.ts:4:16 error build-input: `steps` takes `{ a: number }`, but the Stage's fields give it `{ a: number; b: number }`: name exactly the Stage's fields in `reads` (artifact skill: Custom builds)",
+          "artifacts/construcoes/mepa-opcao.build.ts:4:16 error build-input: `steps` takes `{ a: number }`, but the Stage's options give it text: a machine reads values by name, which one group's option doesn't have: give the Stage `input` or a list of choice groups (artifact skill: Custom builds)",
+          "artifacts/construcoes/mepa-palavra.build.ts:4:16 error build-input: `steps` takes `{ w: number }`, but the Stage's fields give it `{ w: string }`: the machine reads only numbers, and `w` gives it text (artifact skill: Custom builds)",
           "artifacts/construcoes/modulo-tipo.build.ts:3:28 error build-input: `steps` takes `{ t: string; m: string }`, but the Stage's fields give it `{ t: string; m: number }`: write `defineBuild<{ t: string; m: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/opcional.build.ts:3:28 error build-input: `steps` takes `{ a: number; b?: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/palavra-tipo.build.ts:3:28 error build-input: `steps` takes `{ w: number }`, but the Stage's fields give it `{ w: string }`: write `defineBuild<{ w: string }>` (artifact skill: Custom builds)",
@@ -1102,6 +1159,7 @@ describe.each([
           "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 4 marks `2` in `lines` with `negrito`, which isn't a mark (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 4 marks the line `0`, which the code doesn't have: it has lines 1 to 4 (artifact skill: Custom builds)",
           "artifacts/construcoes/marca.build.ts:1:1 error stage-run: with `A`, step 1 marks the part `D` `dashed`, which changes nothing in it: `dashed` acts on shapes with a `stroke-` or `fill-swatch-` class (artifact skill: Custom builds)",
+          "artifacts/construcoes/mepa-opcao.build.ts:1:1 error stage-run: with `A`, the machine can't run: `reads` names `a`, which isn't one of the Stage's fields (artifact skill: Custom builds)",
           "artifacts/construcoes/mesa-cresce.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves the row `2` (`2`, `12`, `6`) after the table's last row as written; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/construcoes/mesa-encolhe.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the table as written has the row `1` (`1`, `18`, `12`) after the last step's last row; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/construcoes/mesa-lacunas.build.ts:1:1 error stage-run: with `a = 1, b = 0`, step 1 has no `body`, but this run's other steps rewrite the table's rows: give every step `body`, `[]` for no rows (artifact skill: Custom builds)",
@@ -1192,7 +1250,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 146 failures" : "pnpm check: 145 failures",
+        fullScope ? "pnpm check: 149 failures" : "pnpm check: 148 failures",
       );
     });
   },

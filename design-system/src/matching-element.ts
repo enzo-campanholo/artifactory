@@ -1,10 +1,13 @@
+import { inPageLanguage } from "./page-language.ts";
 import {
-  inPageLanguage,
+  chosenOption,
+  locksAnswer,
   QuestionAnswer,
-  type QuestionResponse,
+  rightAnswerShown,
   type ShownAnswer,
 } from "./question-answer.ts";
 import { QuestionBox } from "./question-element.ts";
+import type { PageAnswer } from "./state.ts";
 
 const labels = {
   en: { right: "Right", wrong: "Wrong", rightAnswer: "Right answer" },
@@ -13,23 +16,8 @@ const labels = {
 
 const letters = "abcdefghijklmnopqrstuvwxyz";
 
-// Each item's row carries its question's markers and its own row of letter choices.
-function rowResponse(row: HTMLElement): QuestionResponse {
-  return {
-    readResponse() {
-      const chosen = row.querySelector<HTMLInputElement>("input:checked");
-      return chosen === null ? undefined : Number(chosen.value);
-    },
-    showResponse(response) {
-      for (const choice of row.querySelectorAll("input")) {
-        choice.checked = choice.value === JSON.stringify(response);
-      }
-    },
-  };
-}
-
 function locked(shown: ShownAnswer | undefined): shown is ShownAnswer {
-  return shown?.status === "saved" || shown?.status === "answered-elsewhere";
+  return locksAnswer(shown?.status);
 }
 
 class Matching extends QuestionBox {
@@ -41,22 +29,28 @@ class Matching extends QuestionBox {
     return this.#rows;
   }
 
+  // Each item's row carries its question's markers and its own row of letter choices.
   protected get answers(): readonly QuestionAnswer[] {
-    this.#answers ??= this.#itemRows.map((row) => new QuestionAnswer(row, rowResponse(row)));
+    this.#answers ??= this.#itemRows.map((row) => new QuestionAnswer(row, chosenOption(row)));
     return this.#answers;
   }
 
-  // A row's mark shows only once its answer is locked, so nothing singles out the right letter
-  // before. Restored marks aren't read out, as a restored status isn't. The explanation is the
-  // set's, so it waits for every item to lock.
-  protected override answersShown(shown: readonly (ShownAnswer | undefined)[]): void {
-    const explanation = this.querySelector<HTMLElement>(":scope > form > .question-explanation");
-    if (explanation !== null) explanation.hidden = !shown.every(locked);
+  // Each item's row carries its own status; the box carries the set's. A row's mark shows only
+  // once its answer is locked, so nothing singles out the right letter before. Restored marks
+  // aren't read out, as a restored status isn't. The explanation is the set's, so it waits for
+  // every item to lock.
+  protected answersShown(
+    shown: readonly (ShownAnswer | undefined)[],
+    boxStatus: PageAnswer["status"] | undefined,
+  ): void {
+    if (boxStatus === undefined) delete this.dataset.status;
+    else this.dataset.status = boxStatus;
+    this.showExplanation(shown.every(locked));
     const text = inPageLanguage(this, labels);
     this.#itemRows.forEach((row, index) => {
       const answer = shown[index];
       const rightChoice = row.dataset.questionKey;
-      const rightShown = locked(answer) && answer.mark === "wrong";
+      const rightShown = rightAnswerShown(answer);
       for (const choice of row.querySelectorAll("input")) {
         choice
           .closest("label")

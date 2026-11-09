@@ -111,7 +111,8 @@
  *
  * - `INPP` starts the program: `s` gets −1 and `D[0]` 0.
  * - `AMEM n` reserves n cells on the stack, and `DMEM n` frees n.
- * - `LEIT` reads the next field, in the order `reads` names them, onto the stack.
+ * - `LEIT` reads the next field, in the order `reads` names them, onto the stack. MEPA reads only
+ *   whole numbers, so `reads` names only number fields: a text field fails as `build-input`.
  * - `ARMZ k,n` stores the top in `M[D[k] + n]` and pops it; `CRVL k,n` pushes a copy of it. n may
  *   be negative: `CRVL 1,-5` reads a subroutine's parameter.
  * - `CRCT c` pushes the constant c.
@@ -200,11 +201,11 @@ import {
   spokenNumber,
   type Language,
   type Machine,
-  type Moved,
+  type StepOutcome,
   type Parsed,
   type Problem,
-  type Said,
-  type View,
+  type InEachLanguage,
+  type ShownState,
 } from "../machine.ts";
 import type { CellChange, Content, Mark } from "../stage-build.ts";
 
@@ -440,11 +441,11 @@ const faults = {
     "pt-BR": "s ainda não tem valor: o programa começa com INPP",
     en: "s has no value yet: a program starts with INPP",
   },
-  noValue: (name: string): Said => ({
+  noValue: (name: string): InEachLanguage => ({
     "pt-BR": `${name} não tem valor`,
     en: `${name} has no value`,
   }),
-  noCell: (name: string): Said => ({
+  noCell: (name: string): InEachLanguage => ({
     "pt-BR": `${name} não existe`,
     en: `${name} doesn't exist`,
   }),
@@ -628,12 +629,12 @@ function start(program: Program, input: number[]): State {
 
 const cellName = (address: number) => `M[${shownNumber(address)}]`;
 
-function step(state: State): Moved<State> {
+function step(state: State): StepOutcome<State> {
   const { program, i } = state;
   const { label, read } = program.listing[i] ?? { label: undefined, read: { op: "FIM" } };
   const say = words[program.lang];
   const spoken = (value: number | undefined) => spokenNumber(value, program.lang);
-  const fault = (said: Said) => ({ fault: { line: i, fault: said } });
+  const fault = (said: InEachLanguage) => ({ fault: { line: i, fault: said } });
   const next: State = {
     ...state,
     i: i + 1,
@@ -679,7 +680,7 @@ function step(state: State): Moved<State> {
   if (s === undefined) return fault(faults.notStarted);
 
   // Pops `count` cells, each with a value, or gives the fault that stops the run.
-  const popped = (count: number): number[] | Said => {
+  const popped = (count: number): number[] | InEachLanguage => {
     if (s - count < -1) return faults.belowBottom;
     const values = Array.from({ length: count }, (_, at) => next.M[s - count + 1 + at]);
     const missing = values.findIndex((value) => value === undefined);
@@ -693,7 +694,7 @@ function step(state: State): Moved<State> {
     next.wrote = [s + 1];
     next.roles[s + 1] = cellRole;
   };
-  const address = (k: number, n: number): number | Said => {
+  const address = (k: number, n: number): number | InEachLanguage => {
     const base = state.D[k];
     if (base === undefined) return faults.noValue(`D[${String(k)}]`);
     return base + n < 0 ? faults.noCell(cellName(base + n)) : base + n;
@@ -877,7 +878,7 @@ function recordOffsets({ program, calls }: State, top: number): (number | undefi
   return offsets;
 }
 
-function view(state: State): View {
+function view(state: State): ShownState {
   const { program, s } = state;
   const named = headers[program.lang];
   const lines: Record<number, Mark> = {};
@@ -933,6 +934,6 @@ function view(state: State): View {
   return { lines, cells };
 }
 
-const mepa: Machine<Program, State, Notes> = { parse, start, step, view };
+const mepa: Machine<Program, State, Notes, number> = { parse, start, step, view };
 
 export default mepa;

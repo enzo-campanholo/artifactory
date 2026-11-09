@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 import { Window } from "happy-dom";
+import { mainLanguage } from "@artifactory/design-system/page-language";
 import type { Content, Typed } from "@artifactory/design-system/stage-build";
 import {
-  mainLanguage,
   rowTexts,
   stageControl,
   stageGroups,
@@ -63,18 +63,17 @@ async function stagesOnPages(root: string): Promise<StageOnPage[]> {
       if (!existsSync(join(root, file))) continue;
       const stage = element as unknown as Element;
       const { control, takes } = stageControl(stage);
-      const groups = stageGroups(stage);
       stages.push({
         file,
         control,
         takes,
         inputs:
-          control === "input"
+          takes.shape === "fields"
             ? (JSON.parse(
                 element.querySelector(".stage-input")?.getAttribute("data-examples") ?? "[]",
               ) as Typed[])
-            : groups.length > 0
-              ? combinations(groups)
+            : takes.shape === "groups"
+              ? combinations(stageGroups(stage))
               : [...element.querySelectorAll(".stage-option input")].map(
                   (input) => input.getAttribute("value") ?? "",
                 ),
@@ -202,7 +201,7 @@ function runStage(
 
 // An example reads as its numbers in the fields' order, as `pnpm look` prints it: `a = 48, b = 18`.
 function named(input: string | Typed, takes: Takes): string {
-  return takes.shape === "text"
+  return takes.shape === "option"
     ? (input as string)
     : takes.values.map(({ name }) => `${name} = ${String((input as Typed)[name])}`).join(", ");
 }

@@ -127,7 +127,7 @@ function buildSection(specifier: string, file: string, source: string): string {
   );
   return [
     `### The build: \`${specifier}\``,
-    "A build file imports only this module and the machines under `@artifactory/design-system/machines/`. Its default export is `defineBuild({ steps(choice) { … } })` with `choose`, or `defineBuild<{ a: number; b: number }>({ steps(input) { … } })` with `input`, or, for a machine the design system holds, `trace(machine, notes)`.",
+    "A build file imports only this module and the machines under `@artifactory/design-system/machines/`. Its default export is `defineBuild({ steps(choice) { … } })` with one choice group, `defineBuild<{ inicio: string; busca: string }>({ steps(chosen) { … } })` with a list of choice groups, or `defineBuild<{ a: number; w: string }>({ steps(input) { … } })` with `input`, or, for a machine the design system holds, `trace(machine, notes)`.",
     ...exported.map((declaration) => {
       const name = declaration.name?.getText(script) ?? "";
       const shape = typescript.isInterfaceDeclaration(declaration)
@@ -403,7 +403,7 @@ function figureColours(css: string, swatches: string[]): string {
     rules.map(([, className, token]) => `- \`${className ?? ""}\`: \`${token ?? ""}\``).join("\n"),
     `The ${colours(true)} classes are ink: use them for lines and labels. The ${colours(false)} classes are too faint to read on the page: use them for fills and gridlines, never for text or a line that carries meaning, unless it sits on an ink fill.`,
     "### Code in figures",
-    `Text takes the face of the page's headings, Archivo. \`${codeFace}\` sets a \`<text>\` in the code face instead, Recursive in mono mode, as code blocks are: give it to code, identifiers and instructions (\`push 2\`, \`head\`, \`x := 0\`), and nothing else. It combines with a colour class, as \`class="${codeFace} fill-muted"\`, and a Stage's \`strong\` mark still sets it in bold.`,
+    `Text takes the face of the page's headings, Archivo. \`${codeFace}\` sets a \`<text>\` in the code face instead, Recursive in mono mode, as code blocks are: give it to code, identifiers and instructions (\`push 2\`, \`head\`, \`x := 0\`), and nothing else. It combines with one of the classes above, as \`class="${codeFace} fill-muted"\`, and a Stage's \`strong\` mark still sets it in bold.`,
     "### Swatches",
     `When colour is the subject (a graph or map colouring, an edge colouring, a red-black tree), each colour is a swatch: a hatching in ink on the ground, never a hue or a line form. In a \`Figure\` or a \`Stage\` drawing, never a \`Stepper\`, fill an area (a vertex, a region) with its colour's class, in swatch order, at most ${String(swatches.length)} to a drawing; an area left in the ground is uncoloured:`,
     swatches.map((draws, index) => `- \`fill-swatch-${String(index + 1)}\`: ${draws}`).join("\n"),

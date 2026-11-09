@@ -1,3 +1,4 @@
+import { inPageLanguage } from "./page-language.ts";
 import type { NumberedQuestion } from "./question-markers.ts";
 import { check, type Json, type Mark } from "./scoring.ts";
 import type { PageAnswer, Store } from "./state.ts";
@@ -7,18 +8,38 @@ export interface QuestionResponse {
   showResponse(response: Json): void;
 }
 
+// A choice among numbered options, as a single choice's options and a matching item's letters
+// are: the response is the chosen option's number.
+export function chosenOption(within: Element): QuestionResponse {
+  return {
+    readResponse() {
+      const chosen = within.querySelector<HTMLInputElement>("input:checked");
+      return chosen === null ? undefined : Number(chosen.value);
+    },
+    showResponse(response) {
+      for (const option of within.querySelectorAll("input")) {
+        option.checked = option.value === JSON.stringify(response);
+      }
+    },
+  };
+}
+
 export interface ShownAnswer {
   status: PageAnswer["status"];
   mark: Mark | "ownRight" | "ownWrong";
   restored: boolean;
 }
 
-const labels = { en: { question: "Question" }, pt: { question: "Questão" } };
-
-export function inPageLanguage<Text>(element: Element, texts: { en: Text; pt: Text }): Text {
-  const lang = element.closest("[lang]")?.getAttribute("lang") ?? "en";
-  return lang.startsWith("pt") ? texts.pt : texts.en;
+export function locksAnswer(status: PageAnswer["status"] | undefined): boolean {
+  return status === "saved" || status === "answered-elsewhere";
 }
+
+// Only once a wrong answer is locked, so nothing singles out the right answer before.
+export function rightAnswerShown(answer: ShownAnswer | undefined): boolean {
+  return locksAnswer(answer?.status) && answer?.mark === "wrong";
+}
+
+const labels = { en: { question: "Question" }, pt: { question: "Questão" } };
 
 function ownMark(submitter: HTMLElement | null): Mark | undefined {
   const value = submitter?.getAttribute("value");

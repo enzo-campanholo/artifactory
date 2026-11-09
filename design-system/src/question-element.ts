@@ -1,5 +1,6 @@
+import { inPageLanguage } from "./page-language.ts";
 import {
-  inPageLanguage,
+  locksAnswer,
   QuestionAnswer,
   type QuestionResponse,
   type ShownAnswer,
@@ -161,31 +162,34 @@ export abstract class QuestionBox extends HTMLElement {
       for (const answer of reopened) answer.reopen();
     }
     const shown = this.answers.map((answer) => answer.show(store));
-    this.answersShown(shown);
     const report = boxReport(shown);
-    this.showBoxStatus(report?.status);
+    this.answersShown(shown, report?.status);
     if (report !== undefined) this.#report(store, report, focused);
     else this.#clearReport();
     if (reopened.length > 0) this.responseChanged(false);
     else if (notShownYet) this.#syncRestoredResponse();
   }
 
-  // Each answer's element carries its own status; a box holding several questions carries the set's.
-  protected showBoxStatus(status: PageAnswer["status"] | undefined): void {
-    if (status === undefined) delete this.dataset.status;
-    else this.dataset.status = status;
-  }
-
   protected statusWords({ status }: ShownAnswer): StatusWords {
     return setStatusText[status];
   }
 
-  // Called with each answer as shown, in the order of `answers`, on every change.
-  protected abstract answersShown(shown: readonly (ShownAnswer | undefined)[]): void;
+  // Called on every change with each answer as shown, in the order of `answers`, and the status the
+  // box reports for them all.
+  protected abstract answersShown(
+    shown: readonly (ShownAnswer | undefined)[],
+    boxStatus: PageAnswer["status"] | undefined,
+  ): void;
+
+  // The box's own explanation, never one inside a question it holds.
+  protected showExplanation(shown: boolean) {
+    const explanation = this.querySelector<HTMLElement>(":scope > form > .question-explanation");
+    if (explanation !== null) explanation.hidden = !shown;
+  }
 
   #report(store: Store, report: ShownAnswer, focused: Element | null) {
     const { status: answerStatus, restored } = report;
-    const text = this.inPageLanguage(labels);
+    const text = inPageLanguage(this, labels);
     const status = this.#part(".question-status");
     if (restored) status.setAttribute("aria-live", "off");
     status.textContent = this.statusWords(report)
@@ -222,44 +226,22 @@ export abstract class QuestionBox extends HTMLElement {
     status.textContent = "";
     this.#part(".question-recovery").hidden = true;
   }
-
-  protected inPageLanguage<Text>(texts: { en: Text; pt: Text }): Text {
-    return inPageLanguage(this, texts);
-  }
 }
 
-// A question box holding one question, whose markers it carries. Its explanation, if it has one,
-// shows only while the answer is locked, as a wrong answer's right option does.
+// A question box holding one question, whose markers it carries, so its one answer's status and
+// mark are on the box itself. Its explanation, if it has one, shows only while the answer is
+// locked, as a wrong answer's right option does.
 export abstract class QuestionElement extends QuestionBox implements QuestionResponse {
-  static observedAttributes = ["data-status", "data-mark"];
-
   abstract readResponse(): Json | undefined;
   abstract showResponse(response: Json): void;
 
   protected readonly answers = [new QuestionAnswer(this, this)];
 
-  protected override showBoxStatus(): void {
-    // Its one answer's status and mark are on the box itself already.
-  }
-
-  protected answersShown(): void {
-    // Its one answer shows its mark on the box, through its status and mark attributes.
+  protected answersShown([answer]: readonly (ShownAnswer | undefined)[]): void {
+    this.showExplanation(locksAnswer(answer?.status));
   }
 
   protected override statusWords({ status, mark }: ShownAnswer): StatusWords {
     return markedStatusText[status](mark);
-  }
-
-  attributeChangedCallback() {
-    const explanation = this.querySelector<HTMLElement>(":scope > form > .question-explanation");
-    if (explanation !== null) explanation.hidden = !this.#answerLocked;
-  }
-
-  get #answerLocked(): boolean {
-    return this.dataset.status === "saved" || this.dataset.status === "answered-elsewhere";
-  }
-
-  protected get wrongAnswerLocked(): boolean {
-    return this.#answerLocked && this.dataset.mark === "wrong";
   }
 }

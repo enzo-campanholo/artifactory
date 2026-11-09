@@ -286,6 +286,7 @@ const printedSteps = linesOfStep
 )}
 
 <script>
+  import { inPageLanguage } from "./page-language.ts";
   import { lineRuns } from "./stepper.ts";
 
   const texts = {
@@ -339,8 +340,7 @@ const printedSteps = linesOfStep
     }
 
     get #texts() {
-      const lang = this.closest("[lang]")?.getAttribute("lang") ?? "en";
-      return lang.startsWith("pt") ? texts.pt : texts.en;
+      return inPageLanguage(this, texts);
     }
 
     #part(selector: string): HTMLElement {

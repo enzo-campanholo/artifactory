@@ -1,3 +1,5 @@
+import { inPageLanguage } from "./page-language.ts";
+import { chosenOption, rightAnswerShown, type ShownAnswer } from "./question-answer.ts";
 import { QuestionElement } from "./question-element.ts";
 import type { Json } from "./scoring.ts";
 
@@ -7,6 +9,8 @@ const labels = {
 };
 
 class SingleChoice extends QuestionElement {
+  readonly #options = chosenOption(this);
+
   constructor() {
     super();
     // The browser's own message follows the browser's language, not the page's.
@@ -14,7 +18,7 @@ class SingleChoice extends QuestionElement {
       "invalid",
       (event) => {
         if (event.target instanceof HTMLInputElement)
-          event.target.setCustomValidity(this.inPageLanguage(labels).chooseFirst);
+          event.target.setCustomValidity(inPageLanguage(this, labels).chooseFirst);
       },
       { capture: true },
     );
@@ -23,14 +27,12 @@ class SingleChoice extends QuestionElement {
     });
   }
 
-  override attributeChangedCallback() {
-    super.attributeChangedCallback();
-    this.#showRightAnswer();
+  protected override answersShown(shown: readonly (ShownAnswer | undefined)[]): void {
+    super.answersShown(shown);
+    this.#showRightAnswer(rightAnswerShown(shown[0]));
   }
 
-  // Only once a wrong answer is locked, so nothing singles out the right option before.
-  #showRightAnswer() {
-    const shown = this.wrongAnswerLocked;
+  #showRightAnswer(shown: boolean) {
     const descriptionId = `${this.id}--right-answer`;
     this.querySelector(`#${descriptionId}`)?.remove();
     for (const option of this.querySelectorAll("li")) {
@@ -45,20 +47,17 @@ class SingleChoice extends QuestionElement {
       const description = document.createElement("span");
       description.id = descriptionId;
       description.hidden = true;
-      description.textContent = this.inPageLanguage(labels).rightAnswer;
+      description.textContent = inPageLanguage(this, labels).rightAnswer;
       option.append(description);
     }
   }
 
   readResponse(): Json | undefined {
-    const chosen = this.querySelector<HTMLInputElement>("input:checked");
-    return chosen === null ? undefined : Number(chosen.value);
+    return this.#options.readResponse();
   }
 
   showResponse(response: Json): void {
-    for (const option of this.querySelectorAll("input")) {
-      option.checked = option.value === JSON.stringify(response);
-    }
+    this.#options.showResponse(response);
   }
 }
 

@@ -1,4 +1,5 @@
 import { componentError } from "./component-errors.ts";
+import { inlineItems, optionsList } from "./list-items.ts";
 import { splitAtRule } from "./split-at-rule.ts";
 
 export interface MatchingItem {
@@ -7,23 +8,10 @@ export interface MatchingItem {
   text: string;
 }
 
-const optionsList = /<ol\b[^>]*>([\s\S]*)<\/ol>\s*$/;
 const itemsList = /^<ul\b[^>]*>((?:(?!<\/?(?:ul|ol)\b)[\s\S])*)<\/ul>/;
-const listItem = /<li\b[^>]*>([\s\S]*?)<\/li>/g;
-const singleParagraph = /^\s*<p>((?:(?!<\/?p\b)[\s\S])*)<\/p>\s*$/;
 
 const shape =
   "write the prompt, then its options as one numbered list, then a blank line, `---`, another blank line and its items as one bulleted list, with no list inside an option or item";
-
-function inlineParts(items: string): string[] {
-  return [...items.matchAll(listItem)].map(([, item = ""]) => {
-    if (!/<p\b/.test(item)) return item.trim();
-    const paragraph = singleParagraph.exec(item);
-    if (paragraph === null)
-      throw componentError("Matching", "keep each option and each item to one paragraph");
-    return paragraph[1] ?? "";
-  });
-}
 
 const counted = (count: number, one: string, many: string) =>
   `${String(count)} ${count === 1 ? one : many}`;
@@ -86,8 +74,11 @@ export function matchingParts(
       "write the explanation after the second `---`, or leave out that `---`",
     );
   }
-  const optionTexts = inlineParts(options[1] ?? "");
-  const itemTexts = inlineParts(items[1] ?? "");
+  const optionTexts = inlineItems(options[1] ?? "");
+  const itemTexts = inlineItems(items[1] ?? "");
+  if (optionTexts === undefined || itemTexts === undefined) {
+    throw componentError("Matching", "keep each option and each item to one paragraph");
+  }
   const keys = Object.entries(answers);
   const problems = countProblems(optionTexts.length, itemTexts.length, keys);
   if (problems.length > 0) throw componentError("Matching", problems.join("; "));

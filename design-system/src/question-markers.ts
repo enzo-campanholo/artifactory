@@ -1,3 +1,4 @@
+import { escapedAttribute, unescapedAttribute } from "./html-attributes.ts";
 import type { AutoCheckedKind, Json, Question } from "./scoring.ts";
 
 export type NumberedQuestion = Question & { number: number };
@@ -20,14 +21,6 @@ export function questionMarkers({ id, kind, key }: Question) {
 const markers =
   /<[a-z][\w-]*\sid="q-[^"]*"\sdata-question-id="([^"]*)"\sdata-question-kind="([^"]*)"(?:\sdata-question-key="([^"]*)")?/g;
 
-function attributeValue(written: string): string {
-  return written.replaceAll("&quot;", '"').replaceAll("&amp;", "&");
-}
-
-function escapedAttribute(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
-}
-
 // The page's frame fills in question numbers a component can't count: a CSS counter can't print a
 // range ahead of the questions it counts.
 export function questionRangeSlot(firstId: string, lastId: string): string {
@@ -45,7 +38,7 @@ const numberSlot = /(<span data-question-number="([^"]*)">)(<\/span>)/g;
 export function withQuestionNumbers(content: string, questions: NumberedQuestion[]): string {
   const numbers = new Map<string, number>();
   for (const { id, number } of questions) if (!numbers.has(id)) numbers.set(id, number);
-  const numberOf = (written: string) => numbers.get(attributeValue(written));
+  const numberOf = (written: string) => numbers.get(unescapedAttribute(written));
   return content
     .replace(rangeSlot, (slot, open: string, from: string, to: string, close: string) => {
       const first = numberOf(from);
@@ -73,9 +66,9 @@ export function readQuestions(html: string): NumberedQuestion[] {
   return numbered(
     [...html.matchAll(markers)].map(([, id = "", kind = "", key]) =>
       markedQuestion(
-        attributeValue(id),
-        attributeValue(kind),
-        key === undefined ? undefined : attributeValue(key),
+        unescapedAttribute(id),
+        unescapedAttribute(kind),
+        key === undefined ? undefined : unescapedAttribute(key),
       ),
     ),
   );
