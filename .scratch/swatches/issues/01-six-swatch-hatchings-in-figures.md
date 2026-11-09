@@ -1,6 +1,6 @@
 # 01: The six swatch hatchings in figures
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Source: [Swatches](../spec.md) › Behaviour: the swatches; why: [ADR 0009](../../../docs/adr/0009-colour-as-the-subject-is-drawn-as-swatches.md).
