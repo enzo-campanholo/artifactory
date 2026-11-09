@@ -247,8 +247,15 @@ letter them yourself. Use it when exactly one option is right and the options ca
 by side. For a computed number, use `NumericQuestion`, since options would let the owner work
 backwards from them.
 
-Write the question first, then the options as one numbered list at the end. Options can hold
-inline math and code, one paragraph each:
+Write the question first, then the options as one numbered list at its end. Options can hold
+inline math and code, one paragraph each.
+
+Then, optionally, a blank line, `---`, another blank line and the explanation: why the right
+option is right, with the reasons for wrong ones in its prose ("a) esquece …"). It can hold
+paragraphs, math, code, lists and figures. It shows, under the heading "Explicação" /
+"Explanation", only once the answer locks, right or wrong. It reasons about the answer but never
+teaches a fact for the first time, since an owner who skips the question never reads it, so put
+every fact they must learn in the text too. Write one whenever the source gives a reason:
 
 ```mdx
 import SingleChoice from "@artifactory/design-system/single-choice";
@@ -260,6 +267,11 @@ Qual é a derivada de $x^2$?
 1. $x$
 2. $2x$
 3. $x^2 / 2$
+
+---
+
+Pela regra da potência, o expoente desce como fator e diminui de um: $2x^{2-1} = 2x$. a) esquece
+o fator; c) integra em vez de derivar.
 
 </SingleChoice>
 ```

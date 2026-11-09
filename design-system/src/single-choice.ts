@@ -1,4 +1,5 @@
 import { componentError } from "./component-errors.ts";
+import { splitAtRule } from "./split-at-rule.ts";
 
 const optionsList = /<ol\b[^>]*>([\s\S]*)<\/ol>\s*$/;
 const optionItem = /<li\b[^>]*>([\s\S]*?)<\/li>/g;
@@ -7,12 +8,25 @@ const singleParagraph = /^\s*<p>((?:(?!<\/?p\b)[\s\S])*)<\/p>\s*$/;
 export function singleChoiceParts(
   html: string,
   answer: number,
-): { prompt: string; options: string[] } {
-  const list = optionsList.exec(html);
-  if (list === null || html.match(/<ol\b/g)?.length !== 1 || /<(?:ul|ol)\b/.test(list[1] ?? "")) {
+): { prompt: string; options: string[]; explanation: string | undefined } {
+  const parts = splitAtRule(html);
+  const question = parts?.before ?? html;
+  const explanation = parts?.after;
+  const list = optionsList.exec(question);
+  if (
+    list === null ||
+    question.match(/<ol\b/g)?.length !== 1 ||
+    /<(?:ul|ol)\b/.test(list[1] ?? "")
+  ) {
     throw componentError(
       "SingleChoice",
-      "write the question, then its options as one numbered list at the end, with no list inside an option",
+      "write the question, then its options as one numbered list at the end, before any `---`, with no list inside an option",
+    );
+  }
+  if (explanation === "") {
+    throw componentError(
+      "SingleChoice",
+      "write the explanation after `---`, or leave out the `---`",
     );
   }
   const options = [...(list[1] ?? "").matchAll(optionItem)].map(([, option = ""]) => {
@@ -34,5 +48,5 @@ export function singleChoiceParts(
       `\`answer\` is ${String(answer)}, but it must be the number of one of its ${String(options.length)} options`,
     );
   }
-  return { prompt: html.slice(0, list.index), options };
+  return { prompt: question.slice(0, list.index), options, explanation };
 }

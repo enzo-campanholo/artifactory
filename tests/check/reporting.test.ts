@@ -56,6 +56,13 @@ describe("a repo with an artifact whose question breaks its component's rules, u
         "",
         "1. Só esta",
         "",
+        "---",
+        "",
+        "Uma explicação numerada não dá opções:",
+        "",
+        "1. esta",
+        "2. nem esta",
+        "",
         "</SingleChoice>",
         "",
       ].join("\n"),
@@ -202,6 +209,50 @@ describe("an artifact whose numeric question's key can't work", () => {
     expect(run.summary).toEqual([
       "pnpm check: 1 failure",
       'artifacts/queda-livre/index.mdx:13:1 error build: NumericQuestion: `answer` is "9,81"; write its decimals after `.`, not `,` (artifact skill: Build failures)',
+    ]);
+  });
+});
+
+describe("an artifact whose single choice has `---` with no explanation after it", () => {
+  let repo: FixtureRepo;
+  let run: CheckRun;
+
+  beforeAll(async () => {
+    repo = await createFixtureRepo({
+      "artifacts/potencias/index.mdx": [
+        "---",
+        "id: p0t3nc14",
+        "title: Potências",
+        "subject: Cálculo",
+        "lang: pt-BR",
+        "published: 2026-10-15",
+        "---",
+        "",
+        'import SingleChoice from "@artifactory/design-system/single-choice";',
+        "",
+        '<SingleChoice id="regra-da-potencia" answer={2}>',
+        "",
+        "Qual é a derivada de $x^2$?",
+        "",
+        "1. $x$",
+        "2. $2x$",
+        "",
+        "---",
+        "",
+        "</SingleChoice>",
+        "",
+      ].join("\n"),
+    });
+    run = await repo.check(["--artifacts-only"]);
+  }, checkTimeout);
+
+  afterAll(() => repo.remove());
+
+  it("fails the build at the question, saying to write the explanation or leave out the `---`", () => {
+    expect(run.exitCode).toBe(1);
+    expect(run.summary).toEqual([
+      "pnpm check: 1 failure",
+      "artifacts/potencias/index.mdx:11:1 error build: SingleChoice: write the explanation after `---`, or leave out the `---` (artifact skill: Build failures)",
     ]);
   });
 });
