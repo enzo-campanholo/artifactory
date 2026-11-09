@@ -1,6 +1,6 @@
 # 04: Fail on an item look can't shoot
 
-Status: claimed
+Status: resolved
 Blocked by: 03 (Reveal a model answer to shoot what it holds)
 
 Spec: [What `pnpm look` captures](../spec.md) › Never a silent skip, never a shot of the wrong thing
@@ -57,3 +57,11 @@ Validation:
 - Full `scripts/heavy pnpm check` on `a19651e` (this branch merged with the `gaps-implementation` tip `d2c58dd`): `0 failures`, Vitest included. It runs again on the commit that records this, and the final message reports that run.
 
 Left undone: none in this ticket's scope. Notes for [06](06-lock-a-question-to-shoot-its-explanation.md#comments) and [07](07-shoot-block-per-step-code-steppers.md#comments) are on those tickets.
+
+### 2026-11-09: resolved
+
+Delegator, Artifact generation gaps implementation session. Merged as `b0ff59c`, checked `current` at `74ce989`. It also fails a Stage look can't shoot (`stage-unknown`), under the spec's rule for any item look selected but can't shoot. It was claimed while its `Blocked by:` ticket was still `claimed` rather than `resolved`. The review flagged this against `issue-tracker.md` › Implementation tickets. The blocker had been merged into `gaps-implementation` and had passed the full check there first, so the work was built on finished code. Every ticket in the chain is resolved together here.
+
+- **Review:** a two-axis code review (Standards and Spec) of `gaps-implementation` since `6b935f9`. Its findings were fixed in `c018047`: they are listed on [look captures 05](../../look-captures/issues/05-hide-fixed-and-sticky-layers-during-every-shot.md#comments).
+- **Check:** the full `pnpm check` passed on `ac82155`, the integration tip with the review fixes (`check.applicability: current`). All 9 opt-in Look tests passed on `c018047`.
+- **Left undone:** nothing. Look captures 06 and 07 carry notes on where the failure check sits.

@@ -1,6 +1,6 @@
 # 02: A delegator verifies a child's check before accepting it
 
-Status: claimed
+Status: resolved
 Blocked by: None (can start immediately)
 
 Spec: [Private copy workflow](../spec.md) › A delegator verifies the child's check. Its decisions are in [Agent workflow in a private copy](../../artifact-generation-gaps/issues/09-agent-workflow-in-a-private-copy.md) › Answer. They bound this ticket, so don't reopen them. The owner widened the rule to `--last-passed` runs at ticketing: see the spec's `## Comments`.
@@ -67,3 +67,11 @@ Implementer for this ticket, delegated from the Artifact generation gaps session
 **Validation:** the full `scripts/heavy pnpm check` at `4c58617` in this linked worktree. Every step passed except Vitest, which failed on one test only: the known environment failure, `tests/check/reporting.test.ts` › "attaches full success to actual tracked and nonignored working content without staging it" (`expected 'stale' to be 'current'`), recorded on ticket 01. After the check, this comment and the checklist ticks are the only changes.
 
 **Left undone:** the delegator's review and closing. Widening the rule to `--last-passed` runs stays deferred, as the owner decided.
+
+### 2026-11-09: resolved
+
+Delegator, Artifact generation gaps implementation session. Merged as `4c58617` by merge `3ffc9aa`. Written to the owner's narrowed rule ([spec comment](../spec.md#comments), 2026-11-08), which accepts only `current`.
+
+- **Review:** a two-axis code review (Standards and Spec) of `gaps-implementation` since `6b935f9`. Its findings were fixed in `c018047`: they are listed on [look captures 05](../../look-captures/issues/05-hide-fixed-and-sticky-layers-during-every-shot.md#comments).
+- **Check:** the full `pnpm check` passed on `ac82155`, the integration tip with the review fixes (`check.applicability: current`). All 9 opt-in Look tests passed on `c018047`.
+- **Left undone:** the widening to `--last-passed` runs stays deferred, as that spec comment records. It waits on `scripts/heavy --status` reporting a run's HEAD and whether its source still matches.

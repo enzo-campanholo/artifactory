@@ -1,6 +1,6 @@
 # 01: Shoot every look item through one path
 
-Status: claimed
+Status: resolved
 Blocked by: None (can start immediately)
 
 Spec: [What `pnpm look` captures](../spec.md)
@@ -35,3 +35,11 @@ Validation:
 - Full `pnpm check` at 954a50e (after merging `gaps-implementation` at 0735893): 0 failures. A first run at a2f6092 failed only `tests/check/reporting.test.ts` › "attaches full success …", which my diff doesn't touch: this checkout was made under umask 077, so its files are `0600`, and the test restores `README.md` with `chmod 0o644`, a mode the source fingerprint (`stat.mode`) sees as a change. With `README.md` set to `0644` locally (git sees no change), it passed. The test assumes `0644` checkouts; a ticket for it is the delegator's call.
 
 No test added or changed; the `artifact` skill is unchanged. Nothing left undone.
+
+### 2026-11-09: resolved
+
+Delegator, Artifact generation gaps implementation session. Merged into `gaps-implementation` as `9e46285`, checked `current` at `954a50e`. The review renamed `shoot` to `shootAlone`, the rows' `shoot` to `takeShots`, and made each kind's row say how to find its element.
+
+- **Review:** a two-axis code review (Standards and Spec) of `gaps-implementation` since `6b935f9`. Its findings were fixed in `c018047`: they are listed on [look captures 05](../../look-captures/issues/05-hide-fixed-and-sticky-layers-during-every-shot.md#comments).
+- **Check:** the full `pnpm check` passed on `ac82155`, the integration tip with the review fixes (`check.applicability: current`). All 9 opt-in Look tests passed on `c018047`.
+- **Left undone:** nothing.

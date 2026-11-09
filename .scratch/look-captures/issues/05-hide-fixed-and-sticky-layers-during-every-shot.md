@@ -1,6 +1,6 @@
 # 05: Hide fixed and sticky layers during every shot
 
-Status: claimed
+Status: resolved
 Blocked by: 01 (Shoot every look item through one path)
 
 Spec: [What `pnpm look` captures](../spec.md) › The item alone
@@ -63,3 +63,11 @@ Validation:
 - `ARTIFACTORY_BROWSER_ACCEPTANCE=1 pnpm exec vitest run tests/check/browser-verification.test.ts -t Look`: 9 passed, run on c018047.
 - `pnpm look rsa-from-scratch`, before (74ce989) and after (c018047): exit 0 both times, with the same printed lines from the listing on, the same file names in `.look/rsa-from-scratch/`, and the same `results.json` cases (ids, outcomes, captures, requested, assertions, `observed.figures` and `observed.hiddenLayers`) apart from the local server's random port.
 - Prettier, ESLint and `tsc` pass on the changed files. The full `pnpm check` runs on the commit that adds this comment, and its result goes in the handback.
+
+### 2026-11-09: resolved
+
+Delegator, Artifact generation gaps implementation session. Merged as `dfa6de8` by merge `405067a`, which kept both ticket 02's and this ticket's test blocks. Checked `current` at `405067a`, Look tests included. The review replaced the test's assertions on report field names with the bar's opacity during and after each shot. It was claimed while its `Blocked by:` ticket was still `claimed` rather than `resolved`. The review flagged this against `issue-tracker.md` › Implementation tickets. The blocker had been merged into `gaps-implementation` and had passed the full check there first, so the work was built on finished code. Every ticket in the chain is resolved together here.
+
+- **Review:** a two-axis code review (Standards and Spec) of `gaps-implementation` since `6b935f9`. Its findings were fixed in `c018047`: they are listed on [look captures 05](../../look-captures/issues/05-hide-fixed-and-sticky-layers-during-every-shot.md#comments).
+- **Check:** the full `pnpm check` passed on `ac82155`, the integration tip with the review fixes (`check.applicability: current`). All 9 opt-in Look tests passed on `c018047`.
+- **Left undone:** nothing.

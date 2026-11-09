@@ -1,6 +1,6 @@
 # 01: The artifact skill reads the private copy and reports what it couldn't read
 
-Status: claimed
+Status: resolved
 Blocked by: None (can start immediately)
 
 Spec: [Private copy workflow](../spec.md) › `gh` reads the private copy, Confirming a deploy, The site's address. Its decisions are in [Agent workflow in a private copy](../../artifact-generation-gaps/issues/09-agent-workflow-in-a-private-copy.md) › Answer. They bound this ticket, so don't reopen them.
@@ -51,3 +51,11 @@ Known edge, left as the spec decided: GitHub also answers 404 for a private repo
 ### 2026-11-08: delegator's check of the gate
 
 Delegator, Artifact generation gaps implementation session. The implementer ended its turn with its full check still running. That check (run `c6bdac69`, HEAD `29fe25b`) failed one test only: `tests/check/reporting.test.ts` › "attaches full success to actual tracked and nonignored working content without staging it" (`expected 'stale' to be 'current'`). The failure comes from the environment, not this change: the test fails the same way in the implementer's linked worktree with its HEAD at the unchanged base `6b935f9`, and passes on `6b935f9` in the main checkout. Fast-forwarded onto `gaps-implementation`. The full check runs again on the integration branch in the main checkout.
+
+### 2026-11-09: resolved
+
+Delegator, Artifact generation gaps implementation session. Fast-forwarded as `2e80067`. The `gh api` read of `ARTIFACTORY_DOMAIN`, recorded above, stands: the review's Spec axis found it the only way to read the copy's variable without `-R`. The README's extra note (pass `-R` to the owner's own `gh variable` and `gh secret`) is beyond the ticket. It was kept and reported to the owner.
+
+- **Review:** a two-axis code review (Standards and Spec) of `gaps-implementation` since `6b935f9`. Its findings were fixed in `c018047`: they are listed on [look captures 05](../../look-captures/issues/05-hide-fixed-and-sticky-layers-during-every-shot.md#comments).
+- **Check:** the full `pnpm check` passed on `ac82155`, the integration tip with the review fixes (`check.applicability: current`). All 9 opt-in Look tests passed on `c018047`.
+- **Left undone:** nothing.

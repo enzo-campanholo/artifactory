@@ -1,6 +1,6 @@
 # 02: Shoot one-block code Steppers at every step
 
-Status: claimed
+Status: resolved
 Blocked by: 01 (Shoot every look item through one path)
 
 Spec: [What `pnpm look` captures](../spec.md) › What look shoots
@@ -42,3 +42,11 @@ Seams for the later tickets:
 - 05 (fixed layers): every element shot, code Stepper steps included, still goes through `shoot`.
 
 Left undone: nothing in scope. Seams are recorded here, as the brief asked, not as comments on 03–05.
+
+### 2026-11-09: resolved
+
+Delegator, Artifact generation gaps implementation session. Merged as `a3c899f`, checked `current` at `e73598a`. The review changed the skill to quote look's real output for a code Stepper with no captions, `no drawing and no caption`. It was claimed while its `Blocked by:` ticket was still `claimed` rather than `resolved`. The review flagged this against `issue-tracker.md` › Implementation tickets. The blocker had been merged into `gaps-implementation` and had passed the full check there first, so the work was built on finished code. Every ticket in the chain is resolved together here.
+
+- **Review:** a two-axis code review (Standards and Spec) of `gaps-implementation` since `6b935f9`. Its findings were fixed in `c018047`: they are listed on [look captures 05](../../look-captures/issues/05-hide-fixed-and-sticky-layers-during-every-shot.md#comments).
+- **Check:** the full `pnpm check` passed on `ac82155`, the integration tip with the review fixes (`check.applicability: current`). All 9 opt-in Look tests passed on `c018047`.
+- **Left undone:** nothing.

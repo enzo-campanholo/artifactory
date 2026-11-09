@@ -1,6 +1,6 @@
 # 03: Reveal a model answer to shoot what it holds
 
-Status: claimed
+Status: resolved
 Blocked by: 02 (Shoot one-block code Steppers at every step)
 
 Spec: [What `pnpm look` captures](../spec.md) › Content behind a hidden part
@@ -44,3 +44,11 @@ Validation:
 - Full `pnpm check` at 48a5408: 0 failures (after `chmod 644 README.md`, as the brief says). An earlier run at d4454d8 failed on the type error above, and every fixture repo's check failed on it too. 48a5408 fixes it.
 
 Left undone: nothing in scope. Ticket 04's notes are on ticket 04.
+
+### 2026-11-09: resolved
+
+Delegator, Artifact generation gaps implementation session. Merged as `d2c58dd`, checked `current` there. The review moved the model-answer reveal rule into `SKILL.md` › Look, with a pointer from `stage.md` › Look in place of the restated line. It was claimed while its `Blocked by:` ticket was still `claimed` rather than `resolved`. The review flagged this against `issue-tracker.md` › Implementation tickets. The blocker had been merged into `gaps-implementation` and had passed the full check there first, so the work was built on finished code. Every ticket in the chain is resolved together here.
+
+- **Review:** a two-axis code review (Standards and Spec) of `gaps-implementation` since `6b935f9`. Its findings were fixed in `c018047`: they are listed on [look captures 05](../../look-captures/issues/05-hide-fixed-and-sticky-layers-during-every-shot.md#comments).
+- **Check:** the full `pnpm check` passed on `ac82155`, the integration tip with the review fixes (`check.applicability: current`). All 9 opt-in Look tests passed on `c018047`.
+- **Left undone:** nothing.
