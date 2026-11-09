@@ -1,6 +1,6 @@
 # 01: One rule per Stage field, shared by the page and the check
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: [Stage choice groups 01](../../stage-choice-groups/issues/01-name-the-stage-s-control-instead-of-inferring-it.md)
 
 Spec: [Stage text input](../spec.md). A prefactor: make the change easy, then make the easy change.
