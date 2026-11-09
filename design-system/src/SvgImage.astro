@@ -20,7 +20,7 @@ const label =
   <div class="figure-stage">
     <InlineSvg svg={svg} alt={alt} minScale={minScale} swatches={swatches} />
   </div>
-  <figcaption>
+  <figcaption data-uncaptioned={caption === undefined ? "" : undefined}>
     <span class="figure-number">
       <span data-lang="en">{label.en}</span>
       <span data-lang="pt">{label.pt}</span>&#32;

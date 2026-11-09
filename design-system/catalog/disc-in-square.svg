@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140">
+  <rect x="40" y="10" width="120" height="120" class="fill-surface stroke-text" stroke-width="2" />
+  <circle cx="100" cy="70" r="60" class="fill-tint stroke-accent" stroke-width="2" />
+  <text x="100" y="74" text-anchor="middle" font-size="12">π/4</text>
+</svg>

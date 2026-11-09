@@ -23,8 +23,9 @@ import { swatchProblems } from "./swatches.ts";
  * Colour the drawing with the `fill-` and `stroke-` classes under "Colours in figures", which
  * follow the site in light mode, dark mode and print. Shapes and text without a fill are drawn in
  * the text colour, and text uses the face of the page's headings. The page numbers each figure by
- * its section ("Figura 4.1"). Colours written in the file (`fill="#…"`) don't
- * follow dark mode, so leave them out.
+ * its section ("Figura 4.1"), except inside a question's model answer or explanation, where it
+ * shows its caption with no number, so never cite one there by number. Colours written in the file
+ * (`fill="#…"`) don't follow dark mode, so leave them out.
  *
  * **Colourings.** When colour is the subject, such as a colouring of a graph's vertices, a map's
  * regions or a graph's edges, draw each colour as a swatch, never as a line style, a fill or a

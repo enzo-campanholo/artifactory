@@ -31,7 +31,8 @@ D2 also draws in the design system's style: labels are Archivo, condensed like t
 headings, and rectangles, squares and containers are drawn with square corners whatever
 `style.border-radius` says, so leave that out. Code labels, `sql_table` and `class` members and
 `style.font: mono` are set in D2's own monospace. The page numbers each diagram by its section
-("Diagrama 4.1").
+("Diagrama 4.1"), except inside a question's model answer or explanation, where it shows its
+caption with no number.
 
 The check fails a file that asks for what the design system doesn't draw: colours written in
 the file (`style.fill`, `style.stroke` or `style.font-color` as `"#…"` or a colour name),
@@ -71,8 +72,9 @@ import celula from "./celula.svg?raw";
 Colour the drawing with the `fill-` and `stroke-` classes under "Colours in figures", which
 follow the site in light mode, dark mode and print. Shapes and text without a fill are drawn in
 the text colour, and text uses the face of the page's headings. The page numbers each figure by
-its section ("Figura 4.1"). Colours written in the file (`fill="#…"`) don't
-follow dark mode, so leave them out.
+its section ("Figura 4.1"), except inside a question's model answer or explanation, where it
+shows its caption with no number, so never cite one there by number. Colours written in the file
+(`fill="#…"`) don't follow dark mode, so leave them out.
 
 **Colourings.** When colour is the subject, such as a colouring of a graph's vertices, a map's
 regions or a graph's edges, draw each colour as a swatch, never as a line style, a fill or a
@@ -156,7 +158,7 @@ Write the question inside it. It can hold math, code and lists.
 
 Then, optionally, a blank line, `---`, another blank line and the explanation: the worked
 solution, step by step to the right number. It can hold paragraphs, math, code, lists and
-figures. It shows, under the heading "Explicação" / "Explanation", only once the answer locks,
+figures, which show their captions with no number. It shows, under the heading "Explicação" / "Explanation", only once the answer locks,
 right or wrong, after the right answer on a wrong one. It reasons about the answer but never
 teaches a fact for the first time, since an owner who skips the question never reads it, so put
 every fact they must learn in the text too. Write one whenever the source gives a worked
@@ -200,7 +202,9 @@ answer the artifact could check. When the answer is one of a few options, use `S
 when it's a single computed number, use `NumericQuestion`.
 
 Write the question, a blank line, `---`, another blank line, then the model answer. Without the
-blank line above it, `---` turns the question into a heading. Both can hold math, code and lists:
+blank line above it, `---` turns the question into a heading. Both can hold math, code, lists
+and figures. A figure or diagram in the model answer shows its caption with no number, since the
+page can't count what the closed model answer hides; one in the question keeps its number:
 
 ```mdx
 import OpenQuestion from "@artifactory/design-system/open-question";
@@ -242,7 +246,7 @@ text, math and code.
 Then, optionally, a blank line, a second `---`, another blank line and one explanation for the
 whole set: why each item takes its option, with the reasons against likely wrong choices in its
 prose ("um objeto criado com `new` não fica na pilha, porque …"). It can hold paragraphs, math,
-code, lists and figures. It shows, under the heading "Explicação" / "Explanation" after the item
+code, lists and figures, which show their captions with no number. It shows, under the heading "Explicação" / "Explanation" after the item
 rows, only once every item locks, right or wrong. It reasons about the answers but never teaches
 a fact for the first time, since an owner who skips the questions never reads it, so put every
 fact they must learn in the text too. Write one whenever the source gives a reason:
@@ -355,7 +359,8 @@ inline math and code, one paragraph each.
 
 Then, optionally, a blank line, `---`, another blank line and the explanation: why the right
 option is right, with the reasons for wrong ones in its prose ("a) esquece …"). It can hold
-paragraphs, math, code, lists and figures. It shows, under the heading "Explicação" /
+paragraphs, math, code, lists and figures, which show their captions with no number. It shows,
+under the heading "Explicação" /
 "Explanation", only once the answer locks, right or wrong. It reasons about the answer but never
 teaches a fact for the first time, since an owner who skips the question never reads it, so put
 every fact they must learn in the text too. Write one whenever the source gives a reason:
@@ -393,7 +398,8 @@ A part of the artifact that computes in the browser: an algorithm run from the s
 picks, or a function traced on the numbers or text they type. Use it only when no component can
 do the job: a fixed sequence of steps is a `Stepper`, and anything that asks the owner something
 and records the answer is a question. A Stage is a block in the page, numbered on the figures'
-series ("Figura 4.1"), and a page may hold several, each with its own build.
+series ("Figura 4.1") except inside a question's model answer or explanation, and a page may
+hold several, each with its own build.
 
 You write two things:
 
