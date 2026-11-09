@@ -4,12 +4,17 @@ import RevealedPart from "./RevealedPart.astro";
 import type { AutoCheckedKind, Json } from "./scoring.ts";
 
 type Props = { id: string; prompt: string } & (
-  | { kind: AutoCheckedKind; answerKey: Json; modelAnswer?: never }
-  | { kind: "open-question"; modelAnswer: string; answerKey?: never }
+  | {
+      kind: AutoCheckedKind;
+      answerKey: Json;
+      explanation?: string | undefined;
+      modelAnswer?: never;
+    }
+  | { kind: "open-question"; modelAnswer: string; answerKey?: never; explanation?: never }
 );
 
 const { props } = Astro;
-const { id, kind, modelAnswer, prompt } = props;
+const { id, kind, modelAnswer, explanation, prompt } = props;
 const Tag = `artifact-${kind}` as const;
 const markers = questionMarkers(
   props.kind === "open-question" ? { id, kind } : { id, kind: props.kind, key: props.answerKey },
@@ -56,6 +61,11 @@ const hint = hints[kind];
         </div>
       )}
     </fieldset>
+    {explanation !== undefined && (
+      <div class="question-explanation" hidden>
+        <RevealedPart heading={{ en: "Explanation", pt: "Explicação" }} content={explanation} />
+      </div>
+    )}
     {modelAnswer !== undefined && (
       <details class="question-model-answer">
         <summary class="control-button" aria-disabled="true">
@@ -257,6 +267,10 @@ const hint = hints[kind];
 
     .question[data-status] fieldset > .question-actions {
       display: none;
+    }
+
+    .question-explanation {
+      margin-block-start: var(--space-3);
     }
 
     .question-model-answer {

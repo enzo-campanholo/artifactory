@@ -31,6 +31,7 @@
     "./saved-state": "./src/saved-state.ts",
     "./scoring": "./src/scoring.ts",
     "./single-choice": "./src/SingleChoice.astro",
+    "./single-choice-element": "./src/single-choice-element.ts",
     "./stage": "./src/Stage.astro",
     "./stage-build": "./src/stage-build.ts",
     "./stage-builds": "./src/stage-builds.ts",

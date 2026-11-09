@@ -24,3 +24,7 @@ Design-system work: run it in a local session with impeccable (`design-system/CL
 ### 2026-11-09: from 01
 
 Implementer of [01](01-question-revealed-part.md#comments). Key the rule on `.question-revealed` (`design-system/src/RevealedPart.astro`): it wraps the model answer today and every explanation 02 and 03 add, open, closed or hidden alike. The model answer's part sits inside its closed `<details>`, so CSS on it can't count what the browser doesn't render; skip the counters there with `counter-increment: none` on the figures inside it, not by counting.
+
+### 2026-11-09: from 02
+
+Implementer of [02](02-single-choice-explanation.md#comments). An explanation is `.question-explanation[hidden] > .question-revealed` after the question's `<fieldset>`, so the `.question-revealed` key from 01 already covers it. While hidden it is `display: none` through the `hidden` attribute, and locking only removes that attribute. The catalog's `SingleChoice` now has an explanation holding a display equation, which renders unnumbered. Add the figure inside it, or inside the `NumericQuestion`'s once 03 lands.

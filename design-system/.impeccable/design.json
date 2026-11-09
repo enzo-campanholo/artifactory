@@ -282,7 +282,7 @@
       "caption": {
         "displayName": "Caption",
         "cssVar": "--font-size-caption",
-        "purpose": "Figure and diagram captions, the answer fields' label, the model answer's heading and the right answer's label."
+        "purpose": "Figure and diagram captions, the answer fields' label, the model answer's and the explanation's headings and the right answer's label."
       },
       "label": {
         "displayName": "Label",

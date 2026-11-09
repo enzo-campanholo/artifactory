@@ -61,6 +61,17 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "1. $x$",
           "2. $2x$",
           "",
+          "---",
+          "",
+          "a) esquece o expoente que desce. Pela regra da potência:",
+          "",
+          "1. o expoente $2$ desce como fator;",
+          "2. o novo expoente é $2 - 1 = 1$.",
+          "",
+          "```python",
+          "derivada = 2 * x",
+          "```",
+          "",
           "</SingleChoice>",
           "",
           "## Definição",
@@ -136,12 +147,26 @@ describe("a repo with published artifacts and drafts, some with questions", () =
         ],
         [
           'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+          'import SingleChoice from "@artifactory/design-system/single-choice";',
           "",
           '<NumericQuestion id="spring-frequency" answer="10" tolerance={0.05} unit="rad/s">',
           "",
           "A $2\\,\\mathrm{kg}$ mass hangs on a spring with $k = 200\\,\\mathrm{N/m}$. What is its angular frequency $\\omega$?",
           "",
           "</NumericQuestion>",
+          "",
+          '<SingleChoice id="identity-eigenvalue" answer={1}>',
+          "",
+          "What is every eigenvalue of the identity matrix?",
+          "",
+          "1. $1$",
+          "2. $0$",
+          "",
+          "---",
+          "",
+          "The identity maps every vector to itself, so $I v = 1 \\cdot v$.",
+          "",
+          "</SingleChoice>",
         ],
       ),
       "artifacts/genetica/index.mdx": artifact([
@@ -350,7 +375,13 @@ describe("a repo with published artifacts and drafts, some with questions", () =
 
       expect(await questionsOn("")).toEqual([
         { artifactId: "l1m1t3s1", questions: [{ id: "limite-de-1-sobre-x", number: 1 }] },
-        { artifactId: "e1g3nv4l", questions: [{ id: "spring-frequency", number: 1 }] },
+        {
+          artifactId: "e1g3nv4l",
+          questions: [
+            { id: "spring-frequency", number: 1 },
+            { id: "identity-eigenvalue", number: 2 },
+          ],
+        },
         { artifactId: "l1m1t3s2", questions: [{ id: "limite-de-1-sobre-x", number: 1 }] },
         {
           artifactId: "d3r1v4d4",
@@ -403,6 +434,60 @@ describe("a repo with published artifacts and drafts, some with questions", () =
         slots: ["artifactory", "Dark theme", "Library"],
         toggles: ["Dark theme"],
       });
+    });
+  });
+
+  describe("a single choice's explanation", () => {
+    async function singleChoice(slug: string, id: string, lang: "en" | "pt") {
+      const page = await builtPage(slug);
+      const question = page.querySelector(`#q-${id}`);
+      const options = question?.querySelector(".single-choice-options");
+      const explanation = question?.querySelector(".question-explanation");
+      const { copy } = inLanguage(explanation, lang);
+      const text = (node: Element | null | undefined) =>
+        node?.textContent.replace(/\s+/g, " ").trim();
+      return {
+        options: [...(options?.querySelectorAll(":scope > li") ?? [])].map(text),
+        hidden: explanation?.hasAttribute("hidden"),
+        afterOptions:
+          options !== null &&
+          options !== undefined &&
+          explanation !== null &&
+          explanation !== undefined &&
+          (options.compareDocumentPosition(explanation) & 4) !== 0,
+        heading: text(copy?.querySelector(".question-revealed-heading")),
+        content: copy?.querySelector(".question-revealed-content"),
+      };
+    }
+
+    it("comes after the options, hidden, under its heading in the artifact's language, and a list or code in it is no option", async () => {
+      const pt = await singleChoice("derivadas", "regra-da-potencia", "pt");
+      expect(pt).toMatchObject({
+        options: ["x", "2x"],
+        hidden: true,
+        afterOptions: true,
+        heading: "Explicação",
+      });
+      expect(
+        [...(pt.content?.querySelectorAll("ol > li") ?? [])].map((li) => li.textContent),
+      ).toEqual(["o expoente 2 desce como fator;", "o novo expoente é 2−1=1."]);
+      expect(pt.content?.querySelector("pre code")?.textContent).toBe("derivada = 2 * x");
+
+      const en = await singleChoice("eigenvalues", "identity-eigenvalue", "en");
+      expect(en).toMatchObject({
+        options: ["1", "0"],
+        hidden: true,
+        afterOptions: true,
+        heading: "Explanation",
+      });
+      expect(en.content?.textContent.replace(/\s+/g, " ").trim()).toBe(
+        "The identity maps every vector to itself, so Iv=1⋅v.",
+      );
+    });
+
+    it("isn't there on a single choice written without one", async () => {
+      const page = await builtPage("limites");
+      expect(page.querySelector("#q-limite-de-1-sobre-x .question-explanation")).toBeNull();
     });
   });
 
@@ -558,6 +643,7 @@ describe("a repo with published artifacts and drafts, some with questions", () =
             kind: "numeric",
             key: { value: "10", tolerance: 0.05 },
           },
+          { id: "identity-eigenvalue", kind: "single-choice", key: 1 },
         ],
         g3n3t1c4: [],
       });

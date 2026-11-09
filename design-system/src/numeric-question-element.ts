@@ -69,8 +69,6 @@ const labels = {
 };
 
 class NumericQuestion extends TextQuestionElement {
-  static observedAttributes = ["data-status", "data-mark"];
-
   constructor() {
     super();
     // The browser's own messages follow the browser's language, not the page's.
@@ -105,7 +103,8 @@ class NumericQuestion extends TextQuestionElement {
     });
   }
 
-  attributeChangedCallback() {
+  override attributeChangedCallback() {
+    super.attributeChangedCallback();
     this.#showRightAnswer();
   }
 

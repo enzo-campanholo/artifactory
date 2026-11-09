@@ -173,15 +173,26 @@ export abstract class QuestionBox extends HTMLElement {
   }
 }
 
-// A question box holding one question, whose markers it carries.
+// A question box holding one question, whose markers it carries. Its explanation, if it has one,
+// shows only while the answer is locked, as a wrong answer's right option does.
 export abstract class QuestionElement extends QuestionBox implements QuestionResponse {
+  static observedAttributes = ["data-status", "data-mark"];
+
   abstract readResponse(): Json | undefined;
   abstract showResponse(response: Json): void;
 
   protected readonly answers = [new QuestionAnswer(this, this)];
 
+  attributeChangedCallback() {
+    const explanation = this.querySelector<HTMLElement>(":scope > form > .question-explanation");
+    if (explanation !== null) explanation.hidden = !this.#answerLocked;
+  }
+
+  get #answerLocked(): boolean {
+    return this.dataset.status === "saved" || this.dataset.status === "answered-elsewhere";
+  }
+
   protected get wrongAnswerLocked(): boolean {
-    const locked = this.dataset.status === "saved" || this.dataset.status === "answered-elsewhere";
-    return locked && this.dataset.mark === "wrong";
+    return this.#answerLocked && this.dataset.mark === "wrong";
   }
 }
