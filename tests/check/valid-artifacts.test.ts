@@ -647,6 +647,52 @@ const textAndNumberStage = {
   ].join("\n"),
 };
 
+const steppedFigures = {
+  "artifacts/orbita/index.mdx": artifact(fields("0rb1t4s1", "Órbita", "Mecânica"), [
+    'import Stepper from "@artifactory/design-system/stepper";',
+    'import quadro from "./quadro.svg?raw";',
+    'import orbita from "./orbita.svg?raw";',
+    'import troca from "./troca.svg?raw";',
+    "",
+    '<Stepper figure={quadro} alt="Um quadrado, depois um círculo dentro dele." captions={["O quadrado.", "O círculo."]} />',
+    "",
+    '<Stepper figure={orbita} alt="Um ponto dando a volta num centro, apontado por uma seta." />',
+    "",
+    '<Stepper figure={troca} alt="Um ponto que pula para a direita." captions={["Antes.", "Depois."]} />',
+  ]),
+  "artifacts/orbita/quadro.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">',
+    '  <rect x="4" y="4" width="32" height="32" class="fill-tint stroke-text" />',
+    '  <circle data-step="2-" cx="20" cy="20" r="8" class="fill-text" />',
+    '  <circle data-step="1, 2" cx="20" cy="20" r="2" class="fill-surface" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/orbita/orbita.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60">',
+    "  <defs>",
+    '    <marker id="seta" viewBox="0 0 6 6" refX="6" refY="3" markerWidth="6" markerHeight="6" orient="auto">',
+    '      <path d="M0 0 L6 3 L0 6 z" class="fill-text" />',
+    "    </marker>",
+    "  </defs>",
+    '  <circle id="centro" cx="30" cy="30" r="4" class="fill-text" />',
+    '  <line x1="2" y1="2" x2="26" y2="26" marker-end="url(#seta)" class="stroke-text" />',
+    '  <circle data-step="1" cx="50" cy="30" r="3" class="fill-text" />',
+    '  <circle data-step="2" cx="30" cy="50" r="3" class="fill-text" />',
+    '  <circle data-step="3" cx="10" cy="30" r="3" class="fill-text" />',
+    '  <use data-step="2-" href="#centro" x="0" y="0" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/orbita/troca.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20">',
+    '  <circle data-step="1" cx="10" cy="10" r="4" class="fill-text" />',
+    '  <circle data-step="2" cx="20" cy="10" r="4" class="fill-text" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+};
+
 const colouring = {
   "artifacts/coloracao/index.mdx": artifact(fields("c0l0r4c4", "Coloração", "Grafos"), [
     'import Figure from "@artifactory/design-system/figure";',
@@ -1303,6 +1349,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ...wordStage,
       ...textAndNumberStage,
       ...machineTrace,
+      ...steppedFigures,
       ...colouring,
       ...renamedTwiceAndBack,
       ...statementsAndCitations,
@@ -1681,6 +1728,136 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
         expect(Number(plate?.getAttribute("x")) + side / 2).toBe(Number(label.getAttribute("x")));
         expect(Number(plate?.getAttribute("y")) + side / 2).toBe(Number(label.getAttribute("y")));
       }
+    });
+
+    describe("figure Steppers in print", () => {
+      async function steppers(): Promise<Element[]> {
+        const page = new new Window().DOMParser().parseFromString(
+          await builtPage("orbita"),
+          "text/html",
+        ) as unknown as Document;
+        return [...page.querySelectorAll("artifact-stepper")];
+      }
+
+      // A printed step is a copy of the drawing that no screen reader meets, under its own heading.
+      function printedSteps(stepper: Element | undefined) {
+        return [...(stepper?.querySelectorAll("svg") ?? [])]
+          .filter((svg) => !svg.hasAttribute("role") && svg.closest("button") === null)
+          .map((svg) => ({
+            svg,
+            heading: svg.parentElement?.querySelector(":scope > .stepper-step")?.textContent,
+          }));
+      }
+
+      function part(element: Element): string {
+        if (element.localName === "use") return "use";
+        const x = element.getAttribute("cx") ?? element.getAttribute("x1");
+        const y = element.getAttribute("cy") ?? element.getAttribute("y1");
+        return `${element.localName} ${x ?? ""},${y ?? ""}`;
+      }
+
+      function shownParts(svg: Element): string[] {
+        return [...svg.querySelectorAll("circle, line, use")]
+          .filter((element) => element.closest("[data-off]") === null)
+          .map(part);
+      }
+
+      function references(svg: Element): string[] {
+        return [svg, ...svg.querySelectorAll("*")].flatMap((element) =>
+          element.getAttributeNames().flatMap((name) => {
+            const value = element.getAttribute(name) ?? "";
+            if (name === "href" || name === "xlink:href")
+              return value.startsWith("#") ? [value.slice(1)] : [];
+            return [...value.matchAll(/url\(#([^)]+)\)/g)].map(([, id = ""]) => id);
+          }),
+        );
+      }
+
+      it("prints a figure whose parts all reach its last step once, with its captions listed under it", async () => {
+        const [quadro] = await steppers();
+        expect(printedSteps(quadro)).toEqual([]);
+        expect(
+          [...(quadro?.querySelectorAll(".stepper-steps > li") ?? [])].map((step) =>
+            [step.querySelector(".stepper-step-number"), step.querySelector('[data-lang="pt"]')]
+              .map((part) => part?.textContent)
+              .join(" "),
+          ),
+        ).toEqual(["1. O quadrado.", "2. O círculo."]);
+      });
+
+      it("prints every step of a figure with a part that leaves, each with that step's parts and the unstepped ones, in the drawing's full frame, under its number and caption", async () => {
+        const [, orbita, troca] = await steppers();
+        expect(
+          printedSteps(orbita).map(({ svg, heading }) => ({
+            heading,
+            frame: svg.getAttribute("viewBox"),
+            parts: shownParts(svg),
+          })),
+        ).toEqual([
+          {
+            heading: "1. ",
+            frame: "0 0 60 60",
+            parts: ["circle 30,30", "line 2,2", "circle 50,30"],
+          },
+          {
+            heading: "2. ",
+            frame: "0 0 60 60",
+            parts: ["circle 30,30", "line 2,2", "circle 30,50", "use"],
+          },
+          {
+            heading: "3. ",
+            frame: "0 0 60 60",
+            parts: ["circle 30,30", "line 2,2", "circle 10,30", "use"],
+          },
+        ]);
+        expect(
+          printedSteps(troca).map(({ svg, heading }) => ({ heading, parts: shownParts(svg) })),
+        ).toEqual([
+          { heading: "1. Antes.", parts: ["circle 10,10"] },
+          { heading: "2. Depois.", parts: ["circle 20,10"] },
+        ]);
+        for (const stepper of [orbita, troca]) {
+          expect(stepper?.querySelector(".stepper-steps")).toBeNull();
+        }
+      });
+
+      it("gives every printed step ids of its own, which its markers and uses resolve to", async () => {
+        const all = await steppers();
+        const ids = all.flatMap((stepper) =>
+          [...stepper.querySelectorAll("[id]")].map((element) => element.id),
+        );
+        expect(ids.length).toBe(2 * 4);
+        expect(new Set(ids).size).toBe(ids.length);
+        for (const { svg } of printedSteps(all[1])) {
+          const resolved = references(svg).map(
+            (id) => svg.querySelector(`[id="${id}"]`)?.localName,
+          );
+          expect(resolved).toEqual(["marker", "circle"]);
+        }
+      });
+
+      it("labels each figure Stepper once, with its alt, and keeps its printed steps from screen readers and the figures' series", async () => {
+        const all = await steppers();
+        expect(
+          all.map((stepper) =>
+            [...stepper.querySelectorAll("[aria-label]")].map((labelled) =>
+              labelled.getAttribute("aria-label"),
+            ),
+          ),
+        ).toEqual([
+          ["Um quadrado, depois um círculo dentro dele."],
+          ["Um ponto dando a volta num centro, apontado por uma seta."],
+          ["Um ponto que pula para a direita."],
+        ]);
+        const steps = all.flatMap(printedSteps);
+        expect(steps).toHaveLength(5);
+        for (const { svg } of steps) {
+          expect(svg.closest('[aria-hidden="true"]')).not.toBeNull();
+          expect(svg.closest("figure")).toBeNull();
+          expect(svg.closest("[data-in-steps]")).toBeNull();
+          expect(svg.querySelector("[data-in-steps]")).toBeNull();
+        }
+      });
     });
 
     it("renders an image next to the entry, optimized", async () => {

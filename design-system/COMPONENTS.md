@@ -1130,8 +1130,10 @@ caption.
 
 Printed, a stepper shows every step: each board, or each code block with its marks, under its
 number and caption, and a one-block stepper's code with each step's lines and caption listed
-under it. A figure prints once, at its last step, with the captions listed under it, so
-make the last step the complete drawing.
+under it. A figure whose parts are all in its last step prints once, at that step, with the
+captions listed under it; one with a part that leaves before the end, such as a point moving
+around an orbit, prints every step, each in the drawing's full frame under its number and
+caption. For a figure that builds up, the last step is the complete drawing.
 
 ### Props
 
