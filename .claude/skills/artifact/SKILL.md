@@ -5,7 +5,7 @@ description: Study artifacts in `artifacts/`. Use to create one from the owner's
 
 # Study artifacts
 
-An artifact is the folder `artifacts/<slug>/`: an `index.mdx` entry, plus the `.d2` diagrams, `.svg` figures and images it shows, and the custom build of each `Stage` in it. It holds content and data, plus behaviour only inside a Stage, and the design system draws everything ([ADR 0007](../../../docs/adr/0007-artifacts-contain-content-data-and-staged-behaviour.md)). The owner opens it at `https://<domain>/<slug>/`, where the domain is the repository variable `ARTIFACTORY_DOMAIN` (`gh variable get ARTIFACTORY_DOMAIN`).
+An artifact is the folder `artifacts/<slug>/`: an `index.mdx` entry, plus the `.d2` diagrams, `.svg` figures and images it shows, and the custom build of each `Stage` in it. It holds content and data, plus behaviour only inside a Stage, and the design system draws everything ([ADR 0007](../../../docs/adr/0007-artifacts-contain-content-data-and-staged-behaviour.md)). The owner opens it at `https://<domain>/<slug>/`, where the domain is the repository variable `ARTIFACTORY_DOMAIN`. [Reply](#reply) says how to read it, and what to give when it's empty or the read fails.
 
 ## Authority
 
@@ -19,6 +19,18 @@ An artifact is the folder `artifacts/<slug>/`: an `index.mdx` entry, plus the `.
 
 - In a fresh cloud session without `node_modules/`, run `pnpm install --frozen-lockfile`.
 - Read `design-system/COMPONENTS.md`, the whole component reference: what each component is for, its props, a usage example and the colour classes.
+
+## Before the first `gh` command
+
+Every path reaches `gh`: the Check, Watch CI and Reply steps, and a request to fix a red CI run, which starts at `gh run view`. Before the first one, run:
+
+```sh
+git remote get-url upstream >/dev/null 2>&1 && gh repo set-default origin
+```
+
+In a private copy (a checkout with an `upstream` remote), it makes `origin`, the copy, `gh`'s default repository, so `gh` reads the copy's CI runs rather than upstream's. Git config stores it for the clone and every worktree of it, and running it again is harmless. In the upstream repo, with no `upstream` remote, it does nothing, and its non-zero exit is expected.
+
+Write each `gh` command as this skill gives it, letting the default pick the repository, with no `-R`. `gh variable` ignores the default and reads the `upstream` remote's variables, so [Reply](#reply) reads the domain through `gh api`, whose `{owner}/{repo}` follows it.
 
 ## Workflows
 
@@ -99,9 +111,21 @@ To see the page while writing, `pnpm dev` serves it at `http://localhost:4321/<s
 3. If it goes red, fixing it comes before anything else. Read the failures with `gh run view <id> --log-failed | tail -n 60`: the tail holds the same `pnpm check: N failures` block. Fix, check, push and watch again. A red check leaves the previous version live.
 4. On `main`, the steps after the check deploy the site, set what's open, then probe from outside what is. Their failures aren't check failures, so their log has no failures block. If one goes red, follow [ci.md](ci.md#deploy-steps).
 
+If `gh run list` or `gh run watch` itself fails (an auth, permission or network error, not a red run), stop watching: the reply says "pushed, deploy unverified" and quotes `gh`'s error. Only CI's Probe step confirms a deploy. The site sends every private path to the sign-in, even a slug that doesn't exist, so fetching it proves nothing; leave the site unfetched.
+
 ### Reply
 
-Give the owner the URL, `https://<domain>/<slug>/` (a draft is also listed on the drafts page, `/drafts/`), and a line on what the artifact covers. If `gh variable get ARTIFACTORY_DOMAIN` finds nothing, the site isn't deployed yet: give the local URL from `pnpm dev`, `http://localhost:4321/<slug>/`, instead. Mention anything you couldn't do, such as `pnpm look` failing to start Chrome.
+Give the owner the artifact's address and a line on what it covers. A draft is also listed on the drafts page, `/drafts/`. Mention anything you couldn't do, such as `pnpm look` failing to start Chrome, or CI you couldn't watch ("pushed, deploy unverified", with `gh`'s error).
+
+Read the domain from the `ARTIFACTORY_DOMAIN` variable:
+
+```sh
+gh api 'repos/{owner}/{repo}/actions/variables/ARTIFACTORY_DOMAIN' --jq .value
+```
+
+- **It prints a domain:** give `https://` + that domain + `/<slug>/`.
+- **It prints nothing, or fails with `Not Found (HTTP 404)`:** the variable is empty or unset, so the site isn't deployed yet. Give the local URL from `pnpm dev`, `http://localhost:4321/<slug>/`.
+- **It fails any other way** (an auth, permission or network error): say the domain couldn't be read, quote `gh`'s error, and give the path `/<slug>/`. Build a URL only from a domain `gh` printed, never a template such as `https://<domain>/<slug>/`.
 
 ## A good study artifact
 

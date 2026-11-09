@@ -43,7 +43,10 @@ Your artifacts live in a private copy of this repo, which takes everything outsi
    git remote set-url --push upstream no-push
    git remote add origin https://github.com/<you>/<your-repo>.git
    git push -u origin main
+   gh repo set-default origin
    ```
+
+   The last line makes `gh` read your copy's CI runs rather than this repo's. `gh variable` and `gh secret` ignore it and still read the `upstream` remote, so give them `-R <you>/<your-repo>`.
 
 2. Create a D1 database named `artifactory` (`pnpm exec wrangler login`, then `pnpm exec wrangler d1 create artifactory`) and note its ID.
 3. Add your domain to Cloudflare. In Zero Trust (the free plan asks for a payment method but doesn't charge), choose a team name: your team domain is `https://<team>.cloudflareaccess.com`. Create a self-hosted Access application covering the hostname you'll serve the site on, with a policy that lets only you in, and note its audience (AUD) tag. Leave its Cookie Path Attribute off, so your answers on a public artifact reach the state API, and leave Bot Fight Mode off for the zone, since it can't be scoped by path and may challenge your `/api/` calls.
