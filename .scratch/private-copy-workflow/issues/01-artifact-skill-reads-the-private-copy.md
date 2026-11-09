@@ -47,3 +47,7 @@ Known edge, left as the spec decided: GitHub also answers 404 for a private repo
 **Validation:** Markdown is outside Prettier's scope, so `pnpm check` doesn't cover these edits. The full `scripts/heavy pnpm check` result is recorded below.
 
 **Left undone:** nothing in scope. `docs/agents/delegation.md` is ticket 02's file and wasn't touched.
+
+### 2026-11-08: delegator's check of the gate
+
+Delegator, Artifact generation gaps implementation session. The implementer ended its turn with its full check still running. That check (run `c6bdac69`, HEAD `29fe25b`) failed one test only: `tests/check/reporting.test.ts` › "attaches full success to actual tracked and nonignored working content without staging it" (`expected 'stale' to be 'current'`). The failure comes from the environment, not this change: the test fails the same way in the implementer's linked worktree with its HEAD at the unchanged base `6b935f9`, and passes on `6b935f9` in the main checkout. Fast-forwarded onto `gaps-implementation`. The full check runs again on the integration branch in the main checkout.
