@@ -130,6 +130,33 @@ A field with `kind: "text"` takes a word, here over the alphabet a and b, up to 
 
 </Stage>
 
+## Refusing a word
+
+The catalog script typed abc for w, whose c is outside the alphabet, and pressed Start. The field is drawn dashed, as a refused number's is, the step's line states the field's whole rule rather than the symbol that broke it, and the table is back as written. A word one symbol too long still shows whole, and pasted text is never cut short. In a Stage with a text field, a run past 200 steps or one that fails asks for another input, "Try another input.", where a number-only Stage asks for other numbers.
+
+<div data-catalog-type="w=abc">
+
+<Stage
+  build="even-bs-refused"
+  input={{
+    label: "Accepts w?",
+    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],
+    examples: [{ w: "aabba" }],
+  }}
+  prompt="Type a word and press Start."
+  caption="An automaton that accepts the words with an even number of b's."
+>
+
+| Variable | Value |
+| -------- | ----- |
+| read     | aabba |
+| state    | q0    |
+| accepts  | yes   |
+
+</Stage>
+
+</div>
+
 ## Code, mid-run
 
 A Stage traces a function line by line on its one fenced code block, highlighted as anywhere else. The catalog script pressed Start on n = 6 and stepped to step 5, where the first pass halves n. Line 5, the line running, is reversed: a bar across the code's whole width, even where the long line 7 scrolls sideways. The `if` that just decided is strong, the `while` it tests again after this pass is dashed, and the `else` branch it didn't take is muted. The step is announced as "Step 5 of 36. Line 5. …".
