@@ -49,3 +49,7 @@ Implementer of [01](01-name-the-stage-s-control-instead-of-inferring-it.md). Whe
 - `build-input.ts` compares against `takes` and words `{ name: kind; … }` from it. `kindFlags` maps a kind to TypeScript's flag (`"string"` → `TypeFlags.String`). The noun in "the Stage's … give it" comes from `givers[control]` ("options", "fields"), so "groups" needs the shape too, not the control alone.
 - The check's `named()` in `custom-build-runs.ts` already writes named values as `name = value` in `takes`' order, so `inicio = A, busca = largura` follows once `inputs` holds each combination's record. `inputs` for `choose` is still each `.stage-option input` value: build the combinations there.
 - The page's refusal lines are `texts.refused[control]` in `stage-element.ts`. "Escolha outras opções." / "Choose other options." needs a third entry chosen by the group count. `runBuild` takes the control second. Its `body` rule applies only to `input`, so a several-group run, like a one-group one, may leave `body` out to show the starting state.
+
+### 2026-11-09: notes from Stage text input 01
+
+[Stage text input 01](../../stage-text-input/issues/01-one-rule-per-stage-field.md) put typed input's field definitions on the page once, as JSON in `data-fields` on `.stage-input`, read by `stageFields(stage)` in `step-applier.ts`; `stageControl` takes `input`'s named values from it. `choose` is untouched: if the groups need a definition on the page, the same shape (one JSON list on the control's container, read in `step-applier.ts`) keeps `stageControl` the one reader.

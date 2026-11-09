@@ -33,3 +33,9 @@ Nothing is truncated: pasted text longer than `maxLength` stays whole in the fie
 - [ ] `DESIGN.md` › Stage gains the text field's refusal.
 - [ ] The `Stage`'s **Typed input** doc comment gains the refusal line, then `pnpm components`. Update the `artifact` skill's custom-build rules too if they describe the page's refusal.
 - [ ] **Shared parts:** stays inside the Stage, since the refused field's dashed box is the number field's own style. "Refusing a number" on the catalog, and a refused number in the sample artifact (`rsa-from-scratch`), show exactly as before, with the same evidence as the new state.
+
+## Comments
+
+### 2026-11-09: notes from Stage text input 01
+
+The page's refusal is `#type` in `stage-element.ts`. It walks `stageFields(this)`, the definitions on the page, and refuses the first field `fieldProblem` (`step-applier.ts`) refuses, with the line from `texts.refusedNumber(label ?? name, min, max)`. The text rule and its line join there, chosen by the definition's `kind`. A before/after capture of every Stage's refusals (record and PNG hashes, light and dark, en and pt-BR, catalog and `rsa-from-scratch`) is in the shared notes' `capture-stages.ts` pattern; 01 extended it with refusals (`aria-invalid`, `aria-describedby`, focus, border style).

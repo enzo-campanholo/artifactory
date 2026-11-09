@@ -39,3 +39,14 @@ This ticket doesn't cover refusals. The check's failures for examples and props 
   - **Custom builds** › "Missing a control or a mark?" says the Stage takes `choose`, or typed whole numbers and text (`input`).
 - [ ] An `input.examples` value that isn't in NFC fails the build (03 gives the failure), so the check and the page, which reads the field as NFC, always run the same text. The fixtures here write their examples in NFC.
 - [ ] **Shared parts:** this changes no part `CODING_STANDARDS.md` lists. The Stage's field reading, its markup and print naming, and `Typed` reach every Stage with `input` and every build's types. The catalog's number Stages and the sample artifact's typed Stages (`rsa-from-scratch`) show, run and refuse exactly as before. Check them on the catalog with the same evidence as the new Stage.
+
+## Comments
+
+### 2026-11-09: notes from Stage text input 01
+
+Implementer of [01](01-one-rule-per-stage-field.md), which gathered the field definition:
+
+- Each field's definition is `Field` in `step-applier.ts`, `{ name, label?, kind: "number", min, max }`. `Stage.astro` builds it once from the props (`fields`, picking each prop explicitly, so add the text props there with `kind: "text"`) and writes the list as JSON in `data-fields` on `.stage-input`, beside `data-examples`. `stageFields(stage)` reads it back.
+- `stageControl` takes each `NamedValue`'s `kind` from the definition, and `NamedValue["kind"]` is `Field["kind"]`. `build-input` words the expected type as `` `${name}: ${kind}` `` and keys `kindFlags` by it, so with `kind: "text"` map it to the type's name, `string`, rather than printing `text`.
+- `fieldProblem(field, value)` is the one rule: `Stage.astro`'s `exampleProblems` and the page's `#type` both call it. The page reads the owner's text with `typedNumber` before it; reading a text field (NFC, not trimmed) goes there, chosen by `kind`. The refusal line comes from the definition (`label ?? name`, `min`, `max`), not the DOM.
+- `README.md` is mode 0600 in new worktrees: `chmod 644 README.md` before `pnpm check`, or `tests/check/reporting.test.ts` fails.
