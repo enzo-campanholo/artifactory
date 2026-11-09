@@ -22,6 +22,47 @@ import {
 
 const diagramsAndFiguresSelector =
   "main figure.diagram, main figure.figure, main artifact-stepper:has(.stepper-boards, .stepper-figure)";
+type Kind =
+  "diagram" | "figure" | "stepper-boards" | "stepper-figure" | "stage-choose" | "stage-input";
+
+interface Item {
+  element: ElementHandle;
+  kind: Kind;
+  name: string;
+}
+
+interface Shots {
+  files: string[];
+  summary?: string;
+}
+
+interface Stepping {
+  forward: string;
+  current: string;
+}
+
+const stepperStepping: Stepping = {
+  forward: "button.stepper-forward",
+  current: ".stepper-current",
+};
+const stageStepping: Stepping = { forward: "button.stage-forward", current: ".stage-current" };
+
+const kinds: Record<
+  Kind,
+  {
+    stem: string;
+    shoot: (page: Page, test: BrowserCase, item: Item, width: number) => Promise<Shots>;
+    describe: (item: Item) => Promise<string>;
+  }
+> = {
+  diagram: { stem: "diagram", shoot: shootOnce, describe: describeDrawing },
+  figure: { stem: "figure", shoot: shootOnce, describe: describeDrawing },
+  "stepper-boards": { stem: "stepper", shoot: shootStepper, describe: describeDrawing },
+  "stepper-figure": { stem: "stepper", shoot: shootStepper, describe: describeDrawing },
+  "stage-choose": { stem: "stage-choose", shoot: shootStage, describe: describeDrawing },
+  "stage-input": { stem: "stage-input", shoot: shootStage, describe: describeDrawing },
+};
+
 const root = process.cwd();
 function fail(message: string): never {
   console.error(`pnpm look: ${message}`);
@@ -101,18 +142,13 @@ try {
       const elements = await page.$$(diagramsAndFiguresSelector);
       if (elements.length === 0) test.outcome = "not-applicable";
       for (const [index, element] of elements.entries()) {
-        const name = `${String(index + 1).padStart(2, "0")}-${await kindOf(element)}`;
-        const { files, summary } = (await element.evaluate((node) => node.matches(".stage")))
-          ? await screenshotStage(page, test, element, name, viewport.width)
-          : {
-              files: await screenshot(page, test, element, name, viewport.width),
-              summary: undefined,
-            };
-        screenshots.set(name, {
-          number: await numberOf(page, element),
-          description: await describe(element),
+        const item = await resolveItem(element, index);
+        const { files, summary } = await kinds[item.kind].shoot(page, test, item, viewport.width);
+        screenshots.set(item.name, {
+          number: await numberOf(page, item),
+          description: await kinds[item.kind].describe(item),
           summary,
-          files: [...(screenshots.get(name)?.files ?? []), ...files],
+          files: [...(screenshots.get(item.name)?.files ?? []), ...files],
         });
       }
       test.observed.figures = [...screenshots].map(([name, details]) => ({ name, ...details }));
@@ -147,10 +183,12 @@ process.exitCode = report.cases.some((test) =>
   ? 1
   : 0;
 
-function kindOf(element: ElementHandle): Promise<string> {
-  return element.evaluate((node) =>
+async function resolveItem(element: ElementHandle, index: number): Promise<Item> {
+  const kind = await element.evaluate((node): Kind =>
     node.matches(".stepper")
-      ? "stepper"
+      ? node.querySelector(".stepper-boards") === null
+        ? "stepper-figure"
+        : "stepper-boards"
       : node.matches(".stage")
         ? node.querySelector(".stage-input") === null
           ? "stage-choose"
@@ -159,10 +197,11 @@ function kindOf(element: ElementHandle): Promise<string> {
           ? "diagram"
           : "figure",
   );
+  return { element, kind, name: `${String(index + 1).padStart(2, "0")}-${kinds[kind].stem}` };
 }
 
 // A Stage of code or tables has no drawing, so no `alt`: its caption says what it shows.
-function describe(element: ElementHandle): Promise<string> {
+function describeDrawing({ element }: Item): Promise<string> {
   return element.evaluate((node) => {
     const alt = node.querySelector("svg[role='img']")?.getAttribute("aria-label");
     if (alt != null) return alt;
@@ -175,7 +214,7 @@ function describe(element: ElementHandle): Promise<string> {
 
 // The number is a CSS counter, which only the rendered page knows, so it's read from the
 // accessibility tree: the label, then the counter's pieces ("1", ".", "2") under one node.
-async function numberOf(page: Page, element: ElementHandle): Promise<string> {
+async function numberOf(page: Page, { element }: Item): Promise<string> {
   const number = await element.$(":scope > figcaption .figure-number");
   if (number === null) return "";
   const textOf = (node: SerializedAXNode, separator: string): string =>
@@ -186,48 +225,61 @@ async function numberOf(page: Page, element: ElementHandle): Promise<string> {
   return tree === null ? "" : textOf(tree, " ").replace(/\s+/g, " ").trim();
 }
 
+function shoot(page: Page, test: BrowserCase, item: Item, file: string): Promise<void> {
+  return capture(page, test, folder, file, item.element);
+}
+
+async function shootOnce(page: Page, test: BrowserCase, item: Item, width: number): Promise<Shots> {
+  return {
+    files: await shootSteps(page, test, item, 1, () => `${item.name}-${String(width)}.png`),
+  };
+}
+
 // A stepper is shot once per step, with its buttons and caption, the way the owner sees each step.
-async function screenshot(
+async function shootStepper(
   page: Page,
   test: BrowserCase,
-  element: ElementHandle,
-  pathPrefix: string,
+  item: Item,
   width: number,
-): Promise<string[]> {
-  const steps = await element.evaluate((node) => Number(node.getAttribute("data-count") ?? "1"));
-  return shootSteps(
-    page,
-    test,
-    element,
-    steps,
-    (step) => `${pathPrefix}${steps > 1 ? `-step-${String(step)}` : ""}-${String(width)}.png`,
-    "button.stepper-forward",
+): Promise<Shots> {
+  const steps = await item.element.evaluate((node) =>
+    Number(node.getAttribute("data-count") ?? "1"),
   );
+  return {
+    files: await shootSteps(
+      page,
+      test,
+      item,
+      steps,
+      (step) => `${item.name}${steps > 1 ? `-step-${String(step)}` : ""}-${String(width)}.png`,
+      stepperStepping,
+    ),
+  };
 }
 
 // Only the first option or example is shot: `pnpm check` runs the others. The fields open filled
 // with the first example, so Start runs it.
-async function screenshotStage(
+async function shootStage(
   page: Page,
   test: BrowserCase,
-  element: ElementHandle,
-  pathPrefix: string,
+  item: Item,
   width: number,
-): Promise<{ files: string[]; summary: string }> {
-  const asWritten = `${pathPrefix}-as-written-${String(width)}.png`;
-  await capture(page, test, folder, asWritten, element);
+): Promise<Shots> {
+  const { element, name } = item;
+  const asWritten = `${name}-as-written-${String(width)}.png`;
+  await shoot(page, test, item, asWritten);
   const prompt = await element.$eval(".stage-say", (say) => say.textContent);
   const fields = await element.$$eval(".stage-field input", (nodes) =>
     nodes.map((node) => ({ name: node.name, value: node.value })),
   );
   const control = required(
     test,
-    `${pathPrefix}: Stage action exists`,
+    `${name}: Stage action exists`,
     await element.$(fields.length === 0 ? ".stage-option input" : ".stage-start"),
   );
   assertCase(
     test,
-    `${pathPrefix}: Stage action available`,
+    `${name}: Stage action available`,
     true,
     await control.evaluate((node) => !node.matches(":disabled") && !node.closest("[inert]")),
   );
@@ -253,11 +305,11 @@ async function screenshotStage(
       prompt,
     )
     .catch(() => undefined);
-  assertCase(test, `${pathPrefix}: Stage ran or explicitly refused`, true, await completed());
+  assertCase(test, `${name}: Stage ran or explicitly refused`, true, await completed());
   if (fields.length === 0)
     assertCase(
       test,
-      `${pathPrefix}: requested option selected`,
+      `${name}: requested option selected`,
       true,
       await control.evaluate((node) => (node as HTMLInputElement).checked),
     );
@@ -265,8 +317,8 @@ async function screenshotStage(
     counter.hidden ? 0 : Number(counter.querySelector(".stage-count")?.textContent),
   );
   if (steps === 0) {
-    const refused = `${pathPrefix}-refused-${String(width)}.png`;
-    await capture(page, test, folder, refused, element);
+    const refused = `${name}-refused-${String(width)}.png`;
+    await shoot(page, test, item, refused);
     test.outcome = "refused";
     const refusal = await element.$eval(".stage-say", (say) => say.textContent);
     return {
@@ -277,10 +329,10 @@ async function screenshotStage(
   const files = await shootSteps(
     page,
     test,
-    element,
+    item,
     steps,
-    (step) => `${pathPrefix}-step-${String(step)}-${String(width)}.png`,
-    "button.stage-forward",
+    (step) => `${name}-step-${String(step)}-${String(width)}.png`,
+    stageStepping,
   );
   return {
     files: [asWritten, ...files],
@@ -291,27 +343,24 @@ async function screenshotStage(
 async function shootSteps(
   page: Page,
   test: BrowserCase,
-  element: ElementHandle,
+  item: Item,
   steps: number,
   fileFor: (step: number) => string,
-  forwardSelector: string,
+  stepping?: Stepping,
 ): Promise<string[]> {
+  const { element } = item;
   const files: string[] = [];
-  const selector = forwardSelector.includes("stage") ? ".stage-current" : ".stepper-current";
+  const currentStep = (current: string) =>
+    element.evaluate((node, current) => node.querySelector(current)?.textContent.trim(), current);
   assertCase(test, `${fileFor(1)}: capture step count`, true, Number.isInteger(steps) && steps > 0);
   for (let step = 1; step <= steps; step += 1) {
     const file = fileFor(step);
-    if (await element.evaluate((node) => node.matches(".stepper, .stage"))) {
-      const actual = await element.evaluate(
-        (node, selector) => node.querySelector(selector)?.textContent.trim(),
-        selector,
-      );
-      assertCase(test, `${file}: current step`, String(step), actual);
-    }
-    await capture(page, test, folder, file, element);
+    if (stepping !== undefined)
+      assertCase(test, `${file}: current step`, String(step), await currentStep(stepping.current));
+    await shoot(page, test, item, file);
     files.push(file);
-    if (step < steps) {
-      const button = required(test, `${file}: forward exists`, await element.$(forwardSelector));
+    if (stepping !== undefined && step < steps) {
+      const button = required(test, `${file}: forward exists`, await element.$(stepping.forward));
       assertCase(
         test,
         `${file}: forward available`,
@@ -326,11 +375,10 @@ async function shootSteps(
       await button.click();
       await page
         .waitForFunction(
-          (node, selector, expected) =>
-            node.querySelector(selector)?.textContent.trim() === expected,
+          (node, current, expected) => node.querySelector(current)?.textContent.trim() === expected,
           {},
           element,
-          selector,
+          stepping.current,
           String(step + 1),
         )
         .catch(() => undefined);
@@ -338,10 +386,7 @@ async function shootSteps(
         test,
         `${file}: advancement`,
         String(step + 1),
-        await element.evaluate(
-          (node, selector) => node.querySelector(selector)?.textContent.trim(),
-          selector,
-        ),
+        await currentStep(stepping.current),
       );
     }
   }
