@@ -51,6 +51,7 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "published: 2026-08-30",
         ],
         [
+          'import Matching from "@artifactory/design-system/matching";',
           'import NumericQuestion from "@artifactory/design-system/numeric-question";',
           'import OpenQuestion from "@artifactory/design-system/open-question";',
           'import SingleChoice from "@artifactory/design-system/single-choice";',
@@ -103,6 +104,28 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "2. logo, $6$.",
           "",
           "</NumericQuestion>",
+          "",
+          '<Matching answers={{ "derivada-de-x3": 2, "derivada-de-constante": 1 }}>',
+          "",
+          "Qual é a derivada de cada função?",
+          "",
+          "1. $0$",
+          "2. $3x^2$",
+          "3. $x$",
+          "",
+          "---",
+          "",
+          "- $x^3$",
+          "- $5$",
+          "",
+          "---",
+          "",
+          "Pela regra da potência:",
+          "",
+          "- o expoente $3$ desce como fator;",
+          "- uma constante não varia, e sua derivada é $0$.",
+          "",
+          "</Matching>",
         ],
       ),
       "artifacts/bases-nitrogenadas/index.mdx": artifact([
@@ -426,6 +449,8 @@ describe("a repo with published artifacts and drafts, some with questions", () =
             { id: "regra-da-potencia", number: 1 },
             { id: "por-que-2x", number: 2, section: "A derivada de xn", math: ["xn"] },
             { id: "derivada-em-3", number: 3, section: "A derivada de xn", math: ["xn"] },
+            { id: "derivada-de-x3", number: 4, section: "A derivada de xn", math: ["xn"] },
+            { id: "derivada-de-constante", number: 5, section: "A derivada de xn", math: ["xn"] },
           ],
         },
       ]);
@@ -634,6 +659,43 @@ describe("a repo with published artifacts and drafts, some with questions", () =
     });
   });
 
+  describe("a matching's explanation", () => {
+    it("comes after the item rows, hidden, under its heading in the artifact's language, and a list in it is no item", async () => {
+      const page = await builtPage("derivadas");
+      const box = page.querySelector("artifact-matching");
+      const rows = box?.querySelector(".matching-items");
+      const explanation = box?.querySelector(".question-explanation");
+      const { copy } = inLanguage(explanation, "pt");
+      const text = (node: Element | null | undefined) =>
+        node?.textContent.replace(/\s+/g, " ").trim();
+
+      expect([...(box?.querySelectorAll(".matching-item-text") ?? [])].map(text)).toEqual([
+        "x3",
+        "5",
+      ]);
+      expect(explanation?.hasAttribute("hidden")).toBe(true);
+      expect(
+        rows !== null &&
+          rows !== undefined &&
+          explanation !== null &&
+          explanation !== undefined &&
+          (rows.compareDocumentPosition(explanation) & 4) !== 0,
+      ).toBe(true);
+      expect(text(copy?.querySelector(".question-revealed-heading"))).toBe("Explicação");
+      const content = copy?.querySelector(".question-revealed-content");
+      expect(text(content?.querySelector("p"))).toBe("Pela regra da potência:");
+      expect([...(content?.querySelectorAll("ul > li") ?? [])].map(text)).toEqual([
+        "o expoente 3 desce como fator;",
+        "uma constante não varia, e sua derivada é 0.",
+      ]);
+    });
+
+    it("isn't there on a matching written without one", async () => {
+      const page = await builtPage("eigenvalues");
+      expect(page.querySelector("artifact-matching .question-explanation")).toBeNull();
+    });
+  });
+
   describe("an artifact's masthead", () => {
     function masthead(page: Document, lang: "en" | "pt") {
       const { copy, slots, toggles } = inLanguage(page.querySelector("header"), lang);
@@ -662,12 +724,12 @@ describe("a repo with published artifacts and drafts, some with questions", () =
     it("dates a published artifact by its published date, links back to the Library and holds the eye", async () => {
       const published = await builtPage("derivadas");
       expect(masthead(published, "pt")).toEqual({
-        runningHead: ["Pular para o texto", "Biblioteca", "Tema escuro", "2 seções · 3 questões"],
+        runningHead: ["Pular para o texto", "Biblioteca", "Tema escuro", "2 seções · 5 questões"],
         identRow: ["Cálculo", "Publicado em 30 ago. 2026"],
         toggles: ["Tema escuro"],
       });
       expect(masthead(published, "en")).toEqual({
-        runningHead: ["Skip to the text", "Library", "Dark theme", "2 sections · 3 questions"],
+        runningHead: ["Skip to the text", "Library", "Dark theme", "2 sections · 5 questions"],
         identRow: ["Cálculo", "Published 30 Aug 2026"],
         toggles: ["Dark theme"],
       });
@@ -774,6 +836,8 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           { id: "regra-da-potencia", kind: "single-choice", key: 2 },
           { id: "por-que-2x", kind: "open-question" },
           { id: "derivada-em-3", kind: "numeric", key: { value: "6" } },
+          { id: "derivada-de-x3", kind: "single-choice", key: 2 },
+          { id: "derivada-de-constante", kind: "single-choice", key: 1 },
         ],
         "1nt3gr41": [{ id: "regra-da-potencia", kind: "single-choice", key: 1 }],
         b4s3sn1t: [],

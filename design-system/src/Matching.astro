@@ -15,8 +15,16 @@ import { questionAnchor, questionMarkers, questionNumberSlot } from "./question-
  * say so in the prompt, since the page doesn't enforce it. For one question, use `SingleChoice`.
  *
  * Write the prompt, then the options as one numbered list, then a blank line, `---`, another blank
- * line and the items as one bulleted list, which ends the matching. Options and items are one
- * paragraph each of inline text, math and code:
+ * line and the items as one bulleted list. Options and items are one paragraph each of inline
+ * text, math and code.
+ *
+ * Then, optionally, a blank line, a second `---`, another blank line and one explanation for the
+ * whole set: why each item takes its option, with the reasons against likely wrong choices in its
+ * prose ("um objeto criado com `new` não fica na pilha, porque …"). It can hold paragraphs, math,
+ * code, lists and figures. It shows, under the heading "Explicação" / "Explanation" after the item
+ * rows, only once every item locks, right or wrong. It reasons about the answers but never teaches
+ * a fact for the first time, since an owner who skips the questions never reads it, so put every
+ * fact they must learn in the text too. Write one whenever the source gives a reason:
  *
  * ```mdx
  * import Matching from "@artifactory/design-system/matching";
@@ -36,6 +44,11 @@ import { questionAnchor, questionMarkers, questionNumberSlot } from "./question-
  * - Uma variável local
  * - Um objeto criado com `new`
  *
+ * ---
+ *
+ * Locais vivem no quadro da chamada, na pilha; `new` aloca no heap, e globais ficam na área de
+ * dados.
+ *
  * </Matching>
  * ```
  */
@@ -49,7 +62,7 @@ interface Props {
   answers: Record<string, number>;
 }
 
-const { prompt, options, items } = matchingParts(
+const { prompt, options, items, explanation } = matchingParts(
   await Astro.slots.render("default"),
   Astro.props.answers,
 );
@@ -61,7 +74,7 @@ const optionId = (index: number) => `${questionAnchor(first)}--option-${String(i
 const itemTextId = (id: string) => `${questionAnchor(id)}--item`;
 ---
 
-<Question kind="matching" id={first} lastId={last} prompt={prompt}>
+<Question kind="matching" id={first} lastId={last} prompt={prompt} explanation={explanation}>
   <ol class="matching-options">
     {options.map((option, index) => (
       <li>
@@ -269,6 +282,16 @@ const itemTextId = (id: string) => `${questionAnchor(id)}--item`;
       > .question-header
       > .question-status::before {
       content: none;
+    }
+
+    /* The rows' closing rule is the explanation's rule: a second one 16px under it would read as an
+       empty row. */
+    artifact-matching > form > .question-explanation {
+      margin-block-start: 0;
+
+      > .question-revealed {
+        border-block-start: 0;
+      }
     }
 
     /* Check stays while an item is open, even when another item's state heads the box. */
