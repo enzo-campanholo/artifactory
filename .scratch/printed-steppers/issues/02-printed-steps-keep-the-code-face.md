@@ -1,6 +1,6 @@
 # 02: Printed steps keep the code face
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01: Print every step of a figure Stepper whose parts leave; [Code display 05](../../code-display/issues/05-font-code-sets-figure-text-in-the-code-face.md)
 
 **What to build:** text a figure Stepper's drawing sets with `font-code` prints in the code face in every printed step, as it shows on screen. [Printed Steppers](../spec.md) › Shared parts asks for `font-code` to be checked in a printed step, and the class only exists once Code display adds it, so this check waits for both.
