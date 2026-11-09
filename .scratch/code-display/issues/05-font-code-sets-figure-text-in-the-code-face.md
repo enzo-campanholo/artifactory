@@ -1,7 +1,7 @@
 # 05: `font-code` sets figure text in the code face
 
 Blocked by: None (can start immediately)
-Status: claimed
+Status: resolved
 
 **What to build:** an agent drawing an SVG puts code, an identifier or an instruction in a `<text>` with `class="font-code"`. It shows in the code face, Recursive in mono mode, as `pre` sets it, in a `Figure` and in a figure Stepper. Text without the class keeps the heading face, as today.
 
@@ -9,15 +9,39 @@ The class sits with the colour classes in `figure-colours.css`, and `COMPONENTS.
 
 This is design-system work: do it in a local session with impeccable (`design-system/CLAUDE.md`).
 
-- [ ] A figure with `<text class="font-code">` sets that text in Recursive, mono, and its other text in Archivo. Check this in a `Figure` and a figure Stepper on the catalog, in both themes and in print.
-- [ ] `font-code` combines with a `fill-` class on the same text, and a Stage's `strong` mark still sets such a label in bold.
-- [ ] The script that generates `COMPONENTS.md`'s colour-class listing is extended to list `font-code` beside the colour classes; `COMPONENTS.md` is regenerated with `pnpm components`, not hand-edited, and the `component-reference` check passes.
-- [ ] The `artifact` skill's figure guidance (the **Text** bullet in its figure pitfalls) says to use `font-code` for code, identifiers and instructions in a figure, and the heading face otherwise.
-- [ ] The catalog shows a figure using `font-code`.
-- [ ] Shared part: `figure-colours.css` reaches `Figure`, figure Steppers and the Stage's drawing. Check a Stage drawing on its catalog page, which shouldn't change, with the same evidence as the `Figure`.
+- [x] A figure with `<text class="font-code">` sets that text in Recursive, mono, and its other text in Archivo. Check this in a `Figure` and a figure Stepper on the catalog, in both themes and in print.
+- [x] `font-code` combines with a `fill-` class on the same text, and a Stage's `strong` mark still sets such a label in bold.
+- [x] The script that generates `COMPONENTS.md`'s colour-class listing is extended to list `font-code` beside the colour classes; `COMPONENTS.md` is regenerated with `pnpm components`, not hand-edited, and the `component-reference` check passes.
+- [x] The `artifact` skill's figure guidance (the **Text** bullet in its figure pitfalls) says to use `font-code` for code, identifiers and instructions in a figure, and the heading face otherwise.
+- [x] The catalog shows a figure using `font-code`.
+- [x] Shared part: `figure-colours.css` reaches `Figure`, figure Steppers and the Stage's drawing. Check a Stage drawing on its catalog page, which shouldn't change, with the same evidence as the `Figure`.
 
 ## Comments
 
 ### 2026-11-09: what 01 changed near this ticket
 
 From code display 01's implementation: the figure Stepper's `data-step` lists are now parsed by `numberList` in `design-system/src/number-lists.ts` (through `listed` in `stepper.ts`), with the same results and failures as before. `figure-colours.css` and the figure Stepper's markup and styles are unchanged, so this ticket starts from the same figure rendering.
+
+### 2026-11-09: resolved
+
+Implementer, impeccable-gaps-implementation pass, through impeccable in a local session (the owner's 2026-11-09 authorization on the spec stands in for impeccable's interview step: decisions below were made without asking).
+
+**Result.** `figure-colours.css` gains `.figure .font-code`: `font-family: var(--font-mono)`, `font-variation-settings: "MONO" 1` and `font-stretch: normal`, so a `<text class="font-code">` in a `Figure`, a figure Stepper (screen and printed copies) or a Stage drawing is set in Recursive in mono mode, and other text stays Archivo. `scripts/component-reference.ts` reads the rule from the CSS (failing the generation when the code face has no class there) and writes a "Code in figures" subsection under "Colours in figures", before "Swatches"; `COMPONENTS.md` regenerated with `pnpm components`. `Figure`'s doc comment, `DESIGN.md` (Figures and diagrams) and `.claude/skills/artifact/figures.md` › **Text** name `font-code` for code, identifiers and instructions, the heading face otherwise. The catalog's Figure section shows `insertion-sort.svg`: an array mid-sort, its name, values, indices (`font-code fill-muted`) and `i` in the code face, "sorted"/"unsorted" in Archivo.
+
+**Commits.** `fcf513f` (claim), `dac3b33` (the class, generator, docs, catalog), and this closing commit.
+
+**Validation.** A build with a throwaway figure Stepper (parts that leave, `font-code` labels; not committed) and a script that reads computed styles and screenshots (`capture-font-code.ts` in the pass's shared notes):
+- The catalog Figure, screen light and dark, print light, and 393 px: every `font-code` text is `"Recursive Variable"`, `"MONO" 1`, stretch 100%, weight 500; the others Archivo at 88%. `font-code fill-muted` paints the muted grey (rgb 92/92/92 light, 163/163/163 dark).
+- The figure Stepper: each of its three screen steps in both themes, and every printed step in print light, sets `font-code` text in Recursive mono and the rest in Archivo.
+- Stage: the mid-run Stage with `font-code` added to its labels in the page sets them in Recursive mono, `strong` labels at 700, `reversed` at 700 in the ground colour, `muted` grey; the rest 500. In print the marks don't exist, as before.
+- Shared part: every Stage on `/catalog/stage/` (11), in screen light and dark and print light, screenshots byte-identical with the `.figure .font-code` rule present and deleted from the live stylesheet; the catalog Figure differs, as it should. No page errors. `impeccable detect` found nothing. Full `pnpm check` gate at the final HEAD after merging the integration tip.
+
+**Decisions.**
+- The code face keeps the drawing's weight (the frame's 500) rather than `pre`'s 400, so the class sets the face, not the weight: a Stage's `strong` mark (`font-weight` 700, specificity above `.figure .font-code`) still bolds it, and code reads with the drawing's other labels.
+- `font-stretch: normal` is reset because the figure's 88% is Archivo's narrowing; Recursive has no width axis, and a fallback mono face shouldn't be narrowed.
+- `COMPONENTS.md` places it as a short "Code in figures" subsection inside "Colours in figures" rather than in the class list, whose lead says each class paints with a token.
+- No new automated test: `font-code` is a CSS face, which the four seams don't observe (`docs/agents/test-seams.md` leaves rendering to the browser and impeccable); the class passing through to built SVG is already asserted for colour classes, and the generator's output is held by the `component-reference` check.
+
+**Shared parts reached and checked.** `figure-colours.css` reaches `Figure`, figure Steppers (screen and printed copies) and the Stage's drawing; all three checked above, the Stage unchanged.
+
+**Left undone.** Nothing here. Printed steppers 02 owns recording the printed-step evidence; a note on it says what was already seen.
