@@ -1,6 +1,6 @@
 # 05: D2 sends colourings to Figure
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02
 
 Source: [Swatches](../spec.md) › Not in D2, and › Documentation.
