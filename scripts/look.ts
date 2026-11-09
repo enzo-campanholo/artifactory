@@ -40,8 +40,16 @@ interface Item {
   kind: Kind;
   name: string;
   place: Place;
-  modelAnswer?: ElementHandle<HTMLDetailsElement>;
+  hiddenIn?: HiddenPart;
 }
+
+type HiddenPart =
+  | { part: "model answer"; details: ElementHandle<HTMLDetailsElement> }
+  | {
+      part: "explanation";
+      explanation: ElementHandle<HTMLElement>;
+      question: ElementHandle<HTMLElement>;
+    };
 
 interface Shooting {
   page: Page;
@@ -175,7 +183,12 @@ if (!kebabCase.test(slug) || !existsSync(join(root, entry)))
   fail(`there's no artifact at ${entry}`);
 const folder = `.look/${slug}`;
 await new Promise<void>((done, reject) => {
-  spawn("astro", ["build"], { stdio: "inherit" })
+  // Look answers questions to reveal their explanations, so its build keeps throwaway state even
+  // in a shell set up for the deploy build: those answers must never reach the owner's.
+  spawn("astro", ["build"], {
+    stdio: "inherit",
+    env: { ...process.env, PUBLIC_STATE_TRANSPORT: "" },
+  })
     .on("error", reject)
     .on("exit", (code) => {
       if (code === 0) done();
@@ -340,25 +353,28 @@ async function resolveItem(
   const { shotPart, stem } = kinds[kind];
   const element = shotPart === undefined ? selected : ((await selected.$(shotPart)) ?? selected);
   const name = `${String(index + 1).padStart(2, "0")}-${stem}`;
-  const modelAnswer = (
-    await element.evaluateHandle((node) => node.closest("details.question-model-answer"))
-  ).asElement() as ElementHandle<HTMLDetailsElement> | null;
-  if (modelAnswer === null) return { element, kind, name, place: await numberOf(page, element) };
+  const hidden = (
+    await element.evaluateHandle((node) =>
+      node.closest("details.question-model-answer, .question-explanation"),
+    )
+  ).asElement() as ElementHandle<HTMLElement> | null;
+  if (hidden === null) return { element, kind, name, place: await numberOf(page, element) };
   const question = required(
     test,
-    `${name}: question number`,
-    (
-      await modelAnswer.evaluateHandle((node) =>
-        node.closest(".question")?.querySelector(".question-number"),
-      )
-    ).asElement(),
-  );
-  const location = `inside the model answer of ${await accessibleText(page, question)}`;
-  return { element, kind, name, place: { location }, modelAnswer };
+    `${name}: question`,
+    (await hidden.evaluateHandle((node) => node.closest(".question"))).asElement(),
+  ) as ElementHandle<HTMLElement>;
+  const number = required(test, `${name}: question number`, await question.$(".question-number"));
+  const hiddenIn: HiddenPart = (await hidden.evaluate((node) => node.matches("details")))
+    ? { part: "model answer", details: hidden as ElementHandle<HTMLDetailsElement> }
+    : { part: "explanation", explanation: hidden, question };
+  const location = `inside the ${hiddenIn.part} of ${await accessibleText(page, number)}`;
+  return { element, kind, name, place: { location }, hiddenIn };
 }
 
-// A model answer opens only once an answer is written, so look opens it itself, on the build's
-// throwaway state, and closes it again once its item is shot.
+// A model answer opens only once an answer is written, and an explanation shows only once its
+// question locks, so look reveals each itself, on the build's throwaway state. It closes a model
+// answer again once its item is shot, but a lock stays: only Start over undoes one.
 async function shootRevealed(shooting: Shooting): Promise<Shots | ShotProblem> {
   const { test, item } = shooting;
   const known = kinds[item.kind];
@@ -373,18 +389,60 @@ async function shootRevealed(shooting: Shooting): Promise<Shots | ShotProblem> {
       ? known.takeShots(shooting)
       : { problem: `not rendered${after} (${unrendered})` };
   };
-  if (item.modelAnswer === undefined) return shootRendered("");
-  const { modelAnswer } = item;
-  await toggle(modelAnswer, true);
+  const { hiddenIn } = item;
+  if (hiddenIn === undefined) return shootRendered("");
+  if (hiddenIn.part === "explanation") {
+    await lock(shooting, hiddenIn);
+    return shootRendered(" after its question locked");
+  }
+  const { details } = hiddenIn;
+  await toggle(details, true);
   const shots = await shootRendered(" after its reveal");
-  await toggle(modelAnswer, false);
+  await toggle(details, false);
   assertCase(
     test,
     `${item.name}: model answer closed again`,
     false,
-    await modelAnswer.evaluate((node) => node.open),
+    await details.evaluate((node) => node.open),
   );
   return shots;
+}
+
+// Look answers as the owner would, with each question's first option, or 0 in a numeric field,
+// and checks. Right or wrong, the explanation shows. A later item in the same explanation finds it
+// shown already, and an explanation that never shows fails its item as unrendered.
+async function lock(
+  { page, test, item }: Shooting,
+  { explanation, question }: Extract<HiddenPart, { part: "explanation" }>,
+): Promise<void> {
+  if (!(await explanation.evaluate((node) => node.hidden))) return;
+  const stored = () =>
+    page.evaluate(() => [
+      ...Object.keys(localStorage).map((key) => `localStorage ${key}`),
+      ...Object.keys(sessionStorage).map((key) => `sessionStorage ${key}`),
+    ]);
+  const before = await stored();
+  await page
+    .waitForFunction((node: HTMLElement) => !node.inert, {}, question)
+    .catch(() => undefined);
+  await question.evaluate((node) => {
+    const answered = new Set<string>();
+    for (const choice of node.querySelectorAll<HTMLInputElement>("input[type=radio]")) {
+      if (answered.has(choice.name)) continue;
+      answered.add(choice.name);
+      choice.checked = true;
+      choice.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    for (const field of node.querySelectorAll<HTMLInputElement>(".numeric-question-answer input")) {
+      field.value = "0";
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    node.querySelector<HTMLButtonElement>(".question-check")?.click();
+  });
+  await page
+    .waitForFunction((node: HTMLElement) => !node.hidden, {}, explanation)
+    .catch(() => undefined);
+  assertCase(test, `${item.name}: the lock saved nothing`, before, await stored());
 }
 
 function toggle(details: ElementHandle<HTMLDetailsElement>, open: boolean): Promise<void> {
