@@ -7,6 +7,7 @@ export const regenerateCommand = "pnpm components";
 export const designSystemPackage = "@artifactory/design-system/";
 const d2TokensFile = "design-system/src/d2-tokens.ts";
 const figureColoursFile = "design-system/src/figure-colours.css";
+const swatchesFile = "design-system/src/swatches.ts";
 
 interface ImportableComponent {
   name: string;
@@ -79,7 +80,10 @@ export async function componentReference(root: string): Promise<string> {
     ...sections,
     await machinesSection(root),
     diagramColours(await readFile(join(root, d2TokensFile), "utf8")),
-    figureColours(await readFile(join(root, figureColoursFile), "utf8")),
+    figureColours(
+      await readFile(join(root, figureColoursFile), "utf8"),
+      swatchHatchings(await readFile(join(root, swatchesFile), "utf8")),
+    ),
   ];
   return `${parts.join("\n\n")}\n`;
 }
@@ -315,14 +319,52 @@ function diagramColours(d2Tokens: string): string {
   ].join("\n\n");
 }
 
-function figureColours(css: string): string {
+function swatchHatchings(source: string): string[] {
+  const script = typescript.createSourceFile(
+    swatchesFile,
+    source,
+    typescript.ScriptTarget.Latest,
+    true,
+  );
+  const list = script.statements
+    .filter(typescript.isVariableStatement)
+    .flatMap((statement) => statement.declarationList.declarations)
+    .find((declaration) => declaration.name.getText(script) === "swatches")?.initializer;
+  if (list === undefined || !typescript.isArrayLiteralExpression(list)) {
+    throw new Error(`${swatchesFile}: \`swatches\` isn't an array literal`);
+  }
+  return list.elements.map((swatch) => {
+    const draws = typescript.isObjectLiteralExpression(swatch)
+      ? swatch.properties
+          .filter(typescript.isPropertyAssignment)
+          .find((property) => property.name.getText(script) === "draws")?.initializer
+      : undefined;
+    if (draws === undefined || !typescript.isStringLiteral(draws)) {
+      throw new Error(`${swatchesFile}: give each swatch \`draws\`, a string saying what it draws`);
+    }
+    return draws.text;
+  });
+}
+
+function figureColours(css: string, swatches: string[]): string {
   const rules = [
     ...css.matchAll(/\.figure \.((?:fill|stroke)-[a-z]+) \{\s*[a-z]+: var\(([^)]+)\);\s*\}/g),
   ];
+  const swatchRules = [
+    ...css.matchAll(/\.figure \.fill-swatch-(\d+) \{\s*fill: var\(--swatch-(\d+)\);\s*\}/g),
+  ];
   const classes = css.match(/\.figure \.(?:fill|stroke)-/g) ?? [];
-  if (rules.length === 0 || rules.length !== classes.length) {
+  if (rules.length === 0 || rules.length + swatchRules.length !== classes.length) {
     throw new Error(
-      `${figureColoursFile}: write each class as \`.figure .fill-x { fill: var(--token); }\``,
+      `${figureColoursFile}: write each class as \`.figure .fill-x { fill: var(--token); }\`, or a swatch as \`.figure .fill-swatch-N { fill: var(--swatch-N); }\``,
+    );
+  }
+  const swatchNumbers = swatchRules.map(([, n = "", property = ""]) =>
+    n === property ? Number(n) : 0,
+  );
+  if (swatchNumbers.join() !== swatches.map((_, index) => index + 1).join()) {
+    throw new Error(
+      `${figureColoursFile}: give \`fill-swatch-1\` to \`fill-swatch-${String(swatches.length)}\` a rule each, in order, as \`.figure .fill-swatch-N { fill: var(--swatch-N); }\``,
     );
   }
   const colours = (ink: boolean) => {
@@ -340,5 +382,9 @@ function figureColours(css: string): string {
     "Each class paints an SVG element with a token:",
     rules.map(([, className, token]) => `- \`${className ?? ""}\`: \`${token ?? ""}\``).join("\n"),
     `The ${colours(true)} classes are ink: use them for lines and labels. The ${colours(false)} classes are too faint to read on the page: use them for fills and gridlines, never for text or a line that carries meaning, unless it sits on an ink fill.`,
+    "### Swatches",
+    `When colour is the subject (a graph or map colouring, an edge colouring, a red-black tree), each colour is a swatch: a hatching in ink on the ground, never a hue or a line form. In a \`Figure\` or a \`Stage\` drawing, never a \`Stepper\`, fill an area (a vertex, a region) with its colour's class, in swatch order, at most ${String(swatches.length)} to a drawing; an area left in the ground is uncoloured:`,
+    swatches.map((draws, index) => `- \`fill-swatch-${String(index + 1)}\`: ${draws}`).join("\n"),
+    "The label is the colour: every coloured part, edges included, carries a `<text x y data-swatch=\"N\">` in the same `<g>` as its shapes, at the part's centre or the edge's midpoint, whose text is colour N's name, as `Figure`'s `colours` gives it (1 to 6 without it). The drawing sets the label's size, centres it and draws it on a square plate of the ground. An edge takes the label only, never a swatch or a line style. `Figure`'s entry says the rest.",
   ].join("\n\n");
 }

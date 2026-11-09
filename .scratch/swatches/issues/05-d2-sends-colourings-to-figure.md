@@ -11,3 +11,9 @@ Source: [Swatches](../spec.md) › Not in D2, and › Documentation.
 - [ ] `tests/check`'s existing D2 failure case asserts the new text, extended rather than duplicated.
 - [ ] In the same commit, the `artifact` skill's `d2.md` (The design system's style, Failures) sends colourings to Figure.
 - [ ] `Diagram`'s doc comment sends colourings to `Figure`; run `pnpm components`. A doc comment only, so no catalog change: say so in the closing comment.
+
+## Comments
+
+### 2026-11-09: notes from swatches 02
+
+- `Figure`'s doc comment now has a **Colourings** paragraph (swatches, labels, `colours`, edges by label, no legend), and the `artifact` skill's `figures.md` a **Colourings** bullet. The D2 failure text and `d2.md` can send an agent there by those names.

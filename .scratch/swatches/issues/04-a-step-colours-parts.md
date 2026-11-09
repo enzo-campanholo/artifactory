@@ -20,3 +20,11 @@ Design-system work: run it in a local session with impeccable.
 - [ ] Docs, in the same commit: `Step.colours`'s doc comment in `stage-build`; `Stage`'s doc comment (steps colour parts, the label a coloured part must hold, `say` naming colours by name, the failures) and `pnpm components`; `DESIGN.md` › Stage (`colours` in a step, the cross-fade) and `.impeccable/design.json`; the `artifact` skill's `stage.md` (the `colours` field and each new failure line) and `rules.md` › Custom builds' list of what the Stage takes.
 - [ ] The catalog's Stage page runs a greedy colouring step by step, the drawing uncoloured as written, with each mark on a coloured vertex and hover on a clickable one, stepped by the catalog script to where they show; checked in both themes, print (as written) and forced colours.
 - [ ] Shared parts: `Stage.astro`'s motion and print rules reach every Stage: check that the Prim and mdc Stages still cross-fade their marks and print as written. The step applier and the Stage element reach only the Stage and the check's runs.
+
+## Comments
+
+### 2026-11-09: notes from swatches 02
+
+- **An empty label fails today.** `swatchProblems` in `design-system/src/swatches.ts` (the check 03 reuses for a Stage's drawing as written) fails a `<text data-swatch="…">` whose value isn't a number ("names no swatch") and a label whose text isn't its colour's name. The empty label of a part uncoloured as written needs a form you choose (`data-swatch=""` with no text, say) and an exception there for a Stage.
+- **Plate size comes from the labels as written.** `platedLabels` draws an 18-unit plate when every label in the drawing is one character and 24 when any has two (Archivo at 15 units: one character is at most 13 wide, two up to 25). A step that gives a part a two-character name on a drawing written with one-character labels (or empty ones) would overflow its plate: size it from the Stage's `colours` instead, which `platedLabels` doesn't take yet.
+- **A label's position needs no change.** The label is centred on its `x` and `y` by CSS, and the plate is centred on the same point, so a step changes only the label's text and `data-swatch` and the area's `fill-swatch-N` class.

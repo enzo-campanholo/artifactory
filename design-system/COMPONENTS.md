@@ -74,12 +74,43 @@ the text colour, and text uses the face of the page's headings. The page numbers
 its section ("Figura 4.1"). Colours written in the file (`fill="#…"`) don't
 follow dark mode, so leave them out.
 
+**Colourings.** When colour is the subject, such as a colouring of a graph's vertices, a map's
+regions or a graph's edges, draw each colour as a swatch, never as a line style, a fill or a
+hue of your own: at most six colours, each a `fill-swatch-N` hatching under "Colours in
+figures". Every coloured part carries a label, `<text x y data-swatch="N">`, whose text is
+colour N's name, in the same `<g>` as the shapes it names, with its `x` and `y` at the part's
+centre. The Figure sets the label's size, centres it there and draws it on a square plate of
+the ground, so it reads over the hatching. A vertex or region takes `fill-swatch-N` and the
+label; an edge takes the label only, at its midpoint, and keeps its line as any edge's:
+
+```svg
+<g>
+  <circle cx="40" cy="40" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" />
+  <text x="40" y="40" data-swatch="1">1</text>
+</g>
+<g>
+  <line x1="62" y1="40" x2="158" y2="40" class="stroke-text" stroke-width="2" />
+  <text x="110" y="40" data-swatch="2">2</text>
+</g>
+```
+
+Draw no legend. Name the colours once in the prose, where they're first used ("as cores 1 a
+3"), and name each part's colour in `alt` ("A tem a cor 1, B a cor 2…"). The build fails when a
+label's text isn't its colour's name, when a `<g>` with a `fill-swatch-N` shape has no label or
+a label of another colour, when a label has no `x` and `y`, and when a swatch is past the names
+`colours` gives.
+
 ### Props
 
 - `src` (`string`, required): The drawing, imported with `?raw` from an `.svg` file next to the entry.
 - `alt` (`string`, required): What the drawing shows, in a sentence or two. Screen readers read it instead of the drawing.
 - `caption` (`string`, optional): One short sentence under the drawing, after its number ("Figura 4.1"), saying what to look for.
   Leave it out when the paragraph before already says it.
+- `colours` (`string[]`, optional): The names of a colouring's colours, in swatch order, each one or two characters, at most six:
+  `colours={["R", "B"]}` names `fill-swatch-1` "R" and `fill-swatch-2` "B", and each label shows
+  its colour's name. Leave it out to name the colours by their numbers, 1 to 6. Give it only to
+  a Figure whose subject is a colouring (see "Colourings" above); the prose still names the
+  colours once and `alt` names each part's.
 
 ## Note
 
@@ -1261,3 +1292,16 @@ Each class paints an SVG element with a token:
 - `stroke-border`: `--color-border`
 
 The `text`, `muted` and `accent` classes are ink: use them for lines and labels. The `tint`, `surface` and `border` classes are too faint to read on the page: use them for fills and gridlines, never for text or a line that carries meaning, unless it sits on an ink fill.
+
+### Swatches
+
+When colour is the subject (a graph or map colouring, an edge colouring, a red-black tree), each colour is a swatch: a hatching in ink on the ground, never a hue or a line form. In a `Figure` or a `Stage` drawing, never a `Stepper`, fill an area (a vertex, a region) with its colour's class, in swatch order, at most 6 to a drawing; an area left in the ground is uncoloured:
+
+- `fill-swatch-1`: diagonal lines `/`
+- `fill-swatch-2`: diagonal lines `\`
+- `fill-swatch-3`: cross-hatch, both diagonals
+- `fill-swatch-4`: horizontal lines
+- `fill-swatch-5`: vertical lines
+- `fill-swatch-6`: dots
+
+The label is the colour: every coloured part, edges included, carries a `<text x y data-swatch="N">` in the same `<g>` as its shapes, at the part's centre or the edge's midpoint, whose text is colour N's name, as `Figure`'s `colours` gives it (1 to 6 without it). The drawing sets the label's size, centres it and draws it on a square plate of the ground. An edge takes the label only, never a swatch or a line style. `Figure`'s entry says the rest.

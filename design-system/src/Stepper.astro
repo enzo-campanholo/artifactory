@@ -114,6 +114,12 @@ if ("diagram" in props) {
   }));
   count = boards.length;
 } else if ("figure" in props) {
+  if (/fill-swatch-|data-swatch/.test(props.figure)) {
+    throw componentError(
+      "Stepper",
+      "swatches are only for a Figure or a Stage, so a figure Stepper draws none: draw the colouring as a Figure, or step through it in a Stage",
+    );
+  }
   ({ svg: figure, count } = steppedFigure(props.figure));
 } else {
   ({ html: code, linesOfStep } = steppedCode(await Astro.slots.render("default"), props.lines));
