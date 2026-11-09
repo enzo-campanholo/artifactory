@@ -1,6 +1,6 @@
 # 06: Lock a question to shoot its explanation
 
-Status: claimed
+Status: resolved
 Blocked by: 03 (Reveal a model answer to shoot what it holds); [Question explanations 02](../../question-explanations/issues/02-single-choice-explanation.md); [Question explanations 03](../../question-explanations/issues/03-numeric-question-explanation.md); [Content types 05](../../content-types/issues/05-matching-explanation.md)
 
 Spec: [What `pnpm look` captures](../spec.md) › Content behind a hidden part
@@ -9,11 +9,11 @@ Spec: [What `pnpm look` captures](../spec.md) › Content behind a hidden part
 
 The lock happens on the build's throwaway state, so it never reaches the owner's answers. The question stays locked afterwards, because only "start over" undoes a lock, and later shots don't depend on it. The item's line names its location in place of a number: `… (inside the explanation of Questão 4)`, with the question's name read from the accessibility tree as in ticket 03; a matching is named by its header as the page shows it (`… (inside the explanation of Questões 3–5)`). Once ticket 04's failure rule is in, an item still unrendered after the lock fails the case as it says.
 
-- [ ] An item inside a `SingleChoice` explanation is shot once look has locked the question with its first option. An item inside a `NumericQuestion` explanation is shot once look has submitted a number. An item inside a matching's explanation is shot once look has chosen the first option for every item and checked the set.
-- [ ] The lock runs on throwaway state and saves nothing anywhere, and the question stays locked.
-- [ ] The item's printed line and its `results.json` entry name its location (`inside the explanation of <question name and number>`).
-- [ ] Seam 1 test, a new opt-in Look fixture: a figure inside a `SingleChoice` explanation and one inside a matching's explanation are each shot once the question or the set locks (exit 0, their captures at both widths, their locations printed).
-- [ ] In the same commit, the `artifact` skill's **Look** section adds explanations next to model answers in what's shot, and `stage.md` › **Look**'s reveal line covers "a model answer or explanation".
+- [x] An item inside a `SingleChoice` explanation is shot once look has locked the question with its first option. An item inside a `NumericQuestion` explanation is shot once look has submitted a number. An item inside a matching's explanation is shot once look has chosen the first option for every item and checked the set.
+- [x] The lock runs on throwaway state and saves nothing anywhere, and the question stays locked.
+- [x] The item's printed line and its `results.json` entry name its location (`inside the explanation of <question name and number>`).
+- [x] Seam 1 test, a new opt-in Look fixture: a figure inside a `SingleChoice` explanation and one inside a matching's explanation are each shot once the question or the set locks (exit 0, their captures at both widths, their locations printed).
+- [x] In the same commit, the `artifact` skill's **Look** section adds explanations next to model answers in what's shot, and `stage.md` › **Look**'s reveal line covers "a model answer or explanation".
 
 ## Comments
 
@@ -36,3 +36,19 @@ Implementer of [Content types 05](../../content-types/issues/05-matching-explana
 ### 2026-11-09: from Question explanations 04
 
 Implementer of [Question explanations 04](../../question-explanations/issues/04-unnumbered-figures-in-questions.md#comments). A figure, diagram or Stage inside a `.question-revealed` part now has no number: its `.figure-number` is `display: none`, so `numberOf` would read "" for it; name it by its location as the ticket says. An uncaptioned one hides its whole `figcaption` (`figcaption[data-uncaptioned]`). The catalog's questions page now has a figure in the `SingleChoice`'s explanation, a diagram in the `NumericQuestion`'s and an uncaptioned figure in the matching's.
+
+### 2026-11-09: resolved
+
+Implementer of this ticket. Result: `pnpm look` reveals an item inside a question's explanation by locking the question, then shoots it alone like any other item, named `… (inside the explanation of Question N)` or, in a matching, `… (inside the explanation of Questions 3–5)` from the header the page shows.
+
+- **Commits:** `2ff1e8b` (claim), `47b658c` (lock, its seam 1 test, the `artifact` skill's **Look**, `stage.md` › **Look** and `docs/agents/test-seams.md`), and this closing commit.
+- **Validation:** the new opt-in fixture `look-explanation` (`tests/check/browser-verification.test.ts` › "opt-in Look explanation evidence") failed first with every explanation figure unrendered, then passed: two figures in one `SingleChoice` explanation, one in a `NumericQuestion`'s and one in a matching's, each captured at 393 and 1920 px with its location printed and in `results.json`, exit 0. Every opt-in Look test passed with it (11), and I opened the captures: each shows its figure alone. Full `pnpm check` gate on the merged HEAD.
+- **Decisions:**
+  - `Item.modelAnswer` became `hiddenIn`, a model answer or an explanation, and the location reads `inside the <part> of <question name>` for both, the name from the question box's `.question-number` (a matching's header included).
+  - One lock for every kind: in the question box, the first radio of each radio group is checked (a `SingleChoice`'s first option, or every matching item's first option), any `.numeric-question-answer` field is set to `0`, each with a bubbling `input` event, then Check is clicked in the page. `0` because input that isn't a plain number never locks (Question explanations 03).
+  - Look waits for the box to stop being `inert` (the store started) before answering, and for the explanation to lose `hidden` after Check. Both waits end quietly on a timeout, so an explanation that never shows fails its item through ticket 04's rule as `not rendered after its question locked (…)`.
+  - A later item in an already shown explanation doesn't lock again; the question stays locked.
+  - "Saves nothing anywhere" is asserted per lock as `<item>: the lock saved nothing` (the page's `localStorage` and `sessionStorage` keys before and after the lock), and look now builds with `PUBLIC_STATE_TRANSPORT` emptied, so a shell set up for the deploy build still gets throwaway state.
+  - `docs/agents/test-seams.md`'s seam 1 Look line now lists the explanation reveal.
+- **Shared parts:** none reached; the change stays in `scripts/look.ts`, its tests and docs.
+- **Left undone:** nothing.
