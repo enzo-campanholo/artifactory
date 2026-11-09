@@ -478,7 +478,14 @@ interface Typed extends Staged {
  * Stage without exactly one table or with no row as written, a `body` row without one text per
  * column, or, with `input`, a step without `body` in a run whose other steps give it, or tables as
  * written that aren't the first example's result, a row the last step adds or drops included. The
- * page refuses the same runs.
+ * page refuses the same runs. Before any run, the check fails an example that breaks its field's
+ * rule, the one the page refuses typed input by: a number that isn't whole or is out of bounds, or
+ * text that isn't in NFC, holds a symbol outside the alphabet, or is longer than `maxLength` or
+ * shorter than `minLength`, counted in code points. It also fails a text field whose alphabet holds
+ * a symbol that isn't one code point or holds one twice, whose `minLength` isn't a whole number of
+ * at least 0 or is above `maxLength`, or whose `maxLength` is missing or isn't a whole number of at
+ * least 1, and a field with a prop of the other kind (`min` or `max` on a text field, `alphabet`,
+ * `minLength` or `maxLength` on a number field).
  */
 type Props = Chosen | Typed;
 
@@ -494,12 +501,16 @@ const fields = (input?.fields ?? []).map((field): Field => {
     ? {
         ...named,
         kind: "text",
-        ...(field.alphabet === undefined ? {} : { alphabet: field.alphabet }),
+        ...(field.alphabet === undefined
+          ? {}
+          : { alphabet: field.alphabet.map((symbol) => symbol.normalize("NFC")) }),
         minLength: field.minLength ?? 0,
         maxLength: field.maxLength,
       }
     : { ...named, kind: "number", min: field.min, max: field.max };
 });
+type GivenField = Typed["input"]["fields"][number];
+const fieldsProblems = (input?.fields ?? []).map(fieldPropsProblems);
 // A catalog page's builds sit in `catalog/`, as an artifact's sit beside its entry.
 const slug = Astro.params.slug;
 const content = await Astro.slots.render("default");
@@ -515,6 +526,7 @@ const problems = [
   ...(choose !== undefined && input !== undefined
     ? ["give it only one of `choose` and `input`"]
     : []),
+  ...fieldsProblems.flat(),
   ...(input !== undefined && written === undefined ? ["give `input` at least one example"] : []),
   ...(input?.examples ?? []).flatMap((example, index) => exampleProblems(index + 1, example)),
   ...(figure !== undefined && alt === undefined ? ["give `alt` with `figure`"] : []),
@@ -527,22 +539,91 @@ const problems = [
 ];
 if (problems.length > 0) throw componentError("Stage", problems.join("; "));
 
+// An entry that breaks the props' types still builds, so a field's props are checked here: one of
+// the wrong kind, or a text field's rule that can't hold.
+function fieldPropsProblems(field: GivenField): string[] {
+  const named = `the field \`${field.name}\``;
+  const given: Record<string, unknown> = field;
+  const text = field.kind === "text";
+  const otherKinds = (text ? ["min", "max"] : ["alphabet", "minLength", "maxLength"])
+    .filter((prop) => given[prop] !== undefined)
+    .map(
+      (prop) => `${named} has \`${prop}\`, which only a ${text ? "number" : "text"} field takes`,
+    );
+  if (field.kind !== "text") return otherKinds;
+  const symbols = (field.alphabet ?? []).map((symbol) => symbol.normalize("NFC"));
+  const alphabet = symbols.flatMap((symbol, index) => {
+    const first = symbols.indexOf(symbol);
+    if (Array.from(symbol).length !== 1) {
+      return first === index
+        ? [`${named} has ${JSON.stringify(symbol)} in its alphabet, which isn't one code point`]
+        : [];
+    }
+    return symbols.indexOf(symbol, first + 1) === index
+      ? [`${named} has ${JSON.stringify(symbol)} more than once in its alphabet`]
+      : [];
+  });
+  const { minLength, maxLength } = given;
+  return [
+    ...alphabet,
+    ...(minLength === undefined || isWholeFrom(minLength, 0)
+      ? []
+      : [
+          `${named} has \`minLength\` ${JSON.stringify(minLength)}, which isn't a whole number of at least 0`,
+        ]),
+    ...(maxLength === undefined
+      ? [`${named} has no \`maxLength\``]
+      : isWholeFrom(maxLength, 1)
+        ? []
+        : [
+            `${named} has \`maxLength\` ${JSON.stringify(maxLength)}, which isn't a whole number of at least 1`,
+          ]),
+    ...(isWholeFrom(minLength, 0) && isWholeFrom(maxLength, 1) && minLength > maxLength
+      ? [
+          `${named} has \`minLength\` ${String(minLength)}, above its \`maxLength\` ${String(maxLength)}`,
+        ]
+      : []),
+    ...otherKinds,
+  ];
+}
+
+function isWholeFrom(value: unknown, least: number): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= least;
+}
+
+// A field whose own props fail has no rule to hold its examples to.
 function exampleProblems(number: number, example: Record<string, unknown>): string[] {
   const named = `example ${String(number)}`;
   return [
     ...Object.keys(example)
       .filter((name) => !fields.some((field) => field.name === name))
       .map((name) => `${named} has \`${name}\`, which no field has`),
-    ...fields.flatMap((field) => {
+    ...fields.flatMap((field, index) => {
       const value = example[field.name];
       if (value === undefined) return [`${named} has no \`${field.name}\``];
-      const problem = fieldProblem(field, value);
+      if (fieldsProblems[index]?.length !== 0) return [];
       const given = `${named} gives \`${field.name}\` ${JSON.stringify(value)}`;
-      if (problem === "not-text") return [`${given}, which isn't text`];
-      if (problem === "not-whole") return [`${given}, which isn't a whole number`];
-      return problem === "out-of-bounds" && field.kind === "number"
-        ? [`${given}, outside ${String(field.min)} to ${String(field.max)}`]
-        : [];
+      const broken = fieldProblem(field, value);
+      switch (broken?.problem) {
+        case undefined:
+          return [];
+        case "not-text":
+          return [`${given}, which isn't text`];
+        case "not-nfc":
+          return [`${given}, which isn't in NFC`];
+        case "outside-alphabet":
+          return [`${given}, whose ${broken.symbol} is outside the alphabet`];
+        case "too-long":
+          return field.kind === "text" ? [`${given}, longer than ${String(field.maxLength)}`] : [];
+        case "too-short":
+          return field.kind === "text" ? [`${given}, shorter than ${String(field.minLength)}`] : [];
+        case "not-whole":
+          return [`${given}, which isn't a whole number`];
+        case "out-of-bounds":
+          return field.kind === "number"
+            ? [`${given}, outside ${String(field.min)} to ${String(field.max)}`]
+            : [];
+      }
     }),
   ];
 }

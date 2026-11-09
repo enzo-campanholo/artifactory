@@ -48,3 +48,11 @@ Implementer of [02](02-a-stage-takes-a-text-field.md):
 - The text field carries `data-kind="text"` on its `.stage-field` label, and its box is the number field's own, so `&[aria-invalid="true"]`'s dashed border already reaches it.
 - The catalog's text Stage is "Typed text" on `catalog/stage.mdx`, build `even-bs.build.ts` (alphabet a and b, `maxLength` 12). Its build runs any text the page hands it; a word outside the alphabet reaches it until this ticket refuses it.
 - Browser scripts from 02, keyed by each Stage's build so a new catalog Stage doesn't shift the comparison: `capture-number-stages.ts` (number Stages loaded, stepped and refused, before/after) and `check-text-stage.ts` (the text Stage's look, NFC and trailing space at Start) in the shared notes.
+
+### 2026-11-09: notes from Stage text input 03
+
+Implementer of [03](03-check-fails-broken-text-fields.md):
+
+- `fieldProblem` (`step-applier.ts`) now holds the whole text rule and returns an object: `{ problem: "not-whole" | "out-of-bounds" | "not-text" | "not-nfc" | "too-long" | "too-short" }` or `{ problem: "outside-alphabet", symbol }`, `undefined` when the value holds. Lengths are code points (`Array.from`). `#type` in `stage-element.ts` still compares its result to `undefined`, so it compiles unchanged. Drop its `definition.kind === "number"` guard and choose the line by `kind`. `typedText` already gives NFC, so the page never sees `not-nfc`.
+- The definition in `data-fields` carries the alphabet in NFC (`Stage.astro` normalises each symbol), and `minLength` filled with 0. A field whose props fail never reaches the page: the build fails first.
+- The ESLint config rejects `[...text]` (`@typescript-eslint/no-misused-spread`). Use `Array.from(text)` to walk code points in platform code.

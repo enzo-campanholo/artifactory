@@ -797,7 +797,14 @@ row, column or code line the content doesn't have, a mark that changes nothing i
 Stage without exactly one table or with no row as written, a `body` row without one text per
 column, or, with `input`, a step without `body` in a run whose other steps give it, or tables as
 written that aren't the first example's result, a row the last step adds or drops included. The
-page refuses the same runs.
+page refuses the same runs. Before any run, the check fails an example that breaks its field's
+rule, the one the page refuses typed input by: a number that isn't whole or is out of bounds, or
+text that isn't in NFC, holds a symbol outside the alphabet, or is longer than `maxLength` or
+shorter than `minLength`, counted in code points. It also fails a text field whose alphabet holds
+a symbol that isn't one code point or holds one twice, whose `minLength` isn't a whole number of
+at least 0 or is above `maxLength`, or whose `maxLength` is missing or isn't a whole number of at
+least 1, and a field with a prop of the other kind (`min` or `max` on a text field, `alphabet`,
+`minLength` or `maxLength` on a number field).
 
 ### Props
 
