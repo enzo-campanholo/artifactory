@@ -13,6 +13,8 @@ Blocked by: 05
 - [ ] The catalog's MEPA page's program uses every instruction MEPA now covers, a call with parameters and a returned value included, in both its Stages, and its memory tables show `Papel` and `Desl.`. Catalog work runs through impeccable in a local session.
 - [ ] Docs in the same commit: MEPA's doc comment covers the subroutine instructions, the `subroutines` note, `Desl.` and the new failure; `pnpm components` regenerates `COMPONENTS.md`; the `artifact` skill's `stage.md` lists the new failure.
 
+## Comments
+
 ### 2026-11-09: what 02 leaves for records
 
 From machine trace 02's implementation (`design-system/src/machines/mepa.ts`):
@@ -25,3 +27,7 @@ From machine trace 02's implementation (`design-system/src/machines/mepa.ts`):
 ### 2026-11-09: what 03 leaves for the catalog and the Machines section
 
 From machine trace 03's implementation: the catalog's MEPA page (`design-system/catalog/mepa.mdx`, builds `mepa-trapezio` and `mepa-trapezoid`) and the doc comment's example share one program; 05's comment says what moves when the listing grows. Its memory tables have `Papel` (`Role`) but not `Desl.` (`Offset`), since nothing fills it yet: add the column to both Stages and to the doc comment's pt-BR example table. The doc comment already shows the English memory header with `Offset` and names the pt-BR one, `Célula | Dado | Papel | Desl. | Topo`.
+
+### 2026-11-09: where 06's new failures go
+
+From machine trace 04's implementation: a `subroutines` entry on a label `CHPR` never calls, or a call to a missing label, is a problem MEPA's `parse` returns (`{ line, problem }`, `line: undefined` for a note), and the general layer reports it as `stage-run` ("with `x = 7, y = 2`, the machine can't read line 3: …" or "… the machine can't run: …"), once per Stage. `parse`'s loop over `roles` and `after` keys is the place for note checks; 05's comment from 04 has the fixture helpers (`unfitMachineStages` in `tests/check/artifact-checks.test.ts`).
