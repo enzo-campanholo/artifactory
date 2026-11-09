@@ -1,6 +1,6 @@
 # 07: Shoot block-per-step code Steppers
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02 (Shoot one-block code Steppers at every step); [Code display 04](../../code-display/issues/04-a-stepper-with-one-code-block-per-step.md)
 
 Spec: [What `pnpm look` captures](../spec.md) › What look shoots
