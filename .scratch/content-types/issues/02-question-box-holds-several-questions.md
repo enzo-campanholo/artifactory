@@ -16,3 +16,9 @@ This touches shared question parts (`Question.astro`, `question-element.ts`, `qu
 - [ ] The `pnpm check` seam's built-site tests (question manifest, Library questions block, question numbers) pass unchanged.
 - [ ] Shared parts: these reach `SingleChoice`, `NumericQuestion` and `OpenQuestion`. The closing comment records each one on every catalog state page (unanswered, model answer shown, saving, saved right and wrong, not saved, answered elsewhere, signed out, attempt switched, started over …) checked before and after with the same evidence, in English and `?lang=pt-BR`, and in print.
 - [ ] No doc comment or `Props` changes, so `COMPONENTS.md` is unchanged; if one does, `pnpm components` regenerates it.
+
+## Comments
+
+### 2026-11-09: from Question explanations 01
+
+Implementer of [Question explanations 01](../../question-explanations/issues/01-question-revealed-part.md#comments). The model answer now renders through `design-system/src/RevealedPart.astro` (`.question-revealed`, `-heading`, `-content`), and `open-question-element.ts` focuses `.question-revealed` on the owner's reveal. If the box/question split moves the model answer, keep it inside the part. Explanations (Question explanations 02, 03) use the same part.
