@@ -1,6 +1,6 @@
 # 04: A matching item's ID failure points at its key
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 03 (Matching)
 
 Spec: [Content types](../spec.md) › Writing one: "Each key follows the rules of a question's `id`: readable kebab-case, unique within the artifact, never reused."
