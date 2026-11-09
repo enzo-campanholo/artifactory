@@ -16,7 +16,7 @@ function mountOpenQuestion(restored = "") {
         </fieldset>
         <details class="question-model-answer">
           <summary><span data-lang="en">Show the model answer</span></summary>
-          <div class="question-model-answer-text"><p>The Moon pulls the near side of the Earth and leaves the far side behind.</p></div>
+          <div class="question-revealed" tabindex="-1"><p class="question-revealed-heading"><span data-lang="en">Model answer</span></p><div class="question-revealed-content"><p>The Moon pulls the near side of the Earth and leaves the far side behind.</p></div></div>
           <fieldset class="question-own-mark">
             <button type="submit" class="question-button" name="mark" value="right"><span data-lang="en">I got it right</span></button>
             <button type="submit" class="question-button" name="mark" value="wrong"><span data-lang="en">I got it wrong</span></button>
