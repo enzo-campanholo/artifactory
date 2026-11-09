@@ -1,6 +1,6 @@
 # 02: Colour labels and the colours' names in a Figure
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01
 
 Source: [Swatches](../spec.md) › Behaviour: the label is the colour, and › Documentation.
