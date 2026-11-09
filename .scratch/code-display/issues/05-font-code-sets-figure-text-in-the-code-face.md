@@ -1,7 +1,7 @@
 # 05: `font-code` sets figure text in the code face
 
 Blocked by: None (can start immediately)
-Status: ready-for-agent
+Status: claimed
 
 **What to build:** an agent drawing an SVG puts code, an identifier or an instruction in a `<text>` with `class="font-code"`. It shows in the code face, Recursive in mono mode, as `pre` sets it, in a `Figure` and in a figure Stepper. Text without the class keeps the heading face, as today.
 
