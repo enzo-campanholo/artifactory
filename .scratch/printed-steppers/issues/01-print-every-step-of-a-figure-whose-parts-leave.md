@@ -1,6 +1,6 @@
 # 01: Print every step of a figure Stepper whose parts leave
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 **What to build:** printed, a figure Stepper whose drawing has a part that isn't in its last step (a circle moving around an orbit, a pump that takes ions in and lets them go) shows every step in order: each step is the drawing with only that step's parts, in the figure's full frame, under "N. caption" ("N." alone without captions), as D2 boards print, and with no caption list after it. A figure Stepper whose parts are all in its last step prints as it does today: once, at its last step, with its captions listed under it. The build decides from the `data-step` lists; the author has no prop. On screen, with or without JavaScript, every figure Stepper looks and steps exactly as it does today, and screen readers hear its `alt` once.
