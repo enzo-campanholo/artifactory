@@ -6,10 +6,10 @@ interface Props {
   svg: string;
   alt: string;
   minScale?: number | undefined;
-  swatches?: boolean | undefined;
+  swatches?: "plain" | "marked" | undefined;
 }
 
-const { svg, alt, minScale = 2 / 3, swatches = false } = Astro.props;
+const { svg, alt, minScale = 2 / 3, swatches } = Astro.props;
 
 const root = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(svg);
 if (root === null)
@@ -33,8 +33,11 @@ const squared = drawing.replace(/<rect\b[^>]*>/g, (rect) =>
 
 // Only a drawing that fills with swatches gets their patterns, and only one that labels colours
 // gets plates, so every other drawing stays as written.
-const content = swatches ? platedLabels(squared) : squared;
-const swatched = swatches && content.includes("fill-swatch-") ? swatchPatterns() : undefined;
+const content = swatches === undefined ? squared : platedLabels(squared);
+const swatched =
+  swatches !== undefined && content.includes("fill-swatch-")
+    ? swatchPatterns(swatches === "marked")
+    : undefined;
 
 const viewBox = ownAttributes.viewBox ?? viewBoxOfSize(ownAttributes.width, ownAttributes.height);
 if (viewBox === undefined) {

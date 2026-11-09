@@ -1,5 +1,6 @@
 import Stage from "../src/Stage.astro";
 import graph from "./prim-graph.svg?raw";
+import colouring from "./colouring.svg?raw";
 
 ## Before a choice
 
@@ -265,5 +266,23 @@ def factorial(n):
 | 3     |   1 |  24 |
 
 </Stage>
+
+</div>
+
+## A colouring, mid-run
+
+A Stage's drawing coloured as written, as a Figure's is: each vertex filled with its colour's swatch and labelled on a plate with its name, `colours={["R", "G", "Y"]}`. Started at E and stepped to step 2, every mark sits on a coloured vertex: A, being checked, is reversed, its hatching under ink and its label in the ground on an ink plate; its unchecked neighbours B and D are strong, outlined at 4 with bold labels; C, not yet reached, is dashed; and E, already checked, is muted, its hatching, outline and label grey. Every vertex chooses on click, and on a device that hovers, the vertex under the pointer wipes its hatching's ground grey and keeps its lines, except A, which is reversed.
+
+<div data-catalog-run="E" data-catalog-step="2">
+
+<Stage
+  build="colouring-check"
+  choose={{ label: "Start at", options: ["A", "B", "C", "D", "E"] }}
+  prompt="Choose a vertex to start checking from."
+  figure={colouring}
+  alt="A house of five vertices: E at the roof's top has colour R; A and B under it have G and Y; C under B has G and D under A has Y."
+  colours={["R", "G", "Y"]}
+  caption="Checking a colouring vertex by vertex."
+/>
 
 </div>

@@ -747,6 +747,16 @@ Anything else stays as drawn, such as a shape filled with `fill-muted` or `fill-
 label with a `fill-` class of its own, so a vertex filled that way can't be reversed. A mark on
 a part with nothing it acts on fails the check.
 
+**Colourings.** A Stage's drawing can be a colouring, written as a Figure's is (see
+"Colourings" under `Figure`): `fill-swatch-N` areas, a label `<text x y data-swatch="N">` in
+each coloured part's `<g>`, and `colours` naming the colours. Its build fails, as `Stage: …`,
+on the same label rules as a Figure's. Every mark reads on a coloured part, a swatch counting
+as something each acts on: `strong` sets its outline at 4 and its label in bold; `dashed`
+dashes its outline; `muted` turns its hatching, outline and label grey; `reversed` fills it
+with ink over the hatching and turns its label's plate to ink and the label to the ground. A
+swatch drawn without an outline takes the mark's own, at 4 for `strong`, dashed for `dashed`.
+Name the coloured part's `<g>`, so the mark reaches its label too.
+
 **Tables** are found by their text: a row by its first cell, a column by its header, as the
 page shows them with the formatting dropped, so a first cell `*a*` is the row `a`. Write first
 cells and headers as plain words or symbols, without math. Keep each row's first cell and each
@@ -824,6 +834,9 @@ With `choose`:
 - `figure` (`string`, optional): A drawing the build marks, imported with `?raw` from an `.svg` file next to the entry. Name
   each part the build marks with `data-part`.
 - `alt` (`string`, optional): What the drawing shows as written, in a sentence or two. Give it with `figure`.
+- `colours` (`string[]`, optional): The names of a colouring's colours, in swatch order, as `Figure` takes them: each one or two
+  characters, at most six, `colours={["R", "B"]}`. Leave it out to name the colours 1 to 6. Give
+  it only to a Stage whose drawing is a colouring (see "Colourings" under `Figure`).
 - `beside` (`boolean`, optional): Sets the tables beside the drawing on a wide screen, as "Beside the drawing" below says. Set
   it sparingly, only where a step's marks and its rows must be seen together; most Stages
   stack. Give it with `figure`.
@@ -846,6 +859,9 @@ With `input`:
 - `figure` (`string`, optional): A drawing the build marks, imported with `?raw` from an `.svg` file next to the entry. Name
   each part the build marks with `data-part`.
 - `alt` (`string`, optional): What the drawing shows as written, in a sentence or two. Give it with `figure`.
+- `colours` (`string[]`, optional): The names of a colouring's colours, in swatch order, as `Figure` takes them: each one or two
+  characters, at most six, `colours={["R", "B"]}`. Leave it out to name the colours 1 to 6. Give
+  it only to a Stage whose drawing is a colouring (see "Colourings" under `Figure`).
 - `beside` (`boolean`, optional): Sets the tables beside the drawing on a wide screen, as "Beside the drawing" below says. Set
   it sparingly, only where a step's marks and its rows must be seen together; most Stages
   stack. Give it with `figure`.
@@ -1355,4 +1371,4 @@ When colour is the subject (a graph or map colouring, an edge colouring, a red-b
 - `fill-swatch-5`: vertical lines
 - `fill-swatch-6`: dots
 
-The label is the colour: every coloured part, edges included, carries a `<text x y data-swatch="N">` in the same `<g>` as its shapes, at the part's centre or the edge's midpoint, whose text is colour N's name, as `Figure`'s `colours` gives it (1 to 6 without it). The drawing sets the label's size, centres it and draws it on a square plate of the ground. An edge takes the label only, never a swatch or a line style. `Figure`'s entry says the rest.
+The label is the colour: every coloured part, edges included, carries a `<text x y data-swatch="N">` in the same `<g>` as its shapes, at the part's centre or the edge's midpoint, whose text is colour N's name, as `Figure`'s `colours` gives it (1 to 6 without it). The drawing sets the label's size, centres it and draws it on a square plate of the ground. An edge takes the label only, never a swatch or a line style. `Figure`'s entry says the rest, and `Stage`'s how the marks read on a coloured part.

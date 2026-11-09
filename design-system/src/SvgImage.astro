@@ -18,7 +18,12 @@ const label =
 
 <figure class={className}>
   <div class="figure-stage">
-    <InlineSvg svg={svg} alt={alt} minScale={minScale} swatches={swatches} />
+    <InlineSvg
+      svg={svg}
+      alt={alt}
+      minScale={minScale}
+      swatches={swatches === true ? "plain" : undefined}
+    />
   </div>
   <figcaption>
     <span class="figure-number">

@@ -8,6 +8,7 @@ import StepControls from "./StepControls.astro";
 import { componentError } from "./component-errors.ts";
 import { buildModule } from "./stage-builds.ts";
 import { fieldProblem, type Control, type Field } from "./step-applier.ts";
+import { swatchProblems } from "./swatches.ts";
 
 interface Staged {
   /** The custom build: the name of the `<build>.build.ts` file next to the entry. */
@@ -21,6 +22,12 @@ interface Staged {
   figure?: string;
   /** What the drawing shows as written, in a sentence or two. Give it with `figure`. */
   alt?: string;
+  /**
+   * The names of a colouring's colours, in swatch order, as `Figure` takes them: each one or two
+   * characters, at most six, `colours={["R", "B"]}`. Leave it out to name the colours 1 to 6. Give
+   * it only to a Stage whose drawing is a colouring (see "Colourings" under `Figure`).
+   */
+  colours?: string[];
   /**
    * Sets the tables beside the drawing on a wide screen, as "Beside the drawing" below says. Set
    * it sparingly, only where a step's marks and its rows must be seen together; most Stages
@@ -429,6 +436,16 @@ interface Typed extends Staged {
  * label with a `fill-` class of its own, so a vertex filled that way can't be reversed. A mark on
  * a part with nothing it acts on fails the check.
  *
+ * **Colourings.** A Stage's drawing can be a colouring, written as a Figure's is (see
+ * "Colourings" under `Figure`): `fill-swatch-N` areas, a label `<text x y data-swatch="N">` in
+ * each coloured part's `<g>`, and `colours` naming the colours. Its build fails, as `Stage: …`,
+ * on the same label rules as a Figure's. Every mark reads on a coloured part, a swatch counting
+ * as something each acts on: `strong` sets its outline at 4 and its label in bold; `dashed`
+ * dashes its outline; `muted` turns its hatching, outline and label grey; `reversed` fills it
+ * with ink over the hatching and turns its label's plate to ink and the label to the ground. A
+ * swatch drawn without an outline takes the mark's own, at 4 for `strong`, dashed for `dashed`.
+ * Name the coloured part's `<g>`, so the mark reaches its label too.
+ *
  * **Tables** are found by their text: a row by its first cell, a column by its header, as the
  * page shows them with the formatting dropped, so a first cell `*a*` is the row `a`. Write first
  * cells and headers as plain words or symbols, without math. Keep each row's first cell and each
@@ -495,7 +512,7 @@ interface Typed extends Staged {
 type Props = Chosen | Typed;
 
 const props = Astro.props;
-const { build, prompt, figure, alt, beside, caption } = props;
+const { build, prompt, figure, alt, colours, beside, caption } = props;
 const choose = "choose" in props ? props.choose : undefined;
 const input = "input" in props ? props.input : undefined;
 const control: Control = input === undefined ? "choose" : "input";
@@ -535,6 +552,7 @@ const problems = [
   ...(input !== undefined && written === undefined ? ["give `input` at least one example"] : []),
   ...(input?.examples ?? []).flatMap((example, index) => exampleProblems(index + 1, example)),
   ...(figure !== undefined && alt === undefined ? ["give `alt` with `figure`"] : []),
+  ...(figure === undefined ? [] : swatchProblems(figure, colours)),
   ...(beside === true && figure === undefined ? ["set `beside` only with `figure`"] : []),
   ...(/<pre\b[^>]*\sdata-marks\b/.test(content)
     ? [
@@ -720,7 +738,7 @@ const width = (field: Field) =>
     )}
     {figure && alt && (
       <div class="figure-stage stage-figure">
-        <InlineSvg svg={figure} alt={alt} swatches />
+        <InlineSvg svg={figure} alt={alt} swatches="marked" />
       </div>
     )}
     <div class="stage-content">
@@ -978,14 +996,41 @@ const width = (field: Field) =>
         --stage-ink: CanvasText;
         --stage-ground: Canvas;
       }
+
+      /* The drawing's tokens are the system's already, so a colour's plate and label take them
+         from their part, as marked, over figure-colours.css's own. */
+      .stage-figure > svg [data-swatch-plate] {
+        --color-surface: inherit;
+      }
+
+      .stage-figure > svg text[data-swatch] {
+        color: inherit;
+      }
     }
 
     /* Print shows the content as written whatever step is on screen, and `beforeprint` doesn't
-       fire for every way of printing, so the marks exist only on screen. */
+       fire for every way of printing, so the marks exist only on screen. A part's hatching is
+       drawn at the drawing's top, beyond its tokens' reach, so a mark or hover hands the part
+       the hatching drawn in its state instead (swatches.ts). */
     @media screen {
       @media (hover: hover) and (forced-colors: none) {
         .stage-figure [data-choice]:hover:not([data-mark="reversed"]) {
           --color-surface: var(--color-surface-subtle);
+          --swatch-1: var(--swatch-1-wiped);
+          --swatch-2: var(--swatch-2-wiped);
+          --swatch-3: var(--swatch-3-wiped);
+          --swatch-4: var(--swatch-4-wiped);
+          --swatch-5: var(--swatch-5-wiped);
+          --swatch-6: var(--swatch-6-wiped);
+        }
+
+        .stage-figure [data-choice][data-mark="muted"]:hover {
+          --swatch-1: var(--swatch-1-muted-wiped);
+          --swatch-2: var(--swatch-2-muted-wiped);
+          --swatch-3: var(--swatch-3-muted-wiped);
+          --swatch-4: var(--swatch-4-muted-wiped);
+          --swatch-5: var(--swatch-5-muted-wiped);
+          --swatch-6: var(--swatch-6-muted-wiped);
         }
       }
 
@@ -1003,15 +1048,45 @@ const width = (field: Field) =>
         stroke-dasharray: 6 4;
       }
 
+      /* A swatch drawn without an outline takes the mark's own, so every mark reads on it. */
+      .stage-figure
+        :is([data-mark="strong"], [data-mark="strong"] *)[class*="fill-swatch-"]:not(
+          [class*="stroke-"]
+        ) {
+        stroke: var(--color-text);
+        stroke-width: 4;
+      }
+
+      .stage-figure
+        :is([data-mark="dashed"], [data-mark="dashed"] *)[class*="fill-swatch-"]:not(
+          [class*="stroke-"]
+        ) {
+        stroke: var(--color-text);
+        stroke-width: 2;
+        stroke-dasharray: 6 4;
+      }
+
       /* Unclassed labels paint in currentColor, so the marks set the colour as well as the token. */
       .stage-figure [data-mark="muted"] {
         --color-text: var(--color-text-muted);
+        --swatch-1: var(--swatch-1-muted);
+        --swatch-2: var(--swatch-2-muted);
+        --swatch-3: var(--swatch-3-muted);
+        --swatch-4: var(--swatch-4-muted);
+        --swatch-5: var(--swatch-5-muted);
+        --swatch-6: var(--swatch-6-muted);
         color: var(--color-text-muted);
       }
 
       .stage-figure [data-mark="reversed"] {
         --color-text: var(--stage-ground);
         --color-surface: var(--stage-ink);
+        --swatch-1: var(--stage-ink);
+        --swatch-2: var(--stage-ink);
+        --swatch-3: var(--stage-ink);
+        --swatch-4: var(--stage-ink);
+        --swatch-5: var(--stage-ink);
+        --swatch-6: var(--stage-ink);
         color: var(--stage-ground);
       }
 
