@@ -1,6 +1,6 @@
 # 04: The page refuses typed text that breaks its field's rule
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02, 03
 
 Spec: [Stage text input](../spec.md), section "Refusals". The decisions are in [Typed words in a Stage](../../artifact-generation-gaps/issues/10-typed-words-in-a-stage.md) › Answer.
