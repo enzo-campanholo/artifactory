@@ -4,7 +4,7 @@ import { platedLabels, swatchPatterns } from "./swatches.ts";
 
 interface Props {
   svg: string;
-  alt: string;
+  alt?: string | undefined;
   minScale?: number | undefined;
   swatches?: "plain" | "marked" | undefined;
   colours?: readonly string[] | undefined;
@@ -73,7 +73,13 @@ const minWidthStyle =
     : `--min-drawing-width: ${String(Math.ceil(Number(width) * minScale))}px`;
 ---
 
-<svg {...attributes} style={minWidthStyle} role="img" aria-label={alt}>
+<svg
+  {...attributes}
+  style={minWidthStyle}
+  role={alt === undefined ? undefined : "img"}
+  aria-label={alt}
+  aria-hidden={alt === undefined ? "true" : undefined}
+>
   <g
     aria-hidden="true"
     style={swatched?.style}

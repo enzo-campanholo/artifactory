@@ -109,8 +109,10 @@ interface CodeSteps extends Captioned {
  *
  * Printed, a stepper shows every step: each board, or each code block with its marks, under its
  * number and caption, and a one-block stepper's code with each step's lines and caption listed
- * under it. A figure prints once, at its last step, with the captions listed under it, so
- * make the last step the complete drawing.
+ * under it. A figure whose parts are all in its last step prints once, at that step, with the
+ * captions listed under it; one with a part that leaves before the end, such as a point moving
+ * around an orbit, prints every step, each in the drawing's full frame under its number and
+ * caption. For a figure that builds up, the last step is the complete drawing.
  */
 type Props = DiagramSteps | FigureSteps | CodeSteps | Captioned;
 
@@ -137,6 +139,7 @@ if (drawing !== undefined && Astro.slots.has("default")) {
 let count: number;
 let boards: { svg: string; crop: string }[] | undefined;
 let figure: string | undefined;
+let figureSteps: string[] | undefined;
 let code: string | undefined;
 let blocks: string[] | undefined;
 let linesOfStep: number[][] | undefined;
@@ -160,7 +163,7 @@ if ("diagram" in props) {
       "swatches are only for a Figure or a Stage, so a figure Stepper draws none: draw the colouring as a Figure, or step through it in a Stage",
     );
   }
-  ({ svg: figure, count } = steppedFigure(props.figure));
+  ({ svg: figure, count, printedSteps: figureSteps } = steppedFigure(props.figure));
 } else if ("lines" in props) {
   ({ html: code, linesOfStep } = steppedCode(await Astro.slots.render("default"), props.lines));
   count = props.lines.length;
@@ -196,6 +199,7 @@ const printedSteps = linesOfStep
       };
     })
   : figure &&
+    !figureSteps &&
     captions?.map((caption, index) => ({
       number: `${String(index + 1)}.`,
       en: caption,
@@ -239,6 +243,18 @@ const printedSteps = linesOfStep
     {figure && (
       <div class="stepper-stage stepper-figure figure">
         <InlineSvg svg={figure} alt={alt} />
+      </div>
+    )}
+    {figureSteps && (
+      <div class="stepper-figure-steps" aria-hidden="true">
+        {figureSteps.map((step, index) => (
+          <div class="stepper-figure-step figure">
+            <p class="stepper-step">
+              <span class="stepper-step-number">{index + 1}.</span> {captions?.[index]}
+            </p>
+            <InlineSvg svg={step} />
+          </div>
+        ))}
       </div>
     )}
     {code && <div class="stepper-stage stepper-code" set:html={code} />}
@@ -478,7 +494,8 @@ const printedSteps = linesOfStep
     }
 
     .stepper-step,
-    .stepper-steps {
+    .stepper-steps,
+    .stepper-figure-steps {
       display: none;
     }
 
@@ -575,14 +592,34 @@ const printedSteps = linesOfStep
         break-inside: avoid;
       }
 
-      .stepper-figure [data-in-steps]:not([data-in-last-step]) {
-        visibility: hidden;
-        opacity: 0;
-      }
-
-      .stepper-figure [data-in-last-step] {
+      /* Printed once, a figure is at its last step, which holds every part. */
+      .stepper-figure [data-in-steps] {
         visibility: visible;
         opacity: 1;
+      }
+
+      .stepper-figure:has(+ .stepper-figure-steps) {
+        display: none;
+      }
+
+      .stepper-figure-steps {
+        display: grid;
+        row-gap: var(--space-4);
+        padding-block: var(--space-3);
+        border-block: var(--rule) solid var(--color-text);
+      }
+
+      .stepper-figure-step {
+        break-inside: avoid;
+
+        > svg {
+          max-block-size: 70vh;
+          inline-size: auto;
+        }
+
+        [data-off] {
+          display: none;
+        }
       }
     }
   }

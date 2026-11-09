@@ -23,19 +23,52 @@ function listed(list: string, first: number, last: number, context: string): num
 
 const dataStep = /\bdata-step=(?:"([^"]*)"|'([^']*)')/g;
 
-// A printed figure shows its last step, so the parts in it are marked for the print stylesheet.
-export function steppedFigure(svg: string): { svg: string; count: number } {
+function withSteps(svg: string, count: number, mark: (steps: number[]) => string): string {
+  return svg.replace(
+    dataStep,
+    (attribute, double: string | undefined, single: string | undefined) =>
+      attribute + mark(listed(double ?? single ?? "", 1, count, "data-step")),
+  );
+}
+
+const idAttribute = /\sid=(?:"([^"]*)"|'([^']*)')/g;
+const urlReference = /url\(\s*(['"]?)#([^'")\s]+)\1\s*\)/g;
+const hrefReference = /(\s(?:xlink:)?href=)(["'])#([^"']*)\2/g;
+
+// The page's content hash is taken from its HTML, so a copy's ids are named after its step alone.
+function printedStep(svg: string, count: number, step: number): string {
+  const own = new Set([...svg.matchAll(idAttribute)].map(([, double, single]) => double ?? single));
+  const renamed = (id: string) => `${id}-step-${String(step)}`;
+  return withSteps(svg, count, (steps) => (steps.includes(step) ? "" : " data-off"))
+    .replace(
+      idAttribute,
+      (_, double: string | undefined, single: string | undefined) =>
+        ` id="${renamed(double ?? single ?? "")}"`,
+    )
+    .replace(urlReference, (reference, _quote: string, id: string) =>
+      own.has(id) ? `url(#${renamed(id)})` : reference,
+    )
+    .replace(hrefReference, (reference, name: string, quote: string, id: string) =>
+      own.has(id) ? `${name}${quote}#${renamed(id)}${quote}` : reference,
+    );
+}
+
+// A drawing whose parts all reach its last step prints once, at that step, which shows them all.
+// One with a part that leaves prints every step, each a copy of the drawing.
+export function steppedFigure(svg: string): {
+  svg: string;
+  count: number;
+  printedSteps: string[] | undefined;
+} {
   const lists = [...svg.matchAll(dataStep)].map(([, double, single]) => double ?? single ?? "");
   const count = Math.max(0, ...lists.flatMap((list) => [...list.matchAll(/\d+/g)].map(Number)));
+  const leaves = lists.some((list) => !listed(list, 1, count, "data-step").includes(count));
   return {
-    svg: svg.replace(
-      dataStep,
-      (attribute, double: string | undefined, single: string | undefined) => {
-        const steps = listed(double ?? single ?? "", 1, count, "data-step");
-        return attribute + inStepsText(steps) + (steps.includes(count) ? " data-in-last-step" : "");
-      },
-    ),
+    svg: withSteps(svg, count, inStepsText),
     count,
+    printedSteps: leaves
+      ? Array.from({ length: count }, (_, index) => printedStep(svg, count, index + 1))
+      : undefined,
   };
 }
 
