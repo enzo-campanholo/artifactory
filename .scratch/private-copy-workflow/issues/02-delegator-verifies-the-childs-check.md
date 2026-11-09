@@ -1,6 +1,6 @@
 # 02: A delegator verifies a child's check before accepting it
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Private copy workflow](../spec.md) › A delegator verifies the child's check. Its decisions are in [Agent workflow in a private copy](../../artifact-generation-gaps/issues/09-agent-workflow-in-a-private-copy.md) › Answer. They bound this ticket, so don't reopen them. The owner widened the rule to `--last-passed` runs at ticketing: see the spec's `## Comments`.
