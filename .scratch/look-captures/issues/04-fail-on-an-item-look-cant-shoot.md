@@ -21,3 +21,12 @@ Ticket 03 already reveals an item inside a model answer before shooting it, so t
 - [ ] `pnpm look` exits 1, and the case's outcome is `failed`.
 - [ ] Seam 1 tests, new opt-in Look fixtures. In the first, a fixture script keeps an item unrendered (as the stuck-Stage fixture blocks its forward button): the case fails with exit 1, an assertion names the item, and none of its files are among the captures. In the second, a Stepper's form is made unrecognisable: it fails the same way.
 - [ ] In the same commit, the `artifact` skill's **Look** section says a failed case names the items look found but couldn't shoot. It says to fix the item, or to report a look bug if the item is fine, and never to move content just to get it shot.
+
+## Comments
+
+### 2026-11-08: two silent fallbacks to replace, from ticket 02
+
+Delegator, copied from [ticket 02's comment](02-shoot-one-block-code-steppers-at-every-step.md#comments). Look selects every Stepper and Stage by element now, so every one reaches `resolveItem`, which has two silent fallbacks this ticket replaces with a failure:
+
+- A Stepper with neither `.stepper-boards` nor `.stepper-code` resolves to `stepper-figure`, so an unknown form is shot as a figure Stepper and described "no drawing and no caption". That includes [Code display 04](../../code-display/issues/04-a-stepper-with-one-code-block-per-step.md)'s block-per-step form until ticket 07 adds its kind.
+- A Stage without `:scope > figure` is shot as the `artifact-stage` element itself.

@@ -21,3 +21,9 @@ Notes:
 - [ ] Once the item's shots are done, the model answer is closed again, and `results.json` holds an assertion saying so.
 - [ ] Seam 1 test, a new opt-in Look fixture: a figure inside a model answer is shot revealed (exit 0, its captures at both widths, outcome `captured-awaiting-visual-review`). The printed line names its question, and the model answer is closed afterwards.
 - [ ] In the same commit, the `artifact` skill's **Look** section says items inside a model answer are shot: look reveals them as the owner would and labels them with the question's number. `stage.md` › **Look** gains one line saying a Stage inside a model answer is revealed first.
+
+## Comments
+
+### 2026-11-08: where the reveal goes, from tickets 01 and 02
+
+Delegator, copied from [ticket 02's comment](02-shoot-one-block-code-steppers-at-every-step.md#comments). The reveal goes around `kinds[item.kind].shoot(…)` in look's main loop. `item.element` is the element shot (a Stage's frame, not `artifact-stage`), so `item.element.closest("details")` finds the model answer for every kind. Ticket 05's hiding of fixed and sticky layers sits inside `shoot`, so a revealed item passes through it too.
