@@ -703,3 +703,200 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     );
   },
 );
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look failure evidence",
+  () => {
+    let repo: FixtureRepo;
+    const square =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" class="stroke-accent" fill="none" stroke-width="4"/></svg>\n';
+    const frontmatter = (id: string, slug: string) => [
+      "---",
+      `id: ${id}`,
+      `title: ${slug}`,
+      "subject: Artifactory",
+      "lang: en",
+      "published: 2026-10-25",
+      "---",
+      "",
+    ];
+    beforeAll(async () => {
+      repo = await createFixtureRepo({
+        "public/keep-unrendered.js": [
+          'addEventListener("DOMContentLoaded", () => {',
+          '  const [, flat] = document.querySelectorAll("main > figure.figure");',
+          '  flat.style.cssText = "height: 0; min-height: 0; padding: 0; border: 0; overflow: hidden";',
+          '  document.querySelector(".question-model-answer figure").style.display = "none";',
+          "});",
+          "",
+        ].join("\n"),
+        "artifacts/look-unrendered/square.svg": square,
+        "artifacts/look-unrendered/index.mdx": [
+          ...frontmatter("unrender", "look-unrendered"),
+          'import Figure from "@artifactory/design-system/figure";',
+          'import OpenQuestion from "@artifactory/design-system/open-question";',
+          'import square from "./square.svg?raw";',
+          "",
+          "## Figures",
+          "",
+          '<Figure src={square} alt="Literal shown square." />',
+          "",
+          '<Figure src={square} alt="Literal flattened square." />',
+          "",
+          '<OpenQuestion id="draw-a-square">',
+          "",
+          "Draw a square.",
+          "",
+          "---",
+          "",
+          '<Figure src={square} alt="Literal hidden square." />',
+          "",
+          "</OpenQuestion>",
+          "",
+          '<script src="/keep-unrendered.js"></script>',
+          "",
+        ].join("\n"),
+        "public/disguise-stepper.js": [
+          'addEventListener("DOMContentLoaded", () => {',
+          '  document.querySelector(".stepper-figure").className = "stepper-stage stepper-unfamiliar";',
+          "});",
+          "",
+        ].join("\n"),
+        "artifacts/look-unknown-stepper/steps.svg": [
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">',
+          '<rect class="stroke-text" x="10" y="10" width="80" height="80" fill="none" stroke-width="2"/>',
+          '<circle data-step="2-" class="stroke-text" cx="50" cy="50" r="20" fill="none" stroke-width="2"/>',
+          "</svg>",
+          "",
+        ].join("\n"),
+        "artifacts/look-unknown-stepper/index.mdx": [
+          ...frontmatter("unknownf", "look-unknown-stepper"),
+          'import Stepper from "@artifactory/design-system/stepper";',
+          'import steps from "./steps.svg?raw";',
+          "",
+          "## Stepper",
+          "",
+          '<Stepper figure={steps} alt="Literal box, then a circle inside it." captions={["The box.", "The circle."]} />',
+          "",
+          '<script src="/disguise-stepper.js"></script>',
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    async function look(slug: string) {
+      const result = await repo.run("pnpm", ["look", slug]);
+      const output = join(repo.root, ".look", slug);
+      const report = JSON.parse(await readFile(join(output, "results.json"), "utf8")) as {
+        cases: {
+          id: string;
+          outcome: string;
+          captures: string[];
+          assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
+        }[];
+      };
+      const evidence = process.env.ARTIFACTORY_BROWSER_EVIDENCE;
+      if (evidence) {
+        await cp(output, join(evidence, slug), { recursive: true });
+        await writeFile(join(evidence, `${slug}.log`), result.output);
+      }
+      return { ...result, report };
+    }
+    it(
+      "fails the case on every item still unrendered when its turn comes, naming each, and shoots none of them",
+      async () => {
+        const result = await look("look-unrendered");
+        expect(result.exitCode, result.output).toBe(1);
+        for (const width of [393, 1920]) {
+          const id = `look-${String(width)}`;
+          const test = result.report.cases.find((test) => test.id === id);
+          expect(test?.outcome).toBe("failed");
+          expect(test?.captures).toEqual([`01-figure-${String(width)}.png`]);
+          expect(test?.assertions).toContainEqual({
+            name: "02-figure: look can shoot it",
+            expected: {
+              place: "Figure 1.2",
+              kind: "figure",
+              description: "Literal flattened square.",
+              problem: null,
+            },
+            actual: {
+              place: "Figure 1.2",
+              kind: "figure",
+              description: "Literal flattened square.",
+              problem: "not rendered (its box has no size)",
+            },
+            passed: false,
+          });
+          expect(test?.assertions).toContainEqual({
+            name: "03-figure: look can shoot it",
+            expected: {
+              place: "inside the model answer of Question 1",
+              kind: "figure",
+              description: "Literal hidden square.",
+              problem: null,
+            },
+            actual: {
+              place: "inside the model answer of Question 1",
+              kind: "figure",
+              description: "Literal hidden square.",
+              problem: "not rendered after its reveal (checkVisibility() is false)",
+            },
+            passed: false,
+          });
+          expect(test?.assertions).toContainEqual({
+            name: "03-figure: model answer closed again",
+            expected: false,
+            actual: false,
+            passed: true,
+          });
+          expect(result.output).toContain(
+            `pnpm look: ${id}: couldn't shoot 02-figure (Figure 1.2), a figure: not rendered (its box has no size); Literal flattened square.`,
+          );
+          expect(result.output).toContain(
+            `pnpm look: ${id}: couldn't shoot 03-figure (inside the model answer of Question 1), a figure: not rendered after its reveal (checkVisibility() is false); Literal hidden square.`,
+          );
+        }
+        expect(result.output).not.toContain(".look/look-unrendered/02-figure");
+        expect(result.output).not.toContain(".look/look-unrendered/03-figure");
+      },
+      checkTimeout,
+    );
+    it(
+      "fails the case on a Stepper whose form look doesn't know, naming it, and never shoots it as a known form",
+      async () => {
+        const result = await look("look-unknown-stepper");
+        expect(result.exitCode, result.output).toBe(1);
+        for (const width of [393, 1920]) {
+          const id = `look-${String(width)}`;
+          const test = result.report.cases.find((test) => test.id === id);
+          expect(test?.outcome).toBe("failed");
+          expect(test?.captures).toEqual([]);
+          expect(test?.assertions).toContainEqual({
+            name: "01-stepper: look can shoot it",
+            expected: {
+              place: "",
+              kind: "stepper-unknown",
+              description: "Literal box, then a circle inside it.",
+              problem: null,
+            },
+            actual: {
+              place: "",
+              kind: "stepper-unknown",
+              description: "Literal box, then a circle inside it.",
+              problem: "a Stepper form look doesn't know",
+            },
+            passed: false,
+          });
+          expect(result.output).toContain(
+            `pnpm look: ${id}: couldn't shoot 01-stepper, a stepper-unknown: a Stepper form look doesn't know; Literal box, then a circle inside it.`,
+          );
+        }
+        expect(result.output).not.toContain("has nothing for look to shoot");
+      },
+      checkTimeout,
+    );
+  },
+);

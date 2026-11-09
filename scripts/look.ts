@@ -30,8 +30,10 @@ type Kind =
   | "stepper-boards"
   | "stepper-figure"
   | "stepper-lines"
+  | "stepper-unknown"
   | "stage-choose"
-  | "stage-input";
+  | "stage-input"
+  | "stage-unknown";
 
 interface Item {
   element: ElementHandle;
@@ -45,6 +47,10 @@ interface Shots {
   summary?: string;
 }
 
+interface Unshot {
+  problem: string;
+}
+
 interface Stepping {
   forward: string;
   current: string;
@@ -56,21 +62,30 @@ const stepperStepping: Stepping = {
 };
 const stageStepping: Stepping = { forward: "button.stage-forward", current: ".stage-current" };
 
+// A form look doesn't know is never shot as one it does: its kind names a problem, not a shoot.
 const kinds: Record<
   Kind,
-  {
-    stem: string;
-    shoot: (page: Page, test: BrowserCase, item: Item, width: number) => Promise<Shots>;
-    describe: (item: Item) => Promise<string>;
-  }
+  { stem: string; describe: (item: Item) => Promise<string> } & (
+    { shoot: (page: Page, test: BrowserCase, item: Item, width: number) => Promise<Shots> } | Unshot
+  )
 > = {
   diagram: { stem: "diagram", shoot: shootOnce, describe: describeDrawing },
   figure: { stem: "figure", shoot: shootOnce, describe: describeDrawing },
-  "stepper-boards": { stem: "stepper", shoot: shootStepper, describe: describeDrawing },
-  "stepper-figure": { stem: "stepper", shoot: shootStepper, describe: describeDrawing },
-  "stepper-lines": { stem: "stepper", shoot: shootStepper, describe: describeCaptions },
+  "stepper-boards": { stem: "stepper", shoot: shootStepper, describe: describeStepper },
+  "stepper-figure": { stem: "stepper", shoot: shootStepper, describe: describeStepper },
+  "stepper-lines": { stem: "stepper", shoot: shootStepper, describe: describeStepper },
+  "stepper-unknown": {
+    stem: "stepper",
+    problem: "a Stepper form look doesn't know",
+    describe: describeStepper,
+  },
   "stage-choose": { stem: "stage-choose", shoot: shootStage, describe: describeDrawing },
   "stage-input": { stem: "stage-input", shoot: shootStage, describe: describeDrawing },
+  "stage-unknown": {
+    stem: "stage",
+    problem: "a Stage form look doesn't know",
+    describe: describeDrawing,
+  },
 };
 
 const root = process.cwd();
@@ -159,14 +174,21 @@ try {
       if (elements.length === 0) test.outcome = "not-applicable";
       for (const [index, element] of elements.entries()) {
         const item = await resolveItem(page, test, element, index);
-        const { files, summary } = await shootRevealed(page, test, item, viewport.width);
-        screenshots.set(item.name, {
-          ...(item.modelAnswer === undefined
+        const place =
+          item.modelAnswer === undefined
             ? { number: await numberOf(page, item) }
-            : { location: item.modelAnswer.location }),
-          description: await kinds[item.kind].describe(item),
-          summary,
-          files: [...(screenshots.get(item.name)?.files ?? []), ...files],
+            : { location: item.modelAnswer.location };
+        const description = await kinds[item.kind].describe(item);
+        const shots = await shootRevealed(page, test, item, viewport.width);
+        if ("problem" in shots) {
+          couldNotShoot(test, item, place.location ?? place.number, description, shots.problem);
+          continue;
+        }
+        screenshots.set(item.name, {
+          ...place,
+          description,
+          summary: shots.summary,
+          files: [...(screenshots.get(item.name)?.files ?? []), ...shots.files],
         });
       }
       test.observed.figures = [...screenshots].map(([name, details]) => ({ name, ...details }));
@@ -182,8 +204,9 @@ try {
   await session.close();
   await writeReport(folder, report);
 }
-if (screenshots.size === 0) console.log(`\npnpm look: ${entry} has nothing for look to shoot`);
-else {
+if (report.cases.every((test) => test.outcome === "not-applicable"))
+  console.log(`\npnpm look: ${entry} has nothing for look to shoot`);
+else if (screenshots.size > 0) {
   const widths = lookViewports.map(({ width }) => `${String(width)} px`).join(" and ");
   console.log(`\npnpm look: ${entry} at ${widths} wide`);
   for (const [name, { number, location, description, summary, files }] of screenshots) {
@@ -202,6 +225,27 @@ process.exitCode = report.cases.some((test) =>
   ? 1
   : 0;
 
+// Every item look couldn't shoot is named, not only the first, so one run shows everything to fix.
+function couldNotShoot(
+  test: BrowserCase,
+  { name, kind }: Item,
+  place: string,
+  description: string,
+  problem: string,
+): void {
+  test.outcome = "failed";
+  const named = { place, kind, description };
+  test.assertions.push({
+    name: `${name}: look can shoot it`,
+    expected: { ...named, problem: null },
+    actual: { ...named, problem },
+    passed: false,
+  });
+  console.error(
+    `pnpm look: ${test.id}: couldn't shoot ${name}${place === "" ? "" : ` (${place})`}, a ${kind}: ${problem}; ${description}`,
+  );
+}
+
 // A Stage is shot by its frame, which holds its caption and number.
 async function resolveItem(
   page: Page,
@@ -215,11 +259,15 @@ async function resolveItem(
         ? "stepper-boards"
         : node.querySelector(".stepper-code") !== null
           ? "stepper-lines"
-          : "stepper-figure"
+          : node.querySelector(".stepper-figure") !== null
+            ? "stepper-figure"
+            : "stepper-unknown"
       : node.matches("artifact-stage")
-        ? node.querySelector(".stage-input") === null
-          ? "stage-choose"
-          : "stage-input"
+        ? node.querySelector(":scope > figure") === null
+          ? "stage-unknown"
+          : node.querySelector(".stage-input") === null
+            ? "stage-choose"
+            : "stage-input"
         : node.matches(".diagram")
           ? "diagram"
           : "figure",
@@ -252,12 +300,23 @@ async function shootRevealed(
   test: BrowserCase,
   item: Item,
   width: number,
-): Promise<Shots> {
-  const { shoot } = kinds[item.kind];
-  if (item.modelAnswer === undefined) return shoot(page, test, item, width);
+): Promise<Shots | Unshot> {
+  const known = kinds[item.kind];
+  if ("problem" in known) return { problem: known.problem };
+  const shootRendered = async (after: string): Promise<Shots | Unshot> => {
+    const unrendered = await item.element.evaluate((node) => {
+      if (!node.checkVisibility()) return "checkVisibility() is false";
+      const box = node.getBoundingClientRect();
+      return box.width > 0 && box.height > 0 ? null : "its box has no size";
+    });
+    return unrendered === null
+      ? known.shoot(page, test, item, width)
+      : { problem: `not rendered${after} (${unrendered})` };
+  };
+  if (item.modelAnswer === undefined) return shootRendered("");
   const { details } = item.modelAnswer;
   await toggle(details, true);
-  const shots = await shoot(page, test, item, width);
+  const shots = await shootRendered(" after its reveal");
   await toggle(details, false);
   assertCase(
     test,
@@ -289,9 +348,11 @@ function toggle(details: ElementHandle<HTMLDetailsElement>, open: boolean): Prom
   );
 }
 
-// Code has no `alt`, so a code Stepper's captions say what each step shows.
-function describeCaptions({ element }: Item): Promise<string> {
+// Code has no `alt`, so a code Stepper's captions say what each step shows in its place.
+function describeStepper({ element }: Item): Promise<string> {
   return element.evaluate((node) => {
+    const alt = node.querySelector("svg[role='img']")?.getAttribute("aria-label");
+    if (alt != null) return alt;
     const captions = [...node.querySelectorAll(".stepper-captions > p")].map(
       (caption) => `"${caption.textContent.replace(/\s+/g, " ").trim()}"`,
     );
@@ -504,7 +565,7 @@ async function shootStage(
   if (steps === 0) {
     const refused = `${name}-refused-${String(width)}.png`;
     await shoot(page, test, item, refused);
-    test.outcome = "refused";
+    if (test.outcome === "passed") test.outcome = "refused";
     const refusal = await element.$eval(".stage-say", (say) => say.textContent);
     return {
       files: [asWritten, refused],

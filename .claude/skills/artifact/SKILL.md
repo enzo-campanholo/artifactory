@@ -69,6 +69,8 @@ Look doesn't shoot plain code blocks, tables or questions: read them in the sour
 
 Each shot is the item alone, with the bottom bar, the notices and the rail hidden: look hides every fixed or sticky layer outside the item for the shot, then shows it again. A bar or notice in a shot is a look bug to report, not something to fix in the artifact: never move content to keep it clear of the bar.
 
+Look never skips an item it found, and never shoots one it can't see. When an item isn't rendered when its turn comes (still hidden after its model answer opens, or with no size), or is a `Stepper` form look doesn't know, the case fails and `pnpm look` exits 1. It prints a `couldn't shoot` line for every such item, with its number or where it sits, its kind, its `alt` or caption, and why. Fix the item, or report a look bug if the item is fine. Never move content just to get it shot.
+
 Look also writes `.look/<slug>/results.json` and a `contact-sheet.html` that helps find shots; judge the original PNGs. `captured-awaiting-visual-review` means a person still has to look, never a visual pass. Failed assertions, unavailable Chromium and unsupported capabilities aren't passes either.
 
 Before judging a `Stage`'s shots, read [stage.md](stage.md#look): which run Look shoots, what it prints, and what each step's shot is compared with.
