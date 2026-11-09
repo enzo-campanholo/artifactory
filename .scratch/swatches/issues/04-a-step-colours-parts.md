@@ -1,6 +1,6 @@
 # 04: A step colours the drawing's parts
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 03
 
 Source: [Swatches](../spec.md) › Behaviour: the Stage (A step can colour parts), and › Documentation. Within ADR 0007: a step changes how an existing part is drawn, as `CellChange.text` changes a cell, and draws no new structure (the "not yet" that [Stage choice groups](../../stage-choice-groups/spec.md) keeps).
