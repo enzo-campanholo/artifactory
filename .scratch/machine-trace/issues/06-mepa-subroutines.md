@@ -21,3 +21,7 @@ From machine trace 02's implementation (`design-system/src/machines/mepa.ts`):
 - The registers table's `D[k]` rows are `D[0]` plus every `k` an `ARMZ` or `CRVL` names (`program.displays`). Add `ENPR`'s levels there.
 - Roles: an `AMEM n` note is a list of n roles; any other note is one role, for the cell that instruction writes. A cell an `ARMZ` writes keeps its role unless the note gives one. Any other write without a note leaves the cell with no role. A cell above `s` shows no role.
 - Faults are `{ fault: { line, fault: Said } }` from `step` (see 04's comment). `D[k]` with no value already faults.
+
+### 2026-11-09: what 03 leaves for the catalog and the Machines section
+
+From machine trace 03's implementation: the catalog's MEPA page (`design-system/catalog/mepa.mdx`, builds `mepa-trapezio` and `mepa-trapezoid`) and the doc comment's example share one program; 05's comment says what moves when the listing grows. Its memory tables have `Papel` (`Role`) but not `Desl.` (`Offset`), since nothing fills it yet: add the column to both Stages and to the doc comment's pt-BR example table. The doc comment already shows the English memory header with `Offset` and names the pt-BR one, `Célula | Dado | Papel | Desl. | Topo`.

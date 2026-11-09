@@ -15,3 +15,12 @@ Blocked by: 03, 04
 ### 2026-11-09: where labels go in MEPA's parse
 
 From machine trace 02's implementation: `instruction(text)` in `design-system/src/machines/mepa.ts` strips the `;` comment and reads one mnemonic and its comma-separated whole-number arguments, so `L1: NADA` fails today as "isn't a MEPA instruction". A line's address is its index in the listing, which `parse` checks starts at shown line 0. `view` dashes `state.i` and reverses `state.ran`, so a jump only sets `i`.
+
+### 2026-11-09: what 03 leaves for the catalog and the Machines section
+
+From machine trace 03's implementation:
+
+- The catalog's MEPA page is `design-system/catalog/mepa.mdx` (served at `/catalog/mepa/` from `pages/mepa.astro`, linked under "Machines" in the catalog's nav). Its program works out a trapezoid's area, (a + b) × h div 2, in a pt-BR Stage (`mepa-trapezio.build.ts`) and an English one (`mepa-trapezoid.build.ts`), each in a `<div lang="…">` so its build's language holds under `?lang=pt-BR`. Both open on step 12 (`data-catalog-run="start" data-catalog-step="12"`, run by `catalog/stage-runs.ts`, shared with the Stage page), where `SOMA` at line 10 runs, and the page's prose names that step. Adding a label and `DSVS`/`NADA` moves the addresses, so update the step, the prose, both builds' `roles`/`after` keys and both Stages' tables as written together.
+- `pnpm check` doesn't run catalog Stages, so nothing catches a catalog table as written that isn't the first example's last step: step both Stages to the end in a browser and compare.
+- `COMPONENTS.md`'s Machines section is MEPA's leading doc comment as written, under `### mepa` with its import line. The doc comment opens with the same trapezoid program as a whole Stage, its build and its tables; keep it the catalog's program, so the example uses every instruction too.
+- The Stage's static labels (Start, "of" in the counter, Figure) follow the page's root `lang`, not the nearest one, so on the English catalog page the pt-BR Stage's chrome is English while its steps are said in pt-BR (and the reverse under `?lang=pt-BR`). That's the Stage as it is; the ticket kept shared parts unchanged.

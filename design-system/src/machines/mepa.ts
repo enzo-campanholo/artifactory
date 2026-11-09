@@ -1,8 +1,81 @@
 /**
  * MEPA, the stack machine Pascal-like languages compile to in Kowaltowski's textbook: the program
- * counter `i`, the stack top `s`, the display `D` and the memory `M`. Trace it with
- * `export default trace(mepa, { reads: ["x", "y"], … })` from `stage-build`, in a Stage with
- * `input`.
+ * counter `i`, the stack top `s`, the display `D` and the memory `M`. Trace it in a Stage with
+ * `input` whose content is the listing, a registers table and a memory table, with a build of a
+ * few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR:
+ *
+ * ````mdx
+ * <Stage
+ *   build="trapezio"
+ *   input={{
+ *     label: "Área do trapézio",
+ *     fields: [
+ *       { name: "a", min: 0, max: 20 },
+ *       { name: "b", min: 0, max: 20 },
+ *       { name: "h", min: 0, max: 20 },
+ *     ],
+ *     examples: [{ a: 3, b: 5, h: 4 }, { a: 2, b: 3, h: 3 }],
+ *   }}
+ *   prompt="Digite as bases e a altura e rode o programa."
+ *   caption="A área do trapézio na MEPA, uma instrução por passo."
+ * >
+ *
+ * ```text start=0
+ * INPP
+ * AMEM 3        ; a, b, h
+ * LEIT
+ * ARMZ 0,0
+ * LEIT
+ * ARMZ 0,1
+ * LEIT
+ * ARMZ 0,2
+ * CRVL 0,0
+ * CRVL 0,1
+ * SOMA
+ * CRVL 0,2
+ * MULT
+ * CRCT 2
+ * DIVI
+ * IMPR
+ * DMEM 3
+ * PARA
+ * FIM
+ * ```
+ *
+ * | Registrador | Valor |
+ * | ----------- | ----: |
+ * | i           |    17 |
+ * | s           |    −1 |
+ * | D[0]        |     0 |
+ * | entrada     |     — |
+ * | saída       |    16 |
+ *
+ * | Célula | Dado | Papel | Topo |
+ * | ------ | ---: | ----- | ---- |
+ * | M[0]   |    3 |       |      |
+ * | M[1]   |    5 |       |      |
+ * | M[2]   |    4 |       |      |
+ * | M[3]   |   16 |       |      |
+ * | M[4]   |    2 |       |      |
+ *
+ * </Stage>
+ * ````
+ *
+ * ```ts
+ * // trapezio.build.ts
+ * import { trace } from "@artifactory/design-system/stage-build";
+ * import mepa from "@artifactory/design-system/machines/mepa";
+ *
+ * export default trace(mepa, {
+ *   reads: ["a", "b", "h"],
+ *   roles: { 1: ["base a", "base b", "altura h"], 2: "lido", 10: "a mais b", 14: "a área" },
+ *   after: { 16: "As variáveis a, b e h estão liberadas." },
+ * });
+ * ```
+ *
+ * The tables as written are what the first example's last step leaves, as for any Stage with
+ * `input`: `PARA` keeps `i` on its own line, 17; every cell is above `s`, so none shows a role or
+ * `← s`; and M[3] and M[4] keep the last values the stack held there.
  *
  * **The listing** is the Stage's one code block, fenced ` ```text start=0 `, so address k is the
  * line the page shows as k: never type the addresses into it. Each line is an instruction with its
@@ -21,29 +94,30 @@
  * cell with no value or reaches `FIM` is refused, naming the line.
  *
  * **The registers table** has the rows `i`, `s`, `D[0]` and every other `D[k]` the listing names,
- * then the input yet to be read and the output, listed in order, `—` when empty. In pt-BR:
+ * then the input yet to be read and the output, each listing its values in order, `—` when empty.
+ * Its headers and the last two rows' names follow the artifact's main language. In pt-BR, as the
+ * example's, and in English, after the same run:
  *
- * | Registrador | Valor |
- * | ----------- | ----: |
- * | i           |    15 |
- * | s           |    −1 |
- * | D[0]        |     0 |
- * | entrada     |     — |
- * | saída       |    −1 |
+ * | Register | Value |
+ * | -------- | ----: |
+ * | i        |    17 |
+ * | s        |    −1 |
+ * | D[0]     |     0 |
+ * | input    |     — |
+ * | output   |    16 |
  *
- * and in English `| Register | Value |`, with the rows `input` and `output` in place of `entrada` and
- * `saída`.
+ * **The memory table** has `Célula` (`Cell`) as its first column and a row per cell, `M[0]` up to
+ * the highest cell the run reaches, in any order, so a run that reaches a row the table lacks
+ * fails. Its columns are `Célula | Dado | Papel | Desl. | Topo` in pt-BR, and in English:
  *
- * **The memory table** has a row per cell, `M[0]` up to as many as the run reaches, in any order:
+ * | Cell | Data | Role | Offset | Top |
+ * | ---- | ---: | ---- | -----: | --- |
+ * | M[0] |    3 |      |        |     |
  *
- * | Célula | Dado | Papel | Topo |
- * | ------ | ---: | ----- | ---- |
- * | M[0]   |   −4 |       |      |
- *
- * and in English `| Cell | Data | Role | Top |`. `Papel` (`Role`) is optional: leave it out and no
- * role is shown. `Desl.` (`Offset`), for the offsets in a subroutine's record, is kept as written.
- * A cell above `s` is `muted` and shows no role, `← s` marks the top, and a cell with no value
- * shows `?`. The cell each step writes is `strong`, even when it already held that value.
+ * `Papel` (`Role`) and `Desl.` (`Offset`) are optional: leave `Papel` out and no role is shown, and
+ * `Desl.`, for the offsets in a subroutine's record, is kept as written. A cell above `s` is
+ * `muted` and shows no role, `← s` marks the top, and a cell with no value shows `?`. The cell
+ * each step writes is `strong`, even when it already held that value.
  *
  * **The lines:** the instruction that ran is `reversed`, and the one `i` points at next is
  * `dashed` until the machine stops.

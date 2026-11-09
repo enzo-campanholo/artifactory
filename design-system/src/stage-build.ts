@@ -163,7 +163,8 @@ const startingSay: Record<Content["lang"], string> = {
  * once, and says each step in the artifact's main language. `notes` are the program's own data,
  * keyed by address, in the artifact's language, never read from the code's comments: `reads`
  * names the Stage's fields in the order the machine reads them, exactly the Stage's fields, or
- * `pnpm check` fails as `build-input`. Each machine's entry lists its other notes and its tables.
+ * `pnpm check` fails as `build-input`. Each machine's entry under "Machines" lists its other notes
+ * and its tables.
  *
  * The first step shows the starting state, then one step follows per step of the machine until it
  * halts, at most 200 in all, as for any build: a run past them is refused, so keep runs short
