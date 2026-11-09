@@ -384,6 +384,34 @@ const customBuilds = {
     ...typedStage("opcional", "[{ a: 48, b: 18 }]", ["Soma."]),
     ...typedStage("indice", "[{ a: 48, b: 18 }]", ["Soma."]),
     ...typedStage("uniao", "[{ a: 48, b: 18 }]", ["Soma."]),
+    "<Stage",
+    '  build="palavra-tipo"',
+    "  input={{",
+    '    label: "Aceita w?",',
+    '    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],',
+    '    examples: [{ w: "aabba" }],',
+    "  }}",
+    '  prompt="Digite uma palavra."',
+    ">",
+    "",
+    "Lê.",
+    "",
+    "</Stage>",
+    "",
+    "<Stage",
+    '  build="modulo-tipo"',
+    "  input={{",
+    '    label: "Calcular h(t, m)",',
+    '    fields: [{ name: "t", kind: "text", maxLength: 40 }, { name: "m", min: 1, max: 997 }],',
+    '    examples: [{ t: "olá mundo", m: 7 }],',
+    "  }}",
+    '  prompt="Digite um texto e um módulo."',
+    ">",
+    "",
+    "Lê.",
+    "",
+    "</Stage>",
+    "",
     ...stage("texto", ["A"], vertexTable),
     ...typedStage("linhas", "[{ a: 48, b: 18 }]", mdcCode),
     ...stage("desde-zero", ["A"], ["```python start=0", ...mdcCode.slice(1)]),
@@ -588,6 +616,12 @@ const customBuilds = {
   "artifacts/construcoes/uniao.build.ts": build(
     "export default defineBuild<{ a: number; b: number } | { a: number; b: number; c: number }>({ steps: (input) => [{ say: `Soma ${String(input.a)}.` }] });",
   ),
+  "artifacts/construcoes/palavra-tipo.build.ts": build(
+    "export default defineBuild<{ w: number }>({ steps: (input) => [{ say: `Lê ${String(input.w)}.` }] });",
+  ),
+  "artifacts/construcoes/modulo-tipo.build.ts": build(
+    "export default defineBuild<{ t: string; m: string }>({ steps: (input) => [{ say: `Lê ${input.t} ${input.m}.` }] });",
+  ),
   "artifacts/construcoes/texto.build.ts": build(
     "export default defineBuild<{ a: number }>({ steps: (input) => [{ say: `Começa em ${String(input.a)}.` }] });",
   ),
@@ -783,7 +817,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 126 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 128 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -913,7 +947,9 @@ describe.each([
           "artifacts/construcoes/indice.build.ts:3:28 error build-input: `steps` takes `{ [name: string]: number; a: number; b: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/literal.build.ts:3:28 error build-input: `steps` takes `{ a: number; b: 7 }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/mepa-campos.build.ts:4:16 error build-input: `steps` takes `{ a: number }`, but the Stage's fields give it `{ a: number; b: number }`: name exactly the Stage's fields in `reads` (artifact skill: Custom builds)",
+          "artifacts/construcoes/modulo-tipo.build.ts:3:28 error build-input: `steps` takes `{ t: string; m: string }`, but the Stage's fields give it `{ t: string; m: number }`: write `defineBuild<{ t: string; m: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/opcional.build.ts:3:28 error build-input: `steps` takes `{ a: number; b?: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/palavra-tipo.build.ts:3:28 error build-input: `steps` takes `{ w: number }`, but the Stage's fields give it `{ w: string }`: write `defineBuild<{ w: string }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/texto.build.ts:3:28 error build-input: `steps` takes `{ a: number }`, but the Stage's options give it text: write `defineBuild` without a type (artifact skill: Custom builds)",
           "artifacts/construcoes/tipo.build.ts:3:28 error build-input: `steps` takes `{ a: number; c: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/uniao.build.ts:3:28 error build-input: `steps` takes `{ a: number; b: number } | { a: number; b: number; c: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
@@ -1037,7 +1073,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 127 failures" : "pnpm check: 126 failures",
+        fullScope ? "pnpm check: 129 failures" : "pnpm check: 128 failures",
       );
     });
   },

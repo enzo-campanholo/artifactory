@@ -29,3 +29,11 @@ Spec: [Stage text input](../spec.md), section "Failures". The decisions are in [
 ### 2026-11-09: notes from Stage text input 01
 
 `Stage.astro`'s `exampleProblems` checks each example against the definitions in `fields` through `fieldProblem` (`step-applier.ts`), the rule the page also refuses typed input by. Give the text rule's problems there, so the check's example failures and the page's refusals keep one rule; the props' own failures (alphabet, `minLength`, `maxLength`) sit with the other `problems` above it.
+
+### 2026-11-09: notes from Stage text input 02
+
+Implementer of [02](02-a-stage-takes-a-text-field.md):
+
+- `Field` in `step-applier.ts` is now `NumberField | TextField`. A text field's definition on the page is `{ name, label?, kind: "text", alphabet?, minLength, maxLength }`: `Stage.astro` fills `minLength` with 0 when the props leave it out, and writes `alphabet` only when given. The props' own type (`Typed["input"]["fields"]` in `Stage.astro`) is a union on `kind`, so `min` on a text field or `alphabet` on a number field already fail the type check; the build-time failures this ticket adds cover entries that break the types and still build.
+- `fieldProblem` returns `"not-text"` for a text field given anything but a string, and `Stage.astro`'s `exampleProblems` words it as the owner decided, "example 2 gives `w` 5, which isn't text". No test asserts it yet: add it to the Stage-failures test here. The text rule itself (alphabet, lengths by code point after NFC, the example's NFC) isn't in `fieldProblem` yet; it goes there.
+- The valid fixtures `automato-par` and `hash-modular` (`tests/check/valid-artifacts.test.ts`) write their examples in NFC and must keep passing once the NFC failure lands.

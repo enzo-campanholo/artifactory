@@ -466,6 +466,168 @@ const rewrittenStage = {
   ].join("\n"),
 };
 
+// "aabba" has two b's, so the automaton ends in q0 and accepts it. The second Stage opens on the
+// empty word, which it reads as ε, with no symbol read.
+const wordStage = {
+  "artifacts/automato-par/index.mdx": artifact(fields("aut0mat0", "Autômato par", "Cálculo"), [
+    'import Stage from "@artifactory/design-system/stage";',
+    "",
+    "<Stage",
+    '  build="automato"',
+    "  input={{",
+    '    label: "Aceita w?",',
+    '    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],',
+    '    examples: [{ w: "aabba" }, { w: "" }, { w: "bbbb" }, { w: "b" }],',
+    "  }}",
+    '  prompt="Digite uma palavra e comece."',
+    '  caption="Um autômato que aceita as palavras com um número par de b."',
+    ">",
+    "",
+    "| Variável | Valor |",
+    "| -------- | ----- |",
+    "| lido     | aabba |",
+    "| estado   | q0    |",
+    "| aceita   | sim   |",
+    "",
+    "</Stage>",
+    "",
+    "<Stage",
+    '  build="tamanho"',
+    "  input={{",
+    '    label: "Contar |w|",',
+    "    fields: [",
+    '      { name: "w", label: "a palavra w", kind: "text", alphabet: ["0", "1"], minLength: 0, maxLength: 8 },',
+    "    ],",
+    '    examples: [{ w: "" }, { w: "0110" }],',
+    "  }}",
+    '  prompt="Digite uma palavra e comece."',
+    ">",
+    "",
+    "| Variável | Valor |",
+    "| -------- | ----: |",
+    "| lido     |     ε |",
+    "| tamanho  |     0 |",
+    "",
+    "</Stage>",
+  ]),
+  // `COMPONENTS.md`'s Stage entry shows this build, as written here, so the reference's own passes.
+  "artifacts/automato-par/automato.build.ts": [
+    'import { defineBuild, type CellChange, type Step } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild<{ w: string }>({",
+    "  steps(input) {",
+    "    const symbols = [...input.w];",
+    '    let state = "q0";',
+    '    const values = (read: number, accepts = "—"): CellChange[] => [',
+    '      { row: "lido", column: "Valor", text: read === 0 ? "ε" : symbols.slice(0, read).join("") },',
+    '      { row: "estado", column: "Valor", text: state },',
+    '      { row: "aceita", column: "Valor", text: accepts },',
+    "    ];",
+    '    const steps: Step[] = [{ say: "Começa em q0, sem ter lido nada.", cells: values(0) }];',
+    "    symbols.forEach((symbol, index) => {",
+    "      const from = state;",
+    '      if (symbol === "b") state = state === "q0" ? "q1" : "q0";',
+    "      steps.push({",
+    "        say: `Lê ${symbol}: de ${from} vai a ${state}.`,",
+    '        rows: { estado: "strong" },',
+    "        cells: values(index + 1),",
+    "      });",
+    "    });",
+    '    const accepts = state === "q0";',
+    "    steps.push({",
+    "      say:",
+    "        symbols.length === 0",
+    '          ? "A palavra vazia acaba em q0: aceita."',
+    '          : `A palavra acaba em ${state}: ${accepts ? "aceita" : "rejeita"}.`,',
+    '      rows: { aceita: "reversed" },',
+    '      cells: values(symbols.length, accepts ? "sim" : "não"),',
+    "    });",
+    "    return steps;",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+  "artifacts/automato-par/tamanho.build.ts": [
+    'import { defineBuild, type CellChange } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild<{ w: string }>({",
+    "  steps({ w }) {",
+    "    const symbols = [...w];",
+    "    const values = (read: number): CellChange[] => [",
+    '      { row: "lido", column: "Valor", text: read === 0 ? "ε" : symbols.slice(0, read).join("") },',
+    '      { row: "tamanho", column: "Valor", text: String(read) },',
+    "    ];",
+    "    return [",
+    '      { say: "Ainda não leu nenhum símbolo.", cells: values(0) },',
+    "      ...symbols.map((symbol, index) => ({ say: `Lê ${symbol}.`, cells: values(index + 1) })),",
+    "    ];",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+};
+
+// The code points of "olá mundo" sum to 1023 (111, 108, 225, 32, 109, 117, 110, 100 and 111), and
+// 1023 = 146 × 7 + 1, so h is 1.
+const textAndNumberStage = {
+  "artifacts/hash-modular/index.mdx": artifact(fields("h4shm0d7", "Hash modular", "Cálculo"), [
+    'import Stage from "@artifactory/design-system/stage";',
+    "",
+    "<Stage",
+    '  build="hash"',
+    "  input={{",
+    '    label: "Calcular h(t, m)",',
+    "    fields: [",
+    '      { name: "t", kind: "text", maxLength: 40 },',
+    '      { name: "m", min: 1, max: 997 },',
+    "    ],",
+    '    examples: [{ t: "olá mundo", m: 7 }, { t: "", m: 7 }, { t: "fim ", m: 2 }],',
+    "  }}",
+    '  prompt="Digite um texto e um módulo e comece."',
+    ">",
+    "",
+    "| Variável | Valor     |",
+    "| -------- | --------- |",
+    "| t        | olá mundo |",
+    "| lidos    | 9         |",
+    "| soma     | 1023      |",
+    "| h        | 1         |",
+    "",
+    "</Stage>",
+  ]),
+  "artifacts/hash-modular/hash.build.ts": [
+    'import { defineBuild, type CellChange, type Step } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild<{ t: string; m: number }>({",
+    "  steps({ t, m }) {",
+    "    const symbols = [...t];",
+    "    let sum = 0;",
+    '    const values = (read: number, h = "—"): CellChange[] => [',
+    '      { row: "t", column: "Valor", text: t },',
+    '      { row: "lidos", column: "Valor", text: String(read) },',
+    '      { row: "soma", column: "Valor", text: String(sum) },',
+    '      { row: "h", column: "Valor", text: h },',
+    "    ];",
+    '    const steps: Step[] = [{ say: "A soma começa em 0.", cells: values(0) }];',
+    "    symbols.forEach((symbol, index) => {",
+    "      sum += symbol.codePointAt(0) ?? 0;",
+    "      steps.push({",
+    "        say: `Soma o código do símbolo ${String(index + 1)}: ${String(sum)}.`,",
+    "        cells: values(index + 1),",
+    "      });",
+    "    });",
+    "    steps.push({",
+    "      say: `h é o resto de ${String(sum)} por ${String(m)}, ${String(sum % m)}.`,",
+    '      rows: { h: "reversed" },',
+    "      cells: values(symbols.length, String(sum % m)),",
+    "    });",
+    "    return steps;",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
+};
+
 const colouring = {
   "artifacts/coloracao/index.mdx": artifact(fields("c0l0r4c4", "Coloração", "Grafos"), [
     'import Figure from "@artifactory/design-system/figure";',
@@ -928,6 +1090,8 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ...secondStage,
       ...typedStage,
       ...rewrittenStage,
+      ...wordStage,
+      ...textAndNumberStage,
       ...machineTrace,
       ...colouring,
       ...renamedTwiceAndBack,
@@ -1318,6 +1482,57 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       expect(stage?.querySelector(".stage-controls + .stage-example")?.textContent).toBe(
         "Calcular mdc(a, b) a = 48, b = 18",
       );
+    });
+
+    it("holds a text field filled with its first example's text, with no case, correction, spelling or length help, and names that example's text bare in the code face, the empty word as ε", async () => {
+      const textFields = (stage: Element | undefined) =>
+        [...(stage?.querySelectorAll(".stage-field") ?? [])].map((field) => {
+          const input = field.querySelector("input");
+          return {
+            label: field.textContent.trim(),
+            name: input?.getAttribute("name"),
+            value: input?.getAttribute("value"),
+            autocapitalize: input?.getAttribute("autocapitalize"),
+            autocorrect: input?.getAttribute("autocorrect"),
+            spellcheck: input?.getAttribute("spellcheck"),
+            maxlength: input?.getAttribute("maxlength"),
+            inputmode: input?.getAttribute("inputmode"),
+          };
+        });
+      const named = (stage: Element | undefined) => {
+        const example = stage?.querySelector(".stage-controls + .stage-example");
+        return [
+          example?.textContent,
+          [...(example?.querySelectorAll("code") ?? [])].map((code) => code.textContent),
+        ];
+      };
+      const off = { autocapitalize: "off", autocorrect: "off", spellcheck: "false" };
+      const [word, empty] = [
+        ...parsed(await builtPage("automato-par")).querySelectorAll("artifact-stage"),
+      ];
+      expect(textFields(word)).toEqual([
+        { label: "w", name: "w", value: "aabba", ...off, maxlength: null, inputmode: null },
+      ]);
+      expect(named(word)).toEqual(["Aceita w? w = aabba", ["aabba"]]);
+      expect(textFields(empty)).toEqual([
+        { label: "a palavra w", name: "w", value: "", ...off, maxlength: null, inputmode: null },
+      ]);
+      expect(named(empty)).toEqual(["Contar |w| w = ε", ["ε"]]);
+      const [mixed] = parsed(await builtPage("hash-modular")).querySelectorAll("artifact-stage");
+      expect(textFields(mixed)).toEqual([
+        { label: "t", name: "t", value: "olá mundo", ...off, maxlength: null, inputmode: null },
+        {
+          label: "m",
+          name: "m",
+          value: "7",
+          autocapitalize: null,
+          autocorrect: "off",
+          spellcheck: "false",
+          maxlength: null,
+          inputmode: "numeric",
+        },
+      ]);
+      expect(named(mixed)).toEqual(["Calcular h(t, m) t = olá mundo, m = 7", ["olá mundo"]]);
     });
 
     it("holds a Stage whose build uses `body` with every row as written shown and its controls hidden", async () => {

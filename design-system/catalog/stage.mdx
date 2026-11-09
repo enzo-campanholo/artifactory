@@ -107,6 +107,29 @@ The catalog script typed 10000 for b, out of its bounds, and pressed Start. The 
 
 </div>
 
+## Typed text
+
+A field with `kind: "text"` takes a word, here over the alphabet a and b, up to 12 symbols. It is set in the code face, where every symbol is one character wide, and it is as wide as 12 symbols and one more. The field opens filled with the first example, aabba, and Start hands the build the text as typed, in NFC, untrimmed. The examples include the empty word, an empty field. Without JavaScript and in print, the line in the fields' place names the first example's word bare in the code face, "Accepts w? w = aabba", and the empty word as ε.
+
+<Stage
+  build="even-bs"
+  input={{
+    label: "Accepts w?",
+    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],
+    examples: [{ w: "aabba" }, { w: "" }, { w: "bbb" }],
+  }}
+  prompt="Type a word and press Start."
+  caption="An automaton that accepts the words with an even number of b's."
+>
+
+| Variable | Value |
+| -------- | ----- |
+| read     | aabba |
+| state    | q0    |
+| accepts  | yes   |
+
+</Stage>
+
 ## Code, mid-run
 
 A Stage traces a function line by line on its one fenced code block, highlighted as anywhere else. The catalog script pressed Start on n = 6 and stepped to step 5, where the first pass halves n. Line 5, the line running, is reversed: a bar across the code's whole width, even where the long line 7 scrolls sideways. The `if` that just decided is strong, the `while` it tests again after this pass is dashed, and the `else` branch it didn't take is muted. The step is announced as "Step 5 of 36. Line 5. …".

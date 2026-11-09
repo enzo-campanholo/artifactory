@@ -65,8 +65,11 @@ export interface Step {
   cells?: CellChange[];
 }
 
-/** What the owner typed into a Stage's `input`: each field's whole number, by the field's `name`. */
-export type Typed = Record<string, number>;
+/**
+ * What the owner typed into a Stage's `input`, by each field's `name`: a number field's whole
+ * number, or a text field's text as a `string`, in NFC, `""` for the empty word.
+ */
+export type Typed = Record<string, number | string>;
 
 /** One line of the Stage's code block as written. */
 export interface CodeLine {
@@ -110,12 +113,13 @@ export interface Content {
 
 /**
  * A custom build: what turns the owner's choice into steps. With `choose`, `steps` gets the option
- * as text; with `input`, it gets each field's number, typed as `Input`. Either way its second
+ * as text; with `input`, it gets each field's value, typed as `Input`: a number field's whole
+ * number as a `number`, a text field's text as a `string`. Either way its second
  * argument is the Stage's content as written (`Content`), which a build may leave out.
  */
 export interface Build<Input extends string | Typed = string> {
   /**
-   * Every step for the option the owner chose or the numbers they typed, in order, at least one
+   * Every step for the option the owner chose or the input they typed, in order, at least one
    * and at most 200. Called again from step 1 whenever they choose again or press Start, with the
    * content as written each time.
    */
@@ -124,8 +128,9 @@ export interface Build<Input extends string | Typed = string> {
 
 /**
  * Wraps the build so TypeScript checks it. A `.build.ts` file's default export. With `input`,
- * give the fields' names as its type, `defineBuild<{ a: number; b: number }>({ … })`, so `steps`
- * gets them typed: `pnpm check` fails when they aren't the Stage's fields. `steps` gets the
+ * give the fields' names as its type, a number field's as `number` and a text field's as `string`,
+ * `defineBuild<{ a: number; b: number }>({ … })` or `defineBuild<{ w: string; m: number }>({ … })`,
+ * so `steps` gets them typed: `pnpm check` fails when they aren't the Stage's fields and kinds. `steps` gets the
  * content as written second, typed `Content`, without a type of its own.
  */
 export function defineBuild<Input extends string | Typed = string>(
