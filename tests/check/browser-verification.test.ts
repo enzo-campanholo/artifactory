@@ -505,6 +505,112 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
 );
 
 describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look fixed-layer evidence",
+  () => {
+    let repo: FixtureRepo;
+    beforeAll(async () => {
+      const paragraph =
+        "This literal paragraph makes the page taller than the phone viewport, so the bar can slide in.\n";
+      repo = await createFixtureRepo({
+        "public/slide-bar-in.js": [
+          'addEventListener("load", () => {',
+          "  if (innerWidth > 600) return;",
+          '  const stepper = document.querySelector("artifact-stepper");',
+          '  const bar = document.querySelector(".artifact-bar");',
+          "  const target = scrollY + stepper.getBoundingClientRect().bottom - innerHeight + bar.offsetHeight / 2;",
+          '  dispatchEvent(new KeyboardEvent("keydown"));',
+          "  scrollTo(0, target + 400);",
+          "  setTimeout(() => scrollTo(0, target), 150);",
+          "});",
+          "",
+        ].join("\n"),
+        "artifacts/look-bar/steps.svg": [
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 300">',
+          '<rect class="stroke-text" x="20" y="20" width="320" height="260" fill="none" stroke-width="2"/>',
+          '<circle data-step="2-" class="stroke-text" cx="180" cy="150" r="60" fill="none" stroke-width="2"/>',
+          "</svg>",
+          "",
+        ].join("\n"),
+        "artifacts/look-bar/index.mdx": [
+          "---",
+          "id: lookbar1",
+          "title: look-bar",
+          "subject: Artifactory",
+          "lang: en",
+          "published: 2026-10-25",
+          "---",
+          "",
+          'import Stepper from "@artifactory/design-system/stepper";',
+          'import steps from "./steps.svg?raw";',
+          "",
+          "## Before",
+          "",
+          ...Array.from({ length: 12 }, () => paragraph),
+          "## Stepper",
+          "",
+          '<Stepper figure={steps} alt="A literal box, then a circle inside it." captions={["The box.", "The circle."]} />',
+          "",
+          "## After",
+          "",
+          ...Array.from({ length: 24 }, () => paragraph),
+          '<script src="/slide-bar-in.js"></script>',
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    it(
+      "hides the slid-in bar for every shot of a Stepper under it, then shows it again",
+      async () => {
+        const result = await repo.run("pnpm", ["look", "look-bar"]);
+        const output = join(repo.root, ".look/look-bar");
+        const report = JSON.parse(await readFile(join(output, "results.json"), "utf8")) as {
+          cases: {
+            id: string;
+            outcome: string;
+            observed: { hiddenLayers?: { file: string; layers: unknown[] }[] };
+            assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
+            captures: string[];
+          }[];
+        };
+        const evidence = process.env.ARTIFACTORY_BROWSER_EVIDENCE;
+        if (evidence) {
+          await cp(output, join(evidence, "look-bar"), { recursive: true });
+          await writeFile(join(evidence, "look-bar.log"), result.output);
+        }
+        expect(result.exitCode, result.output).toBe(0);
+        const phone = report.cases.find((test) => test.id === "look-393");
+        expect(phone?.outcome).toBe("captured-awaiting-visual-review");
+        expect(phone?.assertions.every((assertion) => assertion.passed)).toBe(true);
+        const files = ["01-stepper-step-1-393.png", "01-stepper-step-2-393.png"];
+        expect(phone?.captures).toEqual(files);
+        for (const file of files) {
+          expect(
+            phone?.observed.hiddenLayers?.find((shot) => shot.file === file)?.layers,
+          ).toContainEqual({ layer: "div.artifact-bar", inView: true });
+          expect(
+            phone?.assertions.find((assertion) => assertion.name === `${file}: layers hidden`)
+              ?.actual,
+          ).toContainEqual({ layer: "div.artifact-bar", opacity: "0" });
+          const restored = phone?.assertions.find(
+            (assertion) => assertion.name === `${file}: hidden layers restored`,
+          );
+          expect(restored?.passed).toBe(true);
+          expect(restored?.actual).toContainEqual({
+            layer: "div.artifact-bar",
+            opacity: "1",
+            inline: "",
+          });
+        }
+      },
+      checkTimeout,
+    );
+  },
+);
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
   "opt-in Look model answer evidence",
   () => {
     let repo: FixtureRepo;

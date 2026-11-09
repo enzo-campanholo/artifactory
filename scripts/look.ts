@@ -330,8 +330,88 @@ async function accessibleText(page: Page, number: ElementHandle): Promise<string
   return tree === null ? "" : textOf(tree, " ").replace(/\s+/g, " ").trim();
 }
 
-function shoot(page: Page, test: BrowserCase, item: Item, file: string): Promise<void> {
-  return capture(page, test, folder, file, item.element);
+// Layers are found by computed style, not class, so a new fixed layer can't get into the shots.
+// Opacity keeps a sticky layer's room in the flow, so the item doesn't move between measuring and
+// shooting, and unlike `visibility` a descendant can't opt back in.
+async function shoot(page: Page, test: BrowserCase, item: Item, file: string): Promise<void> {
+  const layout = () =>
+    item.element.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      return {
+        scroll: { x: scrollX, y: scrollY },
+        item: { x: box.x + scrollX, y: box.y + scrollY, width: box.width, height: box.height },
+      };
+    });
+  const before = await layout();
+  const layers = await item.element.evaluateHandle((item) => {
+    const found: (HTMLElement | SVGElement)[] = [];
+    for (const node of document.body.querySelectorAll("*")) {
+      if (!(node instanceof HTMLElement || node instanceof SVGElement)) continue;
+      if (node.contains(item) || item.contains(node)) continue;
+      if (found.some((layer) => layer.contains(node))) continue;
+      if (["fixed", "sticky"].includes(getComputedStyle(node).position)) found.push(node);
+    }
+    return found;
+  });
+  const stateOf = () =>
+    layers.evaluate((layers) =>
+      layers.map((layer) => ({
+        layer: [
+          layer.localName,
+          ...(layer.id === "" ? [] : [`#${layer.id}`]),
+          ...[...layer.classList].map((name) => `.${name}`),
+        ].join(""),
+        opacity: getComputedStyle(layer).opacity,
+        inline:
+          `${layer.style.getPropertyValue("opacity")} ${layer.style.getPropertyPriority("opacity")}`.trim(),
+      })),
+    );
+  const shown = await stateOf();
+  const saved = await layers.evaluate((layers) =>
+    layers.map((layer) => {
+      const box = layer.getBoundingClientRect();
+      const inView =
+        box.width > 0 &&
+        box.height > 0 &&
+        box.bottom > 0 &&
+        box.right > 0 &&
+        box.top < innerHeight &&
+        box.left < innerWidth;
+      const had = {
+        style: layer.hasAttribute("style"),
+        value: layer.style.getPropertyValue("opacity"),
+        priority: layer.style.getPropertyPriority("opacity"),
+      };
+      layer.style.setProperty("opacity", "0", "important");
+      return { inView, had };
+    }),
+  );
+  const hidden = await stateOf();
+  const hiddenLayers = (test.observed.hiddenLayers ?? []) as unknown[];
+  hiddenLayers.push({
+    file,
+    layers: hidden.map(({ layer }, index) => ({ layer, inView: saved[index]?.inView })),
+  });
+  test.observed.hiddenLayers = hiddenLayers;
+  assertCase(
+    test,
+    `${file}: layers hidden`,
+    hidden.map(({ layer }) => ({ layer, opacity: "0" })),
+    hidden.map(({ layer, opacity }) => ({ layer, opacity })),
+  );
+  assertCase(test, `${file}: layout kept while layers hidden`, before, await layout());
+  await capture(page, test, folder, file, item.element);
+  await layers.evaluate((layers, saved) => {
+    for (const [index, layer] of layers.entries()) {
+      const had = saved[index]?.had;
+      if (had === undefined) continue;
+      if (had.value === "") layer.style.removeProperty("opacity");
+      else layer.style.setProperty("opacity", had.value, had.priority);
+      if (!had.style && layer.getAttribute("style") === "") layer.removeAttribute("style");
+    }
+  }, saved);
+  assertCase(test, `${file}: hidden layers restored`, shown, await stateOf());
+  await layers.dispose();
 }
 
 async function shootOnce(page: Page, test: BrowserCase, item: Item, width: number): Promise<Shots> {
