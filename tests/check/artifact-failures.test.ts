@@ -203,6 +203,93 @@ const questionIds = {
       "</Matching>",
     ],
   ),
+  "artifacts/associacoes/index.mdx": artifact(fields("4ss0c14c", "Associações", "Compiladores"), [
+    'import Associacao from "@artifactory/design-system/matching";',
+    'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+    'import OpenQuestion from "@artifactory/design-system/open-question";',
+    'import SingleChoice from "@artifactory/design-system/single-choice";',
+    "",
+    '<OpenQuestion id="codigo">',
+    "",
+    "Onde fica o código de uma função?",
+    "",
+    "---",
+    "",
+    "Na área de código.",
+    "",
+    "</OpenQuestion>",
+    "",
+    '<NumericQuestion id="quadros" answer="2">',
+    "",
+    "Quantos quadros há na pilha durante `f(g())`?",
+    "",
+    "</NumericQuestion>",
+    "",
+    'Uma associação se escreve `<Matching answers={{ "pilha": 1 }}>`, com o nome que o import lhe dá.',
+    "",
+    '<Associacao answers={{ "codigo": 1, "quadros": 2, "pilha": 2, heap: 3 }}>',
+    "",
+    "Em que área de memória fica cada item?",
+    "",
+    "1. Código",
+    "2. Pilha",
+    "3. Heap",
+    "",
+    "---",
+    "",
+    "- Uma função",
+    "- Um quadro de chamada",
+    "- Uma variável local",
+    "- Um objeto criado com `new`",
+    "",
+    "</Associacao>",
+    "",
+    "<Associacao",
+    "  answers={{",
+    '    "global": 1,',
+    '    "pilha": 2,',
+    '    "retorno": 2,',
+    "  }}",
+    ">",
+    "",
+    "Em que área fica cada um?",
+    "",
+    "1. Dados",
+    "2. Pilha",
+    "",
+    "---",
+    "",
+    "- Uma variável global",
+    "- Um parâmetro",
+    "- Um endereço de retorno",
+    "",
+    "</Associacao>",
+    "",
+    '<SingleChoice id="heap" answer={1}>',
+    "",
+    "Onde fica um objeto criado com `new`?",
+    "",
+    "1. No heap",
+    "2. Na pilha",
+    "",
+    "</SingleChoice>",
+    "",
+    '<NumericQuestion id="global" answer="1">',
+    "",
+    "Quantas cópias de uma variável global existem?",
+    "",
+    "</NumericQuestion>",
+    "",
+    '<OpenQuestion id="retorno">',
+    "",
+    "Onde fica o endereço de retorno?",
+    "",
+    "---",
+    "",
+    "Na pilha.",
+    "",
+    "</OpenQuestion>",
+  ]),
 };
 
 const statements = {
@@ -480,14 +567,27 @@ describe("a repo whose artifacts break math, code, diagram, link, question ID, s
     );
   });
 
-  it("fails a matching item's ID by the rules of a question ID, at the entry's start", () => {
+  it("fails a matching item's ID by the rules of a question ID, at its key in `answers`", () => {
     const lines = linesFor(run, ["regras-de-derivacao"]);
     expect(lines).toContain(
-      "artifacts/regras-de-derivacao/index.mdx:1:1 error question-id: the question ID `Regra_do_produto` isn't lowercase kebab-case (artifact skill: Components)",
+      "artifacts/regras-de-derivacao/index.mdx:42:22 error question-id: the question ID `Regra_do_produto` isn't lowercase kebab-case (artifact skill: Components)",
     );
     expect(lines).toContain(
-      "artifacts/regras-de-derivacao/index.mdx:1:1 error question-id: the question ID `regra-da-potencia` is already used at line 13; give each question in an artifact its own ID (artifact skill: Components)",
+      "artifacts/regras-de-derivacao/index.mdx:42:45 error question-id: the question ID `regra-da-potencia` is already used at line 13; give each question in an artifact its own ID (artifact skill: Components)",
     );
+  });
+
+  it("fails an ID shared by matching items and other questions at its second use, naming the first, with the matching found by the name its import gives it", () => {
+    expect(
+      linesFor(run, ["associacoes"]).filter((line) => line.includes(" error question-id: ")),
+    ).toEqual([
+      "artifacts/associacoes/index.mdx:32:24 error question-id: the question ID `codigo` is already used at line 14; give each question in an artifact its own ID (artifact skill: Components)",
+      "artifacts/associacoes/index.mdx:32:37 error question-id: the question ID `quadros` is already used at line 24; give each question in an artifact its own ID (artifact skill: Components)",
+      "artifacts/associacoes/index.mdx:52:5 error question-id: the question ID `pilha` is already used at line 32; give each question in an artifact its own ID (artifact skill: Components)",
+      "artifacts/associacoes/index.mdx:70:15 error question-id: the question ID `heap` is already used at line 32; give each question in an artifact its own ID (artifact skill: Components)",
+      "artifacts/associacoes/index.mdx:79:18 error question-id: the question ID `global` is already used at line 51; give each question in an artifact its own ID (artifact skill: Components)",
+      "artifacts/associacoes/index.mdx:85:15 error question-id: the question ID `retorno` is already used at line 53; give each question in an artifact its own ID (artifact skill: Components)",
+    ]);
   });
 
   it("fails a statement before the first section or below a section's top level, a statement ID already used or not kebab-case, and a citation of no statement, each at its prop", () => {
@@ -528,7 +628,7 @@ describe("a repo whose artifacts break math, code, diagram, link, question ID, s
   });
 
   it("reports every failure in one run, and nothing else", () => {
-    expect(run.summary[0]).toBe("pnpm check: 60 failures");
+    expect(run.summary[0]).toBe("pnpm check: 66 failures");
   });
 });
 
