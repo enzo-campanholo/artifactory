@@ -1,6 +1,6 @@
 # 02: Trace a MEPA program without jumps or calls
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01
 
 **What to build:** the first tracer bullet through the machine trace. An artifact agent writes an ordinary Stage with `input`, a MEPA listing in a `start=0` fence, a registers table and a memory table, and a build of a few lines, `trace(mepa, notes)`, importing only the design system. The page steps through the run: the line that ran reversed, the next one dashed, every changed cell strong, each step said in the artifact's language. This slice gives the general layer (the run loop, automatic `strong`, number formatting) and MEPA's instructions for a program with no labels, jumps or subroutines. Labels and jumps come in 05 and subroutines in 06, and failures for programs and notes that don't fit in 04. The bound is [Machine trace](../spec.md) › Behaviour, The general layer, Narration, Notes and MEPA.
