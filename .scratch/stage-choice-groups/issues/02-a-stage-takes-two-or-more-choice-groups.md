@@ -38,3 +38,14 @@ Documentation and catalog, in the same commit as the check change:
 - [ ] The `artifact` skill's Stage page gives the new `build` and `build-input` messages and runs named by combination; its rules page's Custom builds section gives the list form's `defineBuild` shape, and "Missing a control or a mark?" lists several choice groups among what the Stage takes.
 - [ ] `DESIGN.md`'s Stage description covers several labelled rows of options and the run starting once every group has a choice (with `.impeccable/design.json` if the change reaches it).
 - [ ] The catalog's Stage page adds a Stage with two groups, a start vertex and a search, whose drawn parts choose from the vertex group; checked in a browser at 393 px and wide, light and dark, with the keyboard, as the agent docs' browser verification says. A mid-run catalog state isn't needed: the catalog's run hook picks one option, and extending it is out of this ticket.
+
+## Comments
+
+### 2026-11-09: notes from 01
+
+Implementer of [01](01-name-the-stage-s-control-instead-of-inferring-it.md). Where the list form plugs in:
+
+- `step-applier.ts` exports `Control` (`"choose" | "input"`), `Takes` (`{ shape: "text" }` or `{ shape: "named"; values: NamedValue[] }`) and `stageControl(stage)`, which reads `data-control` from `<artifact-stage>` (`Stage.astro` writes it) and derives `takes` from the page. A list of groups is `control: "choose"` with `takes: { shape: "named", values: [{ name, kind: "string" }, …] }`: extend `stageControl`'s `choose` branch and add `"string"` to `NamedValue["kind"]`.
+- `build-input.ts` compares against `takes` and words `{ name: kind; … }` from it. `kindFlags` maps a kind to TypeScript's flag (`"string"` → `TypeFlags.String`). The noun in "the Stage's … give it" comes from `givers[control]` ("options", "fields"), so "groups" needs the shape too, not the control alone.
+- The check's `named()` in `custom-build-runs.ts` already writes named values as `name = value` in `takes`' order, so `inicio = A, busca = largura` follows once `inputs` holds each combination's record. `inputs` for `choose` is still each `.stage-option input` value: build the combinations there.
+- The page's refusal lines are `texts.refused[control]` in `stage-element.ts`. "Escolha outras opções." / "Choose other options." needs a third entry chosen by the group count. `runBuild` takes the control second. Its `body` rule applies only to `input`, so a several-group run, like a one-group one, may leave `body` out to show the starting state.

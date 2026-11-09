@@ -16,3 +16,9 @@ Spec: [Stage choice groups](../spec.md) › Runs and Look. Decisions: [Stage con
 - [ ] Look prints `first options <name> = <option>, …, N steps` in the groups' order, and `…, refused: <line>` on a refusal; one-group and typed Stages print as today.
 - [ ] The browser acceptance in `tests/check` (seam 1, run with `ARTIFACTORY_BROWSER_ACCEPTANCE=1`) gains a fixture artifact with a two-group Stage and asserts its captures and the line look prints; the existing Stage look cases pass unchanged.
 - [ ] The `artifact` skill's Stage page › Look says look shoots the first option of every group, prints `first options …`, and that an agent puts the option worth looking at first in each group.
+
+## Comments
+
+### 2026-11-09: note from 01
+
+Implementer of [01](01-name-the-stage-s-control-instead-of-inferring-it.md). `scripts/look.ts`'s `shootStage` still tells a typed Stage from a `choose` one by whether a `.stage-field input` exists. 01 left it alone because the ticket didn't list it. `<artifact-stage>` now carries `data-control` (`choose` or `input`), and `stageControl` in `step-applier.ts` gives `takes`, so look can branch on those when it adds several groups.
