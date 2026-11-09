@@ -1,7 +1,7 @@
 # 02: A fence starts its line numbers at `start=N`
 
 Blocked by: 01
-Status: ready-for-agent
+Status: claimed
 
 **What to build:** an agent writes ` ```pascal start=0 ` and the block's first line shows 0, with each line after it counting up by one. Without `start`, numbering starts at 1, as today. Every line reference then counts the number the page shows: in a block with `start=0`, line 0 is its first line. That covers a one-block Stepper's `lines` and a Stage step's `lines`, and ticket 03 adds `{…}`. The Stepper's announced lines ("Line 0.") and printed step list, and the Stage's "Linha L." announcement, all use the shown number. This holds wherever a fence sits: a plain block, a one-block Stepper and a Stage's code block.
 
