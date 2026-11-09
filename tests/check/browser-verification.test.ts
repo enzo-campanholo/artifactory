@@ -736,6 +736,123 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
 );
 
 describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
+  "opt-in Look explanation evidence",
+  () => {
+    let repo: FixtureRepo;
+    const drawing = (shape: string) =>
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${shape}</svg>\n`;
+    beforeAll(async () => {
+      repo = await createFixtureRepo({
+        "artifacts/look-explanation/square.svg": drawing(
+          '<rect x="10" y="10" width="80" height="80" class="stroke-accent" fill="none" stroke-width="4"/>',
+        ),
+        "artifacts/look-explanation/circle.svg": drawing(
+          '<circle cx="50" cy="50" r="40" class="stroke-accent" fill="none" stroke-width="4"/>',
+        ),
+        "artifacts/look-explanation/index.mdx": [
+          ...frontmatter("explains", "look-explanation"),
+          'import Figure from "@artifactory/design-system/figure";',
+          'import Matching from "@artifactory/design-system/matching";',
+          'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+          'import SingleChoice from "@artifactory/design-system/single-choice";',
+          'import square from "./square.svg?raw";',
+          'import circle from "./circle.svg?raw";',
+          "",
+          "## Questions",
+          "",
+          '<SingleChoice id="corners" answer={2}>',
+          "",
+          "How many corners has a square?",
+          "",
+          "1. Three",
+          "2. Four",
+          "",
+          "---",
+          "",
+          "Count them:",
+          "",
+          '<Figure src={square} alt="Literal square with four corners." />',
+          "",
+          '<Figure src={circle} alt="Literal circle with no corners." />',
+          "",
+          "</SingleChoice>",
+          "",
+          '<NumericQuestion id="square-sides" answer="4">',
+          "",
+          "How many sides has a square?",
+          "",
+          "---",
+          "",
+          '<Figure src={square} alt="Literal square with four sides." />',
+          "",
+          "</NumericQuestion>",
+          "",
+          '<Matching answers={{ "round-shape": 1, "square-shape": 2 }}>',
+          "",
+          "Which shape is it?",
+          "",
+          "1. A circle",
+          "2. A square",
+          "",
+          "---",
+          "",
+          "- Round",
+          "- Four equal sides",
+          "",
+          "---",
+          "",
+          '<Figure src={circle} alt="Literal round circle." />',
+          "",
+          "</Matching>",
+          "",
+        ].join("\n"),
+      });
+    });
+    afterAll(async () => {
+      await repo.remove();
+    });
+    it(
+      "locks each question, or a matching's whole set, to shoot what its explanation holds, naming where it sits",
+      async () => {
+        const result = await look(repo, "look-explanation");
+        expect(result.exitCode, result.output).toBe(0);
+        const shots: [string, string, string][] = [
+          ["01-figure", "Question 1", "Literal square with four corners."],
+          ["02-figure", "Question 1", "Literal circle with no corners."],
+          ["03-figure", "Question 2", "Literal square with four sides."],
+          ["04-figure", "Questions 3–4", "Literal round circle."],
+        ];
+        for (const [name, question, alt] of shots)
+          expect(result.output).toContain(
+            [
+              `${name} (inside the explanation of ${question}): ${alt}`,
+              `  .look/look-explanation/${name}-393.png`,
+              `  .look/look-explanation/${name}-1920.png`,
+            ].join("\n"),
+          );
+        for (const width of [393, 1920]) {
+          const test = result.report.cases.find(({ id }) => id === `look-${String(width)}`);
+          expect(test?.outcome).toBe("captured-awaiting-visual-review");
+          expect(test?.captures).toEqual(shots.map(([name]) => `${name}-${String(width)}.png`));
+          for (const [name, question] of shots)
+            expect(test?.observed.figures).toContainEqual(
+              expect.objectContaining({ name, location: `inside the explanation of ${question}` }),
+            );
+          for (const name of ["01-figure", "03-figure", "04-figure"])
+            expect(test?.assertions).toContainEqual({
+              name: `${name}: the lock saved nothing`,
+              expected: [],
+              actual: [],
+              passed: true,
+            });
+        }
+      },
+      checkTimeout,
+    );
+  },
+);
+
+describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
   "opt-in Look failure evidence",
   () => {
     let repo: FixtureRepo;
