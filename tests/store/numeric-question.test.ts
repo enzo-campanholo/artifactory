@@ -8,7 +8,7 @@ import { checked, openPage, savedAttempts, seededTransport } from "./seeded-page
 
 const gravity: NumericKey = { value: "9.81", tolerance: 0.01 };
 
-function mountNumericQuestion(lang: "en" | "pt-BR", key: NumericKey, unit = "") {
+function mountNumericQuestion(lang: "en" | "pt-BR", key: NumericKey, unit = "", explanation = "") {
   const template = document.createElement("template");
   const unitPart =
     unit === "" ? "" : `<span class="numeric-question-unit" id="q-gravity--unit">${unit}</span>`;
@@ -29,6 +29,7 @@ function mountNumericQuestion(lang: "en" | "pt-BR", key: NumericKey, unit = "") 
               <button type="submit" class="question-check" aria-disabled="true">Check</button>
             </div>
           </fieldset>
+          ${explanation === "" ? "" : `<div class="question-explanation" hidden><p>${explanation}</p></div>`}
           <p class="question-status" role="status" tabindex="-1"></p>
           <div class="question-recovery" hidden></div>
         </form>
@@ -51,10 +52,11 @@ async function loadedNumericQuestion(
     lang = "en",
     key = gravity,
     unit = "m/s²",
-  }: { lang?: "en" | "pt-BR"; key?: NumericKey; unit?: string } = {},
+    explanation = "",
+  }: { lang?: "en" | "pt-BR"; key?: NumericKey; unit?: string; explanation?: string } = {},
 ) {
   const store = openPage(transport, [{ id: "gravity", kind: "numeric", key }]);
-  const mounted = mountNumericQuestion(lang, key, unit);
+  const mounted = mountNumericQuestion(lang, key, unit, explanation);
   await checked(store);
   return { ...mounted, store };
 }
@@ -208,4 +210,75 @@ test("starting over removes the right answer and reopens the field empty", async
   expect(isDisabled(field)).toBe(false);
   expect(description(field)).toEqual(["m/s²"]);
   expect(document.body.textContent).not.toContain("Right answer");
+});
+
+const workedSolution = "From d = gt²/2, g = 2 · 4.905 m / (1 s)² = 9.81 m/s².";
+
+function shownExplanation(): HTMLElement | null {
+  const explanation = document.querySelector<HTMLElement>(".question-explanation");
+  return explanation === null || explanation.hidden ? null : explanation;
+}
+
+function follows(later: Node | null, earlier: Node | null): boolean {
+  return (
+    later !== null &&
+    earlier !== null &&
+    (earlier.compareDocumentPosition(later) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+  );
+}
+
+test("a saved wrong answer shows the explanation after the right-answer line, which with the unit still alone describes the field", async () => {
+  const { field } = await loadedNumericQuestion(answered("12", "wrong"), {
+    explanation: workedSolution,
+  });
+
+  const explanation = shownExplanation();
+  expect(explanation?.textContent).toBe(workedSolution);
+  expect(follows(explanation, document.querySelector(".numeric-question-right-answer"))).toBe(true);
+  expect(description(field)).toEqual(["m/s²", "Right answer: 9.81 ± 0.01 m/s²"]);
+});
+
+test("a saved right answer shows the explanation after the locked field and its unit, which alone describes the field", async () => {
+  const { field } = await loadedNumericQuestion(answered("9.81", "right"), {
+    explanation: workedSolution,
+  });
+
+  const explanation = shownExplanation();
+  expect(explanation?.textContent).toBe(workedSolution);
+  expect(follows(explanation, document.querySelector(".numeric-question-unit"))).toBe(true);
+  expect(isDisabled(field)).toBe(true);
+  expect(description(field)).toEqual(["m/s²"]);
+});
+
+test("the explanation stays hidden through a refused input and while saving, and shows once the answer saves", async () => {
+  const { question, field, check } = await loadedNumericQuestion(seededTransport(), {
+    explanation: workedSolution,
+  });
+  expect(shownExplanation()).toBeNull();
+  type(field, "abc");
+  check.click();
+  expect(shownExplanation()).toBeNull();
+
+  type(field, "12");
+  check.click();
+
+  expect(question.dataset.status).toBe("saving");
+  expect(shownExplanation()).toBeNull();
+  await vi.waitFor(() => {
+    expect(question.dataset.status).toBe("saved");
+  });
+  expect(shownExplanation()?.textContent).toBe(workedSolution);
+  expect(description(field)).toEqual(["m/s²", "Right answer: 9.81 ± 0.01 m/s²"]);
+});
+
+test("starting over hides the explanation along with the right-answer line", async () => {
+  const { field, store } = await loadedNumericQuestion(answered("12", "wrong"), {
+    explanation: workedSolution,
+  });
+  expect(shownExplanation()).not.toBeNull();
+
+  store.answers.startOver();
+
+  expect(shownExplanation()).toBeNull();
+  expect(description(field)).toEqual(["m/s²"]);
 });

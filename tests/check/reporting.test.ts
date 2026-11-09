@@ -259,6 +259,56 @@ describe("an artifact whose single choice has `---` with no explanation after it
 
 describe.each([
   {
+    numericQuestion: "has `---` with no explanation after it",
+    content: ["Qual é a aceleração da pedra?", "", "---"],
+    message: "NumericQuestion: write the explanation after `---`, or leave out the `---`",
+  },
+  {
+    numericQuestion: "has only an explanation, with no question before its `---`",
+    content: ["---", "", "Pela queda livre, $g = 2d/t^2$."],
+    message: "NumericQuestion: write the question inside it",
+  },
+])("an artifact whose numeric question $numericQuestion", ({ content, message }) => {
+  let repo: FixtureRepo;
+  let run: CheckRun;
+
+  beforeAll(async () => {
+    repo = await createFixtureRepo({
+      "artifacts/queda-livre/index.mdx": [
+        "---",
+        "id: qu3d4l1v",
+        "title: Queda livre",
+        "subject: Física",
+        "lang: pt-BR",
+        "published: 2026-10-15",
+        "---",
+        "",
+        'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+        "",
+        '<NumericQuestion id="gravidade" answer="9.81" tolerance={0.01} unit="m/s²">',
+        "",
+        ...content,
+        "",
+        "</NumericQuestion>",
+        "",
+      ].join("\n"),
+    });
+    run = await repo.check(["--artifacts-only"]);
+  }, checkTimeout);
+
+  afterAll(() => repo.remove());
+
+  it("fails the build at the question with the component's message", () => {
+    expect(run.exitCode).toBe(1);
+    expect(run.summary).toEqual([
+      "pnpm check: 1 failure",
+      `artifacts/queda-livre/index.mdx:11:1 error build: ${message} (artifact skill: Build failures)`,
+    ]);
+  });
+});
+
+describe.each([
+  {
     matching: "a matching with its options and items in one list, without `---`",
     answers: '{{ "global": 2, "local": 3 }}',
     content: [
