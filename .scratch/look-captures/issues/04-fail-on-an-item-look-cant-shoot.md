@@ -1,6 +1,6 @@
 # 04: Fail on an item look can't shoot
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 03 (Reveal a model answer to shoot what it holds)
 
 Spec: [What `pnpm look` captures](../spec.md) › Never a silent skip, never a shot of the wrong thing
