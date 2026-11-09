@@ -46,6 +46,6 @@ Implementer for this ticket, delegated from the Artifact generation gaps session
 
 **Commits:** `386a30f` (claim), plus this comment.
 
-**Validation:** the full `scripts/heavy pnpm check` result is recorded below.
+**Validation:** I ran the full `scripts/heavy pnpm check` at `f7af5c6` in this linked worktree. Every step passed except Vitest, which failed on one test only. It's the known environment failure: `tests/check/reporting.test.ts` › "attaches full success to actual tracked and nonignored working content without staging it" (`expected 'stale' to be 'current'`), recorded on ticket 01. Nothing else failed. The `gaps-implementation` tip is still `0735893`, this branch's base, so the merge brought in nothing and I didn't rerun the check. After the check, this paragraph is the only change.
 
 **Left undone:** every checklist item. They wait on the owner's choice between the two routes above.
