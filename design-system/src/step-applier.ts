@@ -114,6 +114,28 @@ export type Run =
   | { refused: "unfit"; problems: MachineProblems["problems"] }
   | { refused: "problems"; problems: StepProblem[] };
 
+// Which control a Stage has, as its page carries it. The input a build gets can't say: a choice
+// among several groups hands it named values, as typed input does.
+export type Control = "choose" | "input";
+
+// What a build's `steps` takes: the option chosen as text, or values by name, each of a kind.
+export type Takes = { shape: "text" } | { shape: "named"; values: NamedValue[] };
+
+export interface NamedValue {
+  name: string;
+  kind: "number";
+}
+
+export function stageControl(stage: Element): { control: Control; takes: Takes } {
+  const control = stage.getAttribute("data-control") as Control;
+  if (control === "choose") return { control, takes: { shape: "text" } };
+  const values = [...stage.querySelectorAll(".stage-field input")].map((field): NamedValue => ({
+    name: field.getAttribute("name") ?? "",
+    kind: "number",
+  }));
+  return { control, takes: { shape: "named", values } };
+}
+
 export interface Field {
   name: string;
   label?: string;
@@ -159,6 +181,7 @@ function contentAsWritten({ tables, code }: Written, lang: Content["lang"]): Con
 // page and the check both run it.
 export function runBuild<Input extends string | Typed>(
   build: Build<Input>,
+  control: Control,
   input: Input,
   written: Written,
   lang: Content["lang"],
@@ -174,7 +197,7 @@ export function runBuild<Input extends string | Typed>(
     // `body` in a run that rewrites them would show that result mid-run. With `choose` they're the
     // starting state, which a step may show again by leaving `body` out.
     const rewritesRows =
-      typeof input !== "string" &&
+      control === "input" &&
       steps.some((step: unknown) => isRecord(step) && step.body !== undefined);
     steps.forEach((step: unknown, index) => {
       const applied = applyStep(written, step);

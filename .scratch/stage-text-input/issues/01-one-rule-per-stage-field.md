@@ -16,3 +16,12 @@ The edge to Stage choice groups 01 exists only because both prefactors rewrite t
 - [ ] Nothing visible changes, so `DESIGN.md` is untouched. If the `input` prop's type is reworded, `pnpm components` leaves `COMPONENTS.md` as it was, or changes it only where the prop's type is printed.
 - [ ] The change stays inside the Stage: none of `CODING_STANDARDS.md`'s shared parts change. It reaches every Stage with `input`, which the catalog and sample checks above cover.
 - [ ] Runs in a local session, as `design-system/CLAUDE.md` asks for any component change, though no visual change goes through impeccable here.
+
+## Comments
+
+### 2026-11-09: notes from Stage choice groups 01
+
+Implementer of [Stage choice groups 01](../../stage-choice-groups/issues/01-name-the-stage-s-control-instead-of-inferring-it.md), which rewrote the same seam:
+
+- `build-input` no longer assumes `number`. It takes `takes` from `stageControl(stage)` in `step-applier.ts`, whose `named` values each carry a `kind`, and words the expected type as `{ name: kind; … }`. `kindFlags` in `build-input.ts` maps each kind to TypeScript's flag. `stageControl` still writes `kind: "number"` for every `.stage-field input`: take each field's kind from the field definition this ticket puts on the page, and 02 adds `"string"` (`TypeFlags.String`) there.
+- The page's refusal lines are `texts.refused[control]` in `stage-element.ts`. "Try another input." for a Stage with a text field needs a choice beyond the control. The check's run naming (`named()` in `custom-build-runs.ts`) and the `body` rule (`runBuild`'s `control` argument) no longer look at the input's type.

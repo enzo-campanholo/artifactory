@@ -3,8 +3,10 @@ import {
   mainLanguage,
   numberProblem,
   runBuild,
+  stageControl,
   stageNodes,
   writtenContent,
+  type Control,
   type Shown,
   type StageNodes,
   type Written,
@@ -14,31 +16,49 @@ import {
 // Numbers in the step's line take a real minus sign, as the page writes them.
 const withMinus = (value: number) => String(value).replace("-", "−");
 
+interface Refused {
+  tooMany: (most: number) => string;
+  failed: string;
+  retry: string;
+}
+
 const texts = {
   en: {
     step: (step: number, count: number) => `Step ${String(step)} of ${String(count)}.`,
     line: (line: number) => `Line ${String(line)}.`,
-    tooMany: (most: number) => `That takes more than ${String(most)} steps. Choose another option.`,
-    failed: "The steps for this option couldn't be worked out. Choose another option.",
-    typedTooMany: (most: number) =>
-      `That takes more than ${String(most)} steps. Try other numbers.`,
-    typedFailed: "The steps for these numbers couldn't be worked out. Try other numbers.",
     fault: (line: number, fault: string) => `Line ${String(line)}: ${fault}.`,
-    retry: "Choose another option.",
-    typedRetry: "Try other numbers.",
+    refused: {
+      choose: {
+        tooMany: (most: number) =>
+          `That takes more than ${String(most)} steps. Choose another option.`,
+        failed: "The steps for this option couldn't be worked out. Choose another option.",
+        retry: "Choose another option.",
+      },
+      input: {
+        tooMany: (most: number) => `That takes more than ${String(most)} steps. Try other numbers.`,
+        failed: "The steps for these numbers couldn't be worked out. Try other numbers.",
+        retry: "Try other numbers.",
+      },
+    } satisfies Record<Control, Refused>,
     refusedNumber: (name: string, min: number, max: number) =>
       `Type a whole number from ${withMinus(min)}\u00a0to\u00a0${withMinus(max)} for ${name}.`,
   },
   pt: {
     step: (step: number, count: number) => `Passo ${String(step)} de ${String(count)}.`,
     line: (line: number) => `Linha ${String(line)}.`,
-    tooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Escolha outra opção.`,
-    failed: "Não foi possível montar os passos desta opção. Escolha outra opção.",
-    typedTooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Tente outros números.`,
-    typedFailed: "Não foi possível montar os passos para esses números. Tente outros números.",
     fault: (line: number, fault: string) => `Linha ${String(line)}: ${fault}.`,
-    retry: "Escolha outra opção.",
-    typedRetry: "Tente outros números.",
+    refused: {
+      choose: {
+        tooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Escolha outra opção.`,
+        failed: "Não foi possível montar os passos desta opção. Escolha outra opção.",
+        retry: "Escolha outra opção.",
+      },
+      input: {
+        tooMany: (most: number) => `Isso dá mais de ${String(most)} passos. Tente outros números.`,
+        failed: "Não foi possível montar os passos para esses números. Tente outros números.",
+        retry: "Tente outros números.",
+      },
+    } satisfies Record<Control, Refused>,
     refusedNumber: (name: string, min: number, max: number) =>
       `Digite um número inteiro de ${withMinus(min)}\u00a0a\u00a0${withMinus(max)} para ${name}.`,
   },
@@ -54,6 +74,7 @@ class ArtifactStage extends HTMLElement {
   #build: Promise<Build<string | Typed> | undefined> = Promise.resolve(undefined);
   #nodes: StageNodes = { parts: [], tables: [], code: [] };
   #written: Written = { parts: [], tables: [], code: [] };
+  #control: Control = "choose";
   #asWritten = new Map<Element, Node[]>();
   #rowToCopy: Element | undefined;
   #stepRows: Element[] = [];
@@ -100,6 +121,7 @@ class ArtifactStage extends HTMLElement {
     }
     this.#nodes = stageNodes(this);
     this.#written = writtenContent(this.#nodes);
+    this.#control = stageControl(this).control;
     this.#rowToCopy = this.#oneTableRowsAsWritten.at(-1)?.cloneNode(true) as Element | undefined;
     for (const cells of this.#nodes.tables.flatMap(({ rows }) => rows)) {
       for (const cell of cells) {
@@ -222,18 +244,15 @@ class ArtifactStage extends HTMLElement {
     const run =
       build === undefined
         ? { refused: "no-steps" as const }
-        : runBuild(build, input, this.#written, mainLanguage(this));
+        : runBuild(build, this.#control, input, this.#written, mainLanguage(this));
     if ("refused" in run) {
-      const typed = typeof input !== "string";
-      const texts = this.#texts;
+      const refused = this.#texts.refused[this.#control];
       this.#refuse(
         run.refused === "too-many"
-          ? (typed ? texts.typedTooMany : texts.tooMany)(run.most)
+          ? refused.tooMany(run.most)
           : run.refused === "fault"
-            ? `${texts.fault(run.line, run.fault[mainLanguage(this)])} ${typed ? texts.typedRetry : texts.retry}`
-            : typed
-              ? texts.typedFailed
-              : texts.failed,
+            ? `${this.#texts.fault(run.line, run.fault[mainLanguage(this)])} ${refused.retry}`
+            : refused.failed,
       );
       return;
     }

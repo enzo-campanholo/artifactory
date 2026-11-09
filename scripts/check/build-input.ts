@@ -1,12 +1,19 @@
 import { join } from "node:path";
 import typescript from "typescript";
+import type { Control, NamedValue, Takes } from "@artifactory/design-system/step-applier";
 import type { Failure } from "../../src/check-failure.ts";
 
 interface StagedBuild {
   file: string;
-  // The fields' names with `input`; nothing with `choose`.
-  fields: string[] | undefined;
+  control: Control;
+  takes: Takes;
 }
+
+const givers: Record<Control, string> = { choose: "options", input: "fields" };
+
+const kindFlags: Record<NamedValue["kind"], typescript.TypeFlags> = {
+  number: typescript.TypeFlags.Number,
+};
 
 // A build's input type comes from its own file and a Stage's fields from the entry, so neither
 // TypeScript program sees both: this compares what `steps` takes with what the Stage gives it.
@@ -22,28 +29,34 @@ export function buildInputFailures(root: string, stages: StagedBuild[]): Failure
     config?.options ?? {},
   );
   const checker = program.getTypeChecker();
-  return stages.flatMap(({ file, fields }): Failure[] => {
+  return stages.flatMap(({ file, control, takes }): Failure[] => {
     const source = program.getSourceFile(join(root, file));
     const build = source?.statements.find(typescript.isExportAssignment)?.expression;
     if (source === undefined || build === undefined) return [];
     const input = inputOf(checker, build);
     if (input === undefined) return [];
-    const expected =
-      fields === undefined
-        ? undefined
-        : `{ ${fields.map((name) => `${name}: number`).join("; ")} }`;
     const fits =
-      fields === undefined
+      takes.shape === "text"
         ? (input.flags & typescript.TypeFlags.String) !== 0
-        : takesNumbersNamed(checker, input, fields);
+        : takesValuesNamed(checker, input, takes.values);
     if (fits) return [];
-    const takes = checker
+    const typeTaken = checker
       .typeToString(
         input,
         undefined,
         typescript.TypeFormatFlags.NoTruncation | typescript.TypeFormatFlags.InTypeAlias,
       )
       .replaceAll("; }", " }");
+    const expected =
+      takes.shape === "text"
+        ? undefined
+        : `{ ${takes.values.map(({ name, kind }) => `${name}: ${kind}`).join("; ")} }`;
+    const fix =
+      expected === undefined
+        ? "write `defineBuild` without a type"
+        : tracesAMachine(checker, build)
+          ? "name exactly the Stage's fields in `reads`"
+          : `write \`defineBuild<${expected}>\``;
     const at = typescript.isCallExpression(build)
       ? (build.typeArguments?.[0] ?? build.expression)
       : build;
@@ -54,14 +67,9 @@ export function buildInputFailures(root: string, stages: StagedBuild[]): Failure
         line: line + 1,
         column: character + 1,
         ruleId: "build-input",
-        message:
-          expected === undefined
-            ? `\`steps\` takes \`${takes}\`, but the Stage's options give it text: write \`defineBuild\` without a type`
-            : `\`steps\` takes \`${takes}\`, but the Stage's fields give it \`${expected}\`: ${
-                tracesAMachine(checker, build)
-                  ? "name exactly the Stage's fields in `reads`"
-                  : `write \`defineBuild<${expected}>\``
-              }`,
+        message: `\`steps\` takes \`${typeTaken}\`, but the Stage's ${givers[control]} give it ${
+          expected === undefined ? "text" : `\`${expected}\``
+        }: ${fix}`,
         skillSection: "Custom builds",
       },
     ];
@@ -89,20 +97,21 @@ function inputOf(
   return parameter === undefined ? undefined : checker.getTypeOfSymbolAtLocation(parameter, build);
 }
 
-function takesNumbersNamed(
+function takesValuesNamed(
   checker: typescript.TypeChecker,
   input: typescript.Type,
-  fields: string[],
+  values: NamedValue[],
 ): boolean {
   if (input.isUnion() || checker.getIndexInfosOfType(input).length > 0) return false;
   const properties = checker.getPropertiesOfType(input);
   return (
-    properties.length === fields.length &&
-    properties.every(
-      (property) =>
-        fields.includes(property.name) &&
-        // An optional field's type is `number | undefined`, so this refuses it too.
-        checker.getTypeOfSymbol(property).flags === typescript.TypeFlags.Number,
-    )
+    properties.length === values.length &&
+    properties.every((property) => {
+      const value = values.find(({ name }) => name === property.name);
+      // An optional value's type is `number | undefined`, so this refuses it too.
+      return (
+        value !== undefined && checker.getTypeOfSymbol(property).flags === kindFlags[value.kind]
+      );
+    })
   );
 }

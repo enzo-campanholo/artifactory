@@ -7,9 +7,12 @@ import type { Content, Typed } from "@artifactory/design-system/stage-build";
 import {
   mainLanguage,
   rowTexts,
+  stageControl,
   stageNodes,
   writtenContent,
+  type Control,
   type Shown,
+  type Takes,
   type Written,
 } from "@artifactory/design-system/step-applier";
 import type { Failure } from "../../../src/check-failure.ts";
@@ -23,8 +26,8 @@ const timeoutSeconds = 5;
 
 interface StageOnPage {
   file: string;
-  // The fields' names with `input`; nothing with `choose`.
-  fields: string[] | undefined;
+  control: Control;
+  takes: Takes;
   inputs: (string | Typed)[];
   written: Written;
   lang: Content["lang"];
@@ -56,21 +59,19 @@ async function stagesOnPages(root: string): Promise<StageOnPage[]> {
     for (const element of document.querySelectorAll("artifact-stage")) {
       const file = (element.getAttribute("data-build") ?? "").replace(/^\//, "");
       if (!existsSync(join(root, file))) continue;
-      const examples = element.querySelector(".stage-input")?.getAttribute("data-examples");
+      const { control, takes } = stageControl(element as unknown as Element);
       stages.push({
         file,
-        fields:
-          examples == null
-            ? undefined
-            : [...element.querySelectorAll(".stage-field input")].map(
-                (input) => input.getAttribute("name") ?? "",
-              ),
+        control,
+        takes,
         inputs:
-          examples == null
+          control === "choose"
             ? [...element.querySelectorAll(".stage-option input")].map(
                 (input) => input.getAttribute("value") ?? "",
               )
-            : (JSON.parse(examples) as Typed[]),
+            : (JSON.parse(
+                element.querySelector(".stage-input")?.getAttribute("data-examples") ?? "[]",
+              ) as Typed[]),
         written: writtenContent(stageNodes(element as unknown as Element)),
         lang: mainLanguage(element as unknown as Element),
       });
@@ -81,7 +82,7 @@ async function stagesOnPages(root: string): Promise<StageOnPage[]> {
 
 function runStage(
   root: string,
-  { file, fields, inputs, written, lang }: StageOnPage,
+  { file, control, takes, inputs, written, lang }: StageOnPage,
 ): Promise<Failure[]> {
   const failures: Failure[] = [];
   const fail = (message: string, line = 1, column = 1) => {
@@ -94,7 +95,7 @@ function runStage(
       skillSection: "Custom builds",
     });
   };
-  const job: Job = { file: join(root, file), inputs, written, lang };
+  const job: Job = { file: join(root, file), control, inputs, written, lang };
   const worker = new Worker(new URL("../build-runner.ts", import.meta.url), { workerData: job });
   const waiting = [...inputs];
   // A program or notes that don't fit refuse every example alike, so each problem is named once,
@@ -115,7 +116,7 @@ function runStage(
       }
       timer = setTimeout(() => {
         fail(
-          `with \`${named(waiting[0] ?? "", fields)}\`, \`steps\` didn't return within ${String(timeoutSeconds)} seconds`,
+          `with \`${named(waiting[0] ?? "", takes)}\`, \`steps\` didn't return within ${String(timeoutSeconds)} seconds`,
         );
         finish();
       }, timeoutSeconds * 1000);
@@ -129,10 +130,10 @@ function runStage(
       const first = waiting.length === inputs.length;
       waiting.shift();
       const { input, run } = result;
-      const withOption = `with \`${named(input, fields)}\`,`;
+      const withOption = `with \`${named(input, takes)}\`,`;
       if (!("refused" in run)) {
         const last = run.steps.at(-1);
-        if (first && fields !== undefined && last !== undefined) {
+        if (first && control === "input" && last !== undefined) {
           for (const difference of writtenResultDifferences(written, last)) {
             fail(`${withOption} the first example, ${difference}`);
           }
@@ -182,10 +183,10 @@ function runStage(
 }
 
 // An example reads as its numbers in the fields' order, as `pnpm look` prints it: `a = 48, b = 18`.
-function named(input: string | Typed, fields: string[] | undefined): string {
-  return typeof input === "string"
-    ? input
-    : (fields ?? []).map((name) => `${name} = ${String(input[name])}`).join(", ");
+function named(input: string | Typed, takes: Takes): string {
+  return takes.shape === "text"
+    ? (input as string)
+    : takes.values.map(({ name }) => `${name} = ${String((input as Typed)[name])}`).join(", ");
 }
 
 // With `input`, the content as written is the first example's result, so its tables are what that
