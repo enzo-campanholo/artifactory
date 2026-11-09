@@ -1,6 +1,6 @@
 # 01: Proposition statements
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Content types](../spec.md) › Behaviour: the proposition, and its Documentation and Shared parts.
