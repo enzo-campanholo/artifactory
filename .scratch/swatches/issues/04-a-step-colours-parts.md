@@ -43,7 +43,7 @@ Design-system work: run it in a local session with impeccable.
 
 **Result.** `Step.colours` (`Record<string, number | null>`) colours the drawing's parts step by step. A part a step gives swatch N reads as one written with it: hatching, label on its plate, and every mark. `null` gives it the ground and hides its label and plate, and a part left out stays as written. The check (`stage-run`) and the page refuse a colour on a part the drawing lacks, on a part without a label, past the Stage's names, or that isn't a whole number from 1 to 6, plus a `colours` that isn't an object. A Stage accepts an empty label, `<text x y data-swatch=""></text>`, for a part uncoloured as written. The catalog's Stage page ends with "A greedy colouring, mid-run" (`greedy-colouring.build.ts`, `greedy-colouring.svg`), stepped to step 8 from E, where every mark sits on a coloured vertex. 03's colouring Stage stays above it.
 
-**Commits.** `c2b09a5` (claim), `cffd7d6` (implementation, docs, catalog and tests), and this closing commit.
+**Commits.** `c2b09a5` (claim), `cffd7d6` (implementation, docs, catalog and tests), `fc9ccb3` (closing), and a last commit after merging the integration tip that raises the fixture repo's failure totals by the seven new `stage-run` lines.
 
 **Validation.**
 - `tests/check/artifact-checks.test.ts`: a fixture Stage (`construcoes/colore`) fails as `stage-run` for each new failure, named by option and step, including colours 7, 1.5 and 0.

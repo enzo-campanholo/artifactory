@@ -870,7 +870,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 131 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 138 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -1137,7 +1137,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 132 failures" : "pnpm check: 131 failures",
+        fullScope ? "pnpm check: 139 failures" : "pnpm check: 138 failures",
       );
     });
   },
