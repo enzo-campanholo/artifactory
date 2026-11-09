@@ -8,7 +8,8 @@ const diagnostic =
 
 export const astroCheck: Step = {
   name: "astro check",
-  reads: isCode,
+  // tsconfig.json leaves artifacts' TypeScript out of the program astro check reads.
+  reads: (file) => isCode(file) && !(file.startsWith("artifacts/") && file.endsWith(".ts")),
   async run(root) {
     const check = await runTool(root, "astro", [
       "check",
