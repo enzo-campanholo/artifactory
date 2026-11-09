@@ -41,3 +41,25 @@ Validation:
 - Full `pnpm check` at dfa6de8: 0 failures, `check.applicability` `current`. Before it I ran `chmod 644 README.md` in this worktree, as the delegator's update said: the worktree was made under umask 077, and `tests/check/reporting.test.ts` restores `README.md` with mode `0644`, which the fingerprint counts as an edit. Git doesn't track the mode change, so the diff is unaffected.
 
 Left undone: nothing in this ticket. Ticket 01 is still `claimed`, not `resolved`, though its work is on `gaps-implementation`. I built on it as the brief said.
+
+### 2026-11-09: review findings fixed
+
+The code review of `gaps-implementation` since 6b935f9 had nine accepted findings. All nine are fixed in c018047, on `t3/fix-look-review-findings`. Nothing was skipped.
+
+1. **Stage › Avoid "frame":** look's comments now call it the Stage's `figure`.
+2. **`docs/agents/test-seams.md`:** seam 1 has a new bullet for the opt-in Look fixtures, covering the Stage runs, code Steppers at every step, the model-answer reveal, the bar hidden and shown again, failing on items look can't shoot, and the nothing-to-shoot line. "Not tested automatically" now names only whether look's shots read well.
+3. **Kinds carry their own selection:** each row of `kinds` now holds its `element`, the `marks` that identify its form (an item takes the first kind it matches), and, for a Stage, `shotPart` (`:scope > figure`). The item selector is built from the rows' elements, so `resolveItem` doesn't repeat the element list and has no `startsWith("stage-")`. The rows are ordered so the selector string is the same as before: `main :is(artifact-stepper, artifact-stage, figure.diagram, figure.figure):not(artifact-stage > figure)`.
+4. **Place:** `type Place = { number } | { location }` now lives on `Item`. `placeText` gives the assertion's `place`, still `""` when a caption shows no number. `withPlace` formats the `(place)` suffix for both the listing and the `couldn't shoot` line.
+5. **Describers:** `altOf` holds the shared `svg[role='img']` alt lookup, and `squashed` holds the whitespace clean-up, which `accessibleText` uses too.
+6. **Names:** `Unshot` is now `ShotProblem`. The bare `shoot` is now `shootAlone`, and the rows' `shoot` is `takeShots`. `(page, test, item, width)` is bundled as `Shooting`, which every `shoot*` function and `takeShots` take. It reads better: each call site passes one value, and `shootAlone` and `shootSteps` lose three parameters.
+7. **Last line:** with nothing to shoot, `has nothing for look to shoot` now prints after the `results.json and contact-sheet.html` line. No test asserted the old order, so I added one (see below).
+8. **Look tests:** `look(repo, slug)` (it runs look, reads `results.json` and copies the `ARTIFACTORY_BROWSER_EVIDENCE` files) and `frontmatter(id, slug)` are now shared at module level by every Look describe. The fixed-layer test no longer names assertions or `observed.hiddenLayers`. For each shot it takes the states of the bar (`artifact-bar`) from that shot's assertions and expects opacity `"0"`, then `"1"`. It no longer checks that the bar was in view, because only `observed.hiddenLayers` records that.
+9. **Skill:** `SKILL.md` › Look says "never move content" once, at the end of the can't-shoot paragraph. The hiding paragraph no longer repeats "the item alone", and it says that a fixed or sticky layer holding the item stays shown. The code Stepper line quotes look's real output: `no drawing; captions, one per step: "…", "…"` or `no drawing and no caption`. `stage.md` › Look now points to `SKILL.md` › Look for the model-answer reveal and no longer restates it.
+
+Test: a new `it` in "opt-in Look Stepper evidence". The fixture repo gains `look-nothing`, an artifact of prose and a plain code block. The test expects exit 0, both cases `not-applicable`, and stdout's last line `pnpm look: artifacts/look-nothing/index.mdx has nothing for look to shoot`. Before the fix it was red: the last line was the `results.json` line.
+
+Validation:
+
+- `ARTIFACTORY_BROWSER_ACCEPTANCE=1 pnpm exec vitest run tests/check/browser-verification.test.ts -t Look`: 9 passed, run on c018047.
+- `pnpm look rsa-from-scratch`, before (74ce989) and after (c018047): exit 0 both times, with the same printed lines from the listing on, the same file names in `.look/rsa-from-scratch/`, and the same `results.json` cases (ids, outcomes, captures, requested, assertions, `observed.figures` and `observed.hiddenLayers`) apart from the local server's random port.
+- Prettier, ESLint and `tsc` pass on the changed files. The full `pnpm check` runs on the commit that adds this comment, and its result goes in the handback.
