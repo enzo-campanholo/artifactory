@@ -294,8 +294,8 @@ const printedSteps = linesOfStep
       this.#part(".stepper-current").textContent = step;
       const lines = this.querySelector(".stepper-lines");
       if (lines !== null) {
-        const lit = [...this.querySelectorAll(".stepper-code .line")].flatMap((line, index) =>
-          line.hasAttribute("data-off") ? [] : [index + 1],
+        const lit = [...this.querySelectorAll<HTMLElement>(".stepper-code .line")].flatMap(
+          (line) => (line.hasAttribute("data-off") ? [] : [Number(line.dataset.line)]),
         );
         lines.textContent = saidLines(lit, this.#texts.lines);
       }

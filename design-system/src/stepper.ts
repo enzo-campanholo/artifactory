@@ -1,4 +1,5 @@
 import { componentError } from "./component-errors.ts";
+import { numberList } from "./number-lists.ts";
 
 // Every stepped part of a stepper names the steps it belongs to in `data-in-steps`, and starts on
 // step 1. The custom element only compares those lists with the current step.
@@ -13,19 +14,11 @@ function inStepsText(steps: number[]): string {
     .join("");
 }
 
-function parseNumberList(list: string, last: number, context: string): number[] {
-  return list.split(",").flatMap((item) => {
-    const range = /^\s*(\d+)\s*(?:(-)\s*(\d*)\s*)?$/.exec(item);
-    const from = Number(range?.[1]);
-    const to = range?.[2] === undefined ? from : range[3] === "" ? last : Number(range[3]);
-    if (range === null || from < 1 || to < from || to > last) {
-      throw componentError(
-        "Stepper",
-        `${context} "${list}" must list numbers from 1 to ${String(last)}, such as "2", "2-4", "2-" or "1-2, 5"`,
-      );
-    }
-    return Array.from({ length: to - from + 1 }, (_, index) => from + index);
-  });
+function listed(list: string, first: number, last: number, context: string): number[] {
+  const parsed = numberList(list, first, last);
+  if ("refused" in parsed)
+    throw componentError("Stepper", `${context} "${list}" ${parsed.refused}`);
+  return parsed.numbers;
 }
 
 const dataStep = /\bdata-step=(?:"([^"]*)"|'([^']*)')/g;
@@ -38,7 +31,7 @@ export function steppedFigure(svg: string): { svg: string; count: number } {
     svg: svg.replace(
       dataStep,
       (attribute, double: string | undefined, single: string | undefined) => {
-        const steps = parseNumberList(double ?? single ?? "", count, "data-step");
+        const steps = listed(double ?? single ?? "", 1, count, "data-step");
         return attribute + inStepsText(steps) + (steps.includes(count) ? " data-in-last-step" : "");
       },
     ),
@@ -47,7 +40,7 @@ export function steppedFigure(svg: string): { svg: string; count: number } {
 }
 
 const codeBlock = /<pre\b/g;
-const codeLine = /<span class="line(?: [^"]*)?"/g;
+const codeLine = /<span class="line(?: [^"]*)?" data-line="(\d+)"/g;
 
 export function steppedCode(
   html: string,
@@ -55,14 +48,12 @@ export function steppedCode(
 ): { html: string; linesOfStep: number[][] } {
   if (html.match(codeBlock)?.length !== 1)
     throw componentError("Stepper", "put exactly one fenced code block inside `<Stepper lines>`");
-  const lineCount = html.match(codeLine)?.length ?? 0;
-  const linesOfStep = lines.map((list) => parseNumberList(list, lineCount, "lines"));
-  let line = 0;
+  const shown = [...html.matchAll(codeLine)].map(([, line]) => Number(line));
+  const linesOfStep = lines.map((list) => listed(list, shown[0] ?? 1, shown.at(-1) ?? 0, "lines"));
   return {
-    html: html.replace(codeLine, (lineTag) => {
-      line += 1;
+    html: html.replace(codeLine, (lineTag, line: string) => {
       const steps = linesOfStep.flatMap((stepLines, index) =>
-        stepLines.includes(line) ? [index + 1] : [],
+        stepLines.includes(Number(line)) ? [index + 1] : [],
       );
       return lineTag + inStepsText(steps);
     }),

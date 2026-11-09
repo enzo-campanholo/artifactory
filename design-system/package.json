@@ -19,6 +19,7 @@
     "./library-statuses": "./src/library-statuses.ts",
     "./not-found-layout": "./src/NotFoundLayout.astro",
     "./note": "./src/Note.astro",
+    "./number-lists": "./src/number-lists.ts",
     "./numeric-question": "./src/NumericQuestion.astro",
     "./numeric-question-element": "./src/numeric-question-element.ts",
     "./open-question": "./src/OpenQuestion.astro",
