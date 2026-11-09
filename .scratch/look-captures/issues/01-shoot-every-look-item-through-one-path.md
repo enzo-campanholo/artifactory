@@ -32,6 +32,6 @@ Validation:
 
 - `pnpm look rsa-from-scratch` before and after: exit 0 both times; the printed lines from `pnpm look: artifacts/…` on are identical (113 lines), the `.look/rsa-from-scratch/` file lists are identical, and `results.json` is identical once the random server port and `output` (the build's hashes) are left out: same cases, outcomes, captures, assertions (953 per case), figures and capture measurements.
 - `ARTIFACTORY_BROWSER_ACCEPTANCE=1 pnpm exec vitest run tests/check/browser-verification.test.ts -t "Look Stage"`: 3 passed, unchanged.
-- Full `pnpm check`: see below.
+- Full `pnpm check` at 954a50e (after merging `gaps-implementation` at 0735893): 0 failures. A first run at a2f6092 failed only `tests/check/reporting.test.ts` › "attaches full success …", which my diff doesn't touch: this checkout was made under umask 077, so its files are `0600`, and the test restores `README.md` with `chmod 0o644`, a mode the source fingerprint (`stat.mode`) sees as a change. With `README.md` set to `0644` locally (git sees no change), it passed. The test assumes `0644` checkouts; a ticket for it is the delegator's call.
 
 No test added or changed; the `artifact` skill is unchanged. Nothing left undone.
