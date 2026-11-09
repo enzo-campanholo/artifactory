@@ -20,7 +20,7 @@ The rules for a `Stage`'s `<build>.build.ts`, after the [Custom builds](rules.md
 
 A `Stage` (kind `stage-choose`, or `stage-input` for typed input) is shot as written, then at every step of its first option, or of its first example, which Look runs by pressing Start on the fields as written:
 
-- A Stage inside an `OpenQuestion`'s model answer is revealed first: Look opens the model answer, shoots the Stage as anywhere else, then closes it.
+- A Stage inside an `OpenQuestion`'s model answer is revealed and named as [Look](SKILL.md#look) says for any item there.
 - Only the first option or example is shot; `pnpm check` runs the others. Put the one worth looking at first in `choose.options` or `input.examples`.
 - Under the Stage, Look prints what it ran and its count of steps (`first option A, 5 steps`, `first example a = 48, b = 18, 5 steps`), or the refusal it got.
 - Compare each step's shot with the step's line as well as the `alt`. A Stage without `figure` has no `alt`: Look prints its caption instead, so compare its shots with the caption and the step's line.

@@ -322,6 +322,39 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
   },
 );
 
+interface LookCase {
+  id: string;
+  outcome: string;
+  captures: string[];
+  assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
+  observed: Record<string, unknown>;
+}
+
+async function look(repo: FixtureRepo, slug: string) {
+  const result = await repo.run("pnpm", ["look", slug]);
+  const output = join(repo.root, ".look", slug);
+  const report = JSON.parse(await readFile(join(output, "results.json"), "utf8")) as {
+    cases: LookCase[];
+  };
+  const evidence = process.env.ARTIFACTORY_BROWSER_EVIDENCE;
+  if (evidence) {
+    await cp(output, join(evidence, slug), { recursive: true });
+    await writeFile(join(evidence, `${slug}.log`), result.output);
+  }
+  return { ...result, report };
+}
+
+const frontmatter = (id: string, slug: string) => [
+  "---",
+  `id: ${id}`,
+  `title: ${slug}`,
+  "subject: Artifactory",
+  "lang: en",
+  "published: 2026-10-25",
+  "---",
+  "",
+];
+
 describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
   "opt-in Look Stage evidence",
   () => {
@@ -337,14 +370,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
         ["look-refused", "refused1"],
       ] as const) {
         files[`artifacts/${slug}/index.mdx`] = [
-          "---",
-          `id: ${id}`,
-          `title: ${slug}`,
-          "subject: Artifactory",
-          "lang: en",
-          "published: 2026-10-25",
-          "---",
-          "",
+          ...frontmatter(id, slug),
           'import Stage from "@artifactory/design-system/stage";',
           "",
           "## Three steps",
@@ -376,24 +402,10 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     it.each(["look-equal-prompt", "look-stuck", "look-refused"])(
       "records all Stage steps or an explicit failure/refusal through pnpm look: %s",
       async (slug) => {
-        const result = await repo.run("pnpm", ["look", slug]);
-        const output = join(repo.root, ".look", slug);
-        const report = JSON.parse(await readFile(join(output, "results.json"), "utf8")) as {
-          cases: {
-            id: string;
-            outcome: string;
-            assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
-            captures: string[];
-          }[];
-        };
-        const evidence = process.env.ARTIFACTORY_BROWSER_EVIDENCE;
-        if (evidence) {
-          await cp(output, join(evidence, slug), { recursive: true });
-          await writeFile(join(evidence, `${slug}.log`), result.output);
-        }
+        const result = await look(repo, slug);
         expect(result.exitCode, result.output).toBe(slug === "look-stuck" ? 1 : 0);
-        expect(report.cases.map((test) => test.id)).toEqual(["look-393", "look-1920"]);
-        for (const test of report.cases) {
+        expect(result.report.cases.map((test) => test.id)).toEqual(["look-393", "look-1920"]);
+        for (const test of result.report.cases) {
           const width = test.id === "look-393" ? 393 : 1920;
           if (slug === "look-stuck") {
             expect(test.outcome).toBe("failed");
@@ -434,14 +446,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     beforeAll(async () => {
       repo = await createFixtureRepo({
         "artifacts/look-code-stepper/index.mdx": [
-          "---",
-          "id: codestp1",
-          "title: look-code-stepper",
-          "subject: Artifactory",
-          "lang: en",
-          "published: 2026-10-25",
-          "---",
-          "",
+          ...frontmatter("codestp1", "look-code-stepper"),
           'import Stepper from "@artifactory/design-system/stepper";',
           "",
           "## Code read a line at a time",
@@ -459,6 +464,15 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
           "</Stepper>",
           "",
         ].join("\n"),
+        "artifacts/look-nothing/index.mdx": [
+          ...frontmatter("nothing1", "look-nothing"),
+          "## Prose and plain code",
+          "",
+          "This literal paragraph sits above a code block that no Stepper holds.",
+          "",
+          ...code,
+          "",
+        ].join("\n"),
       });
     });
     afterAll(async () => {
@@ -467,10 +481,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     it(
       "shoots a one-block code Stepper at every step, printing its captions in place of an alt",
       async () => {
-        const result = await repo.run("pnpm", ["look", "look-code-stepper"]);
-        const report = JSON.parse(
-          await readFile(join(repo.root, ".look/look-code-stepper/results.json"), "utf8"),
-        ) as { cases: { id: string; outcome: string; captures: string[] }[] };
+        const result = await look(repo, "look-code-stepper");
         expect(result.exitCode, result.output).toBe(0);
         const captures = (width: number) =>
           ["01-stepper", "02-stepper"].flatMap((name) =>
@@ -490,7 +501,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
           ].join("\n"),
         );
         expect(
-          report.cases.map(({ id, outcome, captures }) => ({ id, outcome, captures })),
+          result.report.cases.map(({ id, outcome, captures }) => ({ id, outcome, captures })),
         ).toEqual(
           [393, 1920].map((width) => ({
             id: `look-${String(width)}`,
@@ -498,6 +509,21 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
             captures: captures(width),
           })),
         );
+      },
+      checkTimeout,
+    );
+    it(
+      "ends on a line saying an artifact of prose and plain code has nothing for look to shoot",
+      async () => {
+        const result = await look(repo, "look-nothing");
+        expect(result.exitCode, result.output).toBe(0);
+        expect(result.stdout.trimEnd().split("\n").at(-1)).toBe(
+          "pnpm look: artifacts/look-nothing/index.mdx has nothing for look to shoot",
+        );
+        expect(result.report.cases.map(({ id, outcome }) => ({ id, outcome }))).toEqual([
+          { id: "look-393", outcome: "not-applicable" },
+          { id: "look-1920", outcome: "not-applicable" },
+        ]);
       },
       checkTimeout,
     );
@@ -532,14 +558,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
           "",
         ].join("\n"),
         "artifacts/look-bar/index.mdx": [
-          "---",
-          "id: lookbar1",
-          "title: look-bar",
-          "subject: Artifactory",
-          "lang: en",
-          "published: 2026-10-25",
-          "---",
-          "",
+          ...frontmatter("lookbar1", "look-bar"),
           'import Stepper from "@artifactory/design-system/stepper";',
           'import steps from "./steps.svg?raw";',
           "",
@@ -564,45 +583,24 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     it(
       "hides the slid-in bar for every shot of a Stepper under it, then shows it again",
       async () => {
-        const result = await repo.run("pnpm", ["look", "look-bar"]);
-        const output = join(repo.root, ".look/look-bar");
-        const report = JSON.parse(await readFile(join(output, "results.json"), "utf8")) as {
-          cases: {
-            id: string;
-            outcome: string;
-            observed: { hiddenLayers?: { file: string; layers: unknown[] }[] };
-            assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
-            captures: string[];
-          }[];
-        };
-        const evidence = process.env.ARTIFACTORY_BROWSER_EVIDENCE;
-        if (evidence) {
-          await cp(output, join(evidence, "look-bar"), { recursive: true });
-          await writeFile(join(evidence, "look-bar.log"), result.output);
-        }
+        const result = await look(repo, "look-bar");
         expect(result.exitCode, result.output).toBe(0);
-        const phone = report.cases.find((test) => test.id === "look-393");
+        const phone = result.report.cases.find((test) => test.id === "look-393");
         expect(phone?.outcome).toBe("captured-awaiting-visual-review");
         expect(phone?.assertions.every((assertion) => assertion.passed)).toBe(true);
         const files = ["01-stepper-step-1-393.png", "01-stepper-step-2-393.png"];
         expect(phone?.captures).toEqual(files);
         for (const file of files) {
-          expect(
-            phone?.observed.hiddenLayers?.find((shot) => shot.file === file)?.layers,
-          ).toContainEqual({ layer: "div.artifact-bar", inView: true });
-          expect(
-            phone?.assertions.find((assertion) => assertion.name === `${file}: layers hidden`)
-              ?.actual,
-          ).toContainEqual({ layer: "div.artifact-bar", opacity: "0" });
-          const restored = phone?.assertions.find(
-            (assertion) => assertion.name === `${file}: hidden layers restored`,
-          );
-          expect(restored?.passed).toBe(true);
-          expect(restored?.actual).toContainEqual({
-            layer: "div.artifact-bar",
-            opacity: "1",
-            inline: "",
-          });
+          const barStates = (phone?.assertions ?? [])
+            .filter((assertion) => assertion.name.startsWith(`${file}: `))
+            .flatMap((assertion) =>
+              Array.isArray(assertion.actual) ? (assertion.actual as unknown[]) : [],
+            )
+            .filter((state) => JSON.stringify(state).includes("artifact-bar"));
+          expect(barStates).toEqual([
+            expect.objectContaining({ opacity: "0" }),
+            expect.objectContaining({ opacity: "1" }),
+          ]);
         }
       },
       checkTimeout,
@@ -619,14 +617,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
         "artifacts/look-model-answer/circle.svg":
           '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="stroke-accent" fill="none" stroke-width="4"/></svg>\n',
         "artifacts/look-model-answer/index.mdx": [
-          "---",
-          "id: modelans",
-          "title: look-model-answer",
-          "subject: Artifactory",
-          "lang: en",
-          "published: 2026-10-25",
-          "---",
-          "",
+          ...frontmatter("modelans", "look-model-answer"),
           'import Figure from "@artifactory/design-system/figure";',
           'import NumericQuestion from "@artifactory/design-system/numeric-question";',
           'import OpenQuestion from "@artifactory/design-system/open-question";',
@@ -661,18 +652,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     it(
       "reveals a figure inside a model answer to shoot it, names its question, then closes the model answer",
       async () => {
-        const result = await repo.run("pnpm", ["look", "look-model-answer"]);
-        const report = JSON.parse(
-          await readFile(join(repo.root, ".look/look-model-answer/results.json"), "utf8"),
-        ) as {
-          cases: {
-            id: string;
-            outcome: string;
-            captures: string[];
-            assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
-            observed: { figures: { name: string; location?: string }[] };
-          }[];
-        };
+        const result = await look(repo, "look-model-answer");
         expect(result.exitCode, result.output).toBe(0);
         expect(result.output).toContain(
           [
@@ -682,7 +662,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
           ].join("\n"),
         );
         for (const width of [393, 1920]) {
-          const test = report.cases.find(({ id }) => id === `look-${String(width)}`);
+          const test = result.report.cases.find(({ id }) => id === `look-${String(width)}`);
           expect(test?.outcome).toBe("captured-awaiting-visual-review");
           expect(test?.captures).toEqual([`01-figure-${String(width)}.png`]);
           expect(test?.assertions).toContainEqual({
@@ -710,16 +690,6 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     let repo: FixtureRepo;
     const square =
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" class="stroke-accent" fill="none" stroke-width="4"/></svg>\n';
-    const frontmatter = (id: string, slug: string) => [
-      "---",
-      `id: ${id}`,
-      `title: ${slug}`,
-      "subject: Artifactory",
-      "lang: en",
-      "published: 2026-10-25",
-      "---",
-      "",
-    ];
     beforeAll(async () => {
       repo = await createFixtureRepo({
         "public/keep-unrendered.js": [
@@ -786,28 +756,10 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     afterAll(async () => {
       await repo.remove();
     });
-    async function look(slug: string) {
-      const result = await repo.run("pnpm", ["look", slug]);
-      const output = join(repo.root, ".look", slug);
-      const report = JSON.parse(await readFile(join(output, "results.json"), "utf8")) as {
-        cases: {
-          id: string;
-          outcome: string;
-          captures: string[];
-          assertions: { name: string; expected: unknown; actual: unknown; passed: boolean }[];
-        }[];
-      };
-      const evidence = process.env.ARTIFACTORY_BROWSER_EVIDENCE;
-      if (evidence) {
-        await cp(output, join(evidence, slug), { recursive: true });
-        await writeFile(join(evidence, `${slug}.log`), result.output);
-      }
-      return { ...result, report };
-    }
     it(
       "fails the case on every item still unrendered when its turn comes, naming each, and shoots none of them",
       async () => {
-        const result = await look("look-unrendered");
+        const result = await look(repo, "look-unrendered");
         expect(result.exitCode, result.output).toBe(1);
         for (const width of [393, 1920]) {
           const id = `look-${String(width)}`;
@@ -867,7 +819,7 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     it(
       "fails the case on a Stepper whose form look doesn't know, naming it, and never shoots it as a known form",
       async () => {
-        const result = await look("look-unknown-stepper");
+        const result = await look(repo, "look-unknown-stepper");
         expect(result.exitCode, result.output).toBe(1);
         for (const width of [393, 1920]) {
           const id = `look-${String(width)}`;

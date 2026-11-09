@@ -20,26 +20,33 @@ import {
   type BrowserReport,
 } from "./browser-session.ts";
 
-// Items are selected by element, never by what they hold, so a new Stepper form can't drop out of
-// the shots unseen. A Stage's frame is also a `figure.figure`, so it's left out to count it once.
-const itemSelector =
-  "main :is(artifact-stepper, artifact-stage, figure.diagram, figure.figure):not(artifact-stage > figure)";
 type Kind =
-  | "diagram"
-  | "figure"
   | "stepper-boards"
-  | "stepper-figure"
   | "stepper-lines"
+  | "stepper-figure"
   | "stepper-unknown"
-  | "stage-choose"
   | "stage-input"
-  | "stage-unknown";
+  | "stage-choose"
+  | "stage-unknown"
+  | "diagram"
+  | "figure";
+
+// The caption's number, "" when it shows none, or where an item without one sits.
+type Place = { number: string } | { location: string };
 
 interface Item {
   element: ElementHandle;
   kind: Kind;
   name: string;
-  modelAnswer?: { details: ElementHandle<HTMLDetailsElement>; location: string };
+  place: Place;
+  modelAnswer?: ElementHandle<HTMLDetailsElement>;
+}
+
+interface Shooting {
+  page: Page;
+  test: BrowserCase;
+  item: Item;
+  width: number;
 }
 
 interface Shots {
@@ -47,7 +54,7 @@ interface Shots {
   summary?: string;
 }
 
-interface Unshot {
+interface ShotProblem {
   problem: string;
 }
 
@@ -62,31 +69,91 @@ const stepperStepping: Stepping = {
 };
 const stageStepping: Stepping = { forward: "button.stage-forward", current: ".stage-current" };
 
-// A form look doesn't know is never shot as one it does: its kind names a problem, not a shoot.
+// An item takes the first kind whose `element` it is and whose `marks` it holds, so each form
+// comes before its family's unknown one. A form look doesn't know is never shot as one it does:
+// its kind names a problem in place of `takeShots`. A Stage is shot by its `figure`, which holds
+// its caption and number.
 const kinds: Record<
   Kind,
-  { stem: string; describe: (item: Item) => Promise<string> } & (
-    { shoot: (page: Page, test: BrowserCase, item: Item, width: number) => Promise<Shots> } | Unshot
-  )
+  {
+    element: string;
+    marks: string[];
+    shotPart?: string;
+    stem: string;
+    describe: (item: Item) => Promise<string>;
+  } & ({ takeShots: (shooting: Shooting) => Promise<Shots> } | ShotProblem)
 > = {
-  diagram: { stem: "diagram", shoot: shootOnce, describe: describeDrawing },
-  figure: { stem: "figure", shoot: shootOnce, describe: describeDrawing },
-  "stepper-boards": { stem: "stepper", shoot: shootStepper, describe: describeStepper },
-  "stepper-figure": { stem: "stepper", shoot: shootStepper, describe: describeStepper },
-  "stepper-lines": { stem: "stepper", shoot: shootStepper, describe: describeStepper },
+  "stepper-boards": {
+    element: "artifact-stepper",
+    marks: [".stepper-boards"],
+    stem: "stepper",
+    takeShots: shootStepper,
+    describe: describeStepper,
+  },
+  "stepper-lines": {
+    element: "artifact-stepper",
+    marks: [".stepper-code"],
+    stem: "stepper",
+    takeShots: shootStepper,
+    describe: describeStepper,
+  },
+  "stepper-figure": {
+    element: "artifact-stepper",
+    marks: [".stepper-figure"],
+    stem: "stepper",
+    takeShots: shootStepper,
+    describe: describeStepper,
+  },
   "stepper-unknown": {
+    element: "artifact-stepper",
+    marks: [],
     stem: "stepper",
     problem: "a Stepper form look doesn't know",
     describe: describeStepper,
   },
-  "stage-choose": { stem: "stage-choose", shoot: shootStage, describe: describeDrawing },
-  "stage-input": { stem: "stage-input", shoot: shootStage, describe: describeDrawing },
+  "stage-input": {
+    element: "artifact-stage",
+    marks: [":scope > figure", ".stage-input"],
+    shotPart: ":scope > figure",
+    stem: "stage-input",
+    takeShots: shootStage,
+    describe: describeDrawing,
+  },
+  "stage-choose": {
+    element: "artifact-stage",
+    marks: [":scope > figure"],
+    shotPart: ":scope > figure",
+    stem: "stage-choose",
+    takeShots: shootStage,
+    describe: describeDrawing,
+  },
   "stage-unknown": {
+    element: "artifact-stage",
+    marks: [],
     stem: "stage",
     problem: "a Stage form look doesn't know",
     describe: describeDrawing,
   },
+  diagram: {
+    element: "figure.diagram",
+    marks: [],
+    stem: "diagram",
+    takeShots: shootOnce,
+    describe: describeDrawing,
+  },
+  figure: {
+    element: "figure.figure",
+    marks: [],
+    stem: "figure",
+    takeShots: shootOnce,
+    describe: describeDrawing,
+  },
 };
+
+// Items are selected by element, never by what they hold, so a new Stepper form can't drop out of
+// the shots unseen. A Stage's `figure` is also a `figure.figure`, so it's left out to count it once.
+const itemElements = new Set(Object.values(kinds).map(({ element }) => element));
+const itemSelector = `main :is(${[...itemElements].join(", ")}):not(artifact-stage > figure)`;
 
 const root = process.cwd();
 function fail(message: string): never {
@@ -119,13 +186,7 @@ const report: BrowserReport = {
 };
 const screenshots = new Map<
   string,
-  {
-    number?: string;
-    location?: string;
-    description: string;
-    summary: string | undefined;
-    files: string[];
-  }
+  Place & { description: string; summary: string | undefined; files: string[] }
 >();
 let session: Awaited<ReturnType<typeof startBrowser>>;
 try {
@@ -174,18 +235,14 @@ try {
       if (elements.length === 0) test.outcome = "not-applicable";
       for (const [index, element] of elements.entries()) {
         const item = await resolveItem(page, test, element, index);
-        const place =
-          item.modelAnswer === undefined
-            ? { number: await numberOf(page, item) }
-            : { location: item.modelAnswer.location };
         const description = await kinds[item.kind].describe(item);
-        const shots = await shootRevealed(page, test, item, viewport.width);
+        const shots = await shootRevealed({ page, test, item, width: viewport.width });
         if ("problem" in shots) {
-          couldNotShoot(test, item, place.location ?? place.number, description, shots.problem);
+          couldNotShoot(test, item, description, shots.problem);
           continue;
         }
         screenshots.set(item.name, {
-          ...place,
+          ...item.place,
           description,
           summary: shots.summary,
           files: [...(screenshots.get(item.name)?.files ?? []), ...shots.files],
@@ -204,14 +261,11 @@ try {
   await session.close();
   await writeReport(folder, report);
 }
-if (report.cases.every((test) => test.outcome === "not-applicable"))
-  console.log(`\npnpm look: ${entry} has nothing for look to shoot`);
-else if (screenshots.size > 0) {
+if (screenshots.size > 0) {
   const widths = lookViewports.map(({ width }) => `${String(width)} px`).join(" and ");
   console.log(`\npnpm look: ${entry} at ${widths} wide`);
-  for (const [name, { number, location, description, summary, files }] of screenshots) {
-    const place = location ?? number ?? "";
-    console.log(`\n${name}${place === "" ? "" : ` (${place})`}: ${description}`);
+  for (const [name, { description, summary, files, ...place }] of screenshots) {
+    console.log(`\n${withPlace(name, place)}: ${description}`);
     if (summary !== undefined) console.log(`  ${summary}`);
     for (const file of files) console.log(`  ${folder}/${file}`);
   }
@@ -219,22 +273,32 @@ else if (screenshots.size > 0) {
 console.log(
   `\npnpm look: ${folder}/results.json and ${folder}/contact-sheet.html; captures await human visual review`,
 );
+if (report.cases.every((test) => test.outcome === "not-applicable"))
+  console.log(`\npnpm look: ${entry} has nothing for look to shoot`);
 process.exitCode = report.cases.some((test) =>
   ["failed", "unavailable", "unsupported"].includes(test.outcome),
 )
   ? 1
   : 0;
 
+function placeText(place: Place): string {
+  return "location" in place ? place.location : place.number;
+}
+
+function withPlace(name: string, place: Place): string {
+  const text = placeText(place);
+  return text === "" ? name : `${name} (${text})`;
+}
+
 // Every item look couldn't shoot is named, not only the first, so one run shows everything to fix.
 function couldNotShoot(
   test: BrowserCase,
-  { name, kind }: Item,
-  place: string,
+  { name, kind, place }: Item,
   description: string,
   problem: string,
 ): void {
   test.outcome = "failed";
-  const named = { place, kind, description };
+  const named = { place: placeText(place), kind, description };
   test.assertions.push({
     name: `${name}: look can shoot it`,
     expected: { ...named, problem: null },
@@ -242,87 +306,75 @@ function couldNotShoot(
     passed: false,
   });
   console.error(
-    `pnpm look: ${test.id}: couldn't shoot ${name}${place === "" ? "" : ` (${place})`}, a ${kind}: ${problem}; ${description}`,
+    `pnpm look: ${test.id}: couldn't shoot ${withPlace(name, place)}, a ${kind}: ${problem}; ${description}`,
   );
 }
 
-// A Stage is shot by its frame, which holds its caption and number.
 async function resolveItem(
   page: Page,
   test: BrowserCase,
   selected: ElementHandle,
   index: number,
 ): Promise<Item> {
-  const kind = await selected.evaluate((node): Kind =>
-    node.matches("artifact-stepper")
-      ? node.querySelector(".stepper-boards") !== null
-        ? "stepper-boards"
-        : node.querySelector(".stepper-code") !== null
-          ? "stepper-lines"
-          : node.querySelector(".stepper-figure") !== null
-            ? "stepper-figure"
-            : "stepper-unknown"
-      : node.matches("artifact-stage")
-        ? node.querySelector(":scope > figure") === null
-          ? "stage-unknown"
-          : node.querySelector(".stage-input") === null
-            ? "stage-choose"
-            : "stage-input"
-        : node.matches(".diagram")
-          ? "diagram"
-          : "figure",
+  const kind = await selected.evaluate(
+    (node, forms) =>
+      forms.find(
+        ({ element, marks }) =>
+          node.matches(element) && marks.every((mark) => node.querySelector(mark) !== null),
+      )?.kind,
+    (Object.keys(kinds) as Kind[]).map((kind) => ({
+      kind,
+      element: kinds[kind].element,
+      marks: kinds[kind].marks,
+    })),
   );
-  const element = kind.startsWith("stage-")
-    ? ((await selected.$(":scope > figure")) ?? selected)
-    : selected;
-  const name = `${String(index + 1).padStart(2, "0")}-${kinds[kind].stem}`;
-  const details = (
+  if (kind === undefined) throw new Error(`item ${String(index + 1)} is of no kind look has`);
+  const { shotPart, stem } = kinds[kind];
+  const element = shotPart === undefined ? selected : ((await selected.$(shotPart)) ?? selected);
+  const name = `${String(index + 1).padStart(2, "0")}-${stem}`;
+  const modelAnswer = (
     await element.evaluateHandle((node) => node.closest("details.question-model-answer"))
   ).asElement() as ElementHandle<HTMLDetailsElement> | null;
-  if (details === null) return { element, kind, name };
+  if (modelAnswer === null) return { element, kind, name, place: await numberOf(page, element) };
   const question = required(
     test,
     `${name}: question number`,
     (
-      await details.evaluateHandle((node) =>
+      await modelAnswer.evaluateHandle((node) =>
         node.closest(".question")?.querySelector(".question-number"),
       )
     ).asElement(),
   );
   const location = `inside the model answer of ${await accessibleText(page, question)}`;
-  return { element, kind, name, modelAnswer: { details, location } };
+  return { element, kind, name, place: { location }, modelAnswer };
 }
 
 // A model answer opens only once an answer is written, so look opens it itself, on the build's
 // throwaway state, and closes it again once its item is shot.
-async function shootRevealed(
-  page: Page,
-  test: BrowserCase,
-  item: Item,
-  width: number,
-): Promise<Shots | Unshot> {
+async function shootRevealed(shooting: Shooting): Promise<Shots | ShotProblem> {
+  const { test, item } = shooting;
   const known = kinds[item.kind];
   if ("problem" in known) return { problem: known.problem };
-  const shootRendered = async (after: string): Promise<Shots | Unshot> => {
+  const shootRendered = async (after: string): Promise<Shots | ShotProblem> => {
     const unrendered = await item.element.evaluate((node) => {
       if (!node.checkVisibility()) return "checkVisibility() is false";
       const box = node.getBoundingClientRect();
       return box.width > 0 && box.height > 0 ? null : "its box has no size";
     });
     return unrendered === null
-      ? known.shoot(page, test, item, width)
+      ? known.takeShots(shooting)
       : { problem: `not rendered${after} (${unrendered})` };
   };
   if (item.modelAnswer === undefined) return shootRendered("");
-  const { details } = item.modelAnswer;
-  await toggle(details, true);
+  const { modelAnswer } = item;
+  await toggle(modelAnswer, true);
   const shots = await shootRendered(" after its reveal");
-  await toggle(details, false);
+  await toggle(modelAnswer, false);
   assertCase(
     test,
     `${item.name}: model answer closed again`,
     false,
-    await details.evaluate((node) => node.open),
+    await modelAnswer.evaluate((node) => node.open),
   );
   return shots;
 }
@@ -348,35 +400,46 @@ function toggle(details: ElementHandle<HTMLDetailsElement>, open: boolean): Prom
   );
 }
 
+function altOf(element: ElementHandle): Promise<string | null> {
+  return element.evaluate(
+    (node) => node.querySelector("svg[role='img']")?.getAttribute("aria-label") ?? null,
+  );
+}
+
+function squashed(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
 // Code has no `alt`, so a code Stepper's captions say what each step shows in its place.
-function describeStepper({ element }: Item): Promise<string> {
-  return element.evaluate((node) => {
-    const alt = node.querySelector("svg[role='img']")?.getAttribute("aria-label");
-    if (alt != null) return alt;
-    const captions = [...node.querySelectorAll(".stepper-captions > p")].map(
-      (caption) => `"${caption.textContent.replace(/\s+/g, " ").trim()}"`,
-    );
-    return captions.length === 0
-      ? "no drawing and no caption"
-      : `no drawing; captions, one per step: ${captions.join(", ")}`;
-  });
+async function describeStepper({ element }: Item): Promise<string> {
+  const alt = await altOf(element);
+  if (alt !== null) return alt;
+  const captions = await element.$$eval(".stepper-captions > p", (nodes) =>
+    nodes.map((caption) => caption.textContent),
+  );
+  return captions.length === 0
+    ? "no drawing and no caption"
+    : `no drawing; captions, one per step: ${captions.map((caption) => `"${squashed(caption)}"`).join(", ")}`;
 }
 
 // A Stage of code or tables has no drawing, so no `alt`: its caption says what it shows.
-function describeDrawing({ element }: Item): Promise<string> {
-  return element.evaluate((node) => {
-    const alt = node.querySelector("svg[role='img']")?.getAttribute("aria-label");
-    if (alt != null) return alt;
+async function describeDrawing({ element }: Item): Promise<string> {
+  const alt = await altOf(element);
+  if (alt !== null) return alt;
+  const caption = await element.evaluate((node) => {
     const caption = node.querySelector(":scope > figcaption")?.cloneNode(true);
-    if (!(caption instanceof Element)) return "no drawing and no caption";
+    if (!(caption instanceof Element)) return null;
     caption.querySelector(".figure-number")?.remove();
-    return `no drawing; caption: ${caption.textContent.replace(/\s+/g, " ").trim()}`;
+    return caption.textContent;
   });
+  return caption === null
+    ? "no drawing and no caption"
+    : `no drawing; caption: ${squashed(caption)}`;
 }
 
-async function numberOf(page: Page, { element }: Item): Promise<string> {
+async function numberOf(page: Page, element: ElementHandle): Promise<Place> {
   const number = await element.$(":scope > figcaption .figure-number");
-  return number === null ? "" : accessibleText(page, number);
+  return { number: number === null ? "" : await accessibleText(page, number) };
 }
 
 // Figure and question numbers are CSS counters, which only the rendered page knows, so they're
@@ -388,13 +451,13 @@ async function accessibleText(page: Page, number: ElementHandle<Node>): Promise<
       ? (node.name ?? "")
       : (node.children ?? []).map((child) => textOf(child, "")).join(separator);
   const tree = await page.accessibility.snapshot({ root: number, interestingOnly: false });
-  return tree === null ? "" : textOf(tree, " ").replace(/\s+/g, " ").trim();
+  return tree === null ? "" : squashed(textOf(tree, " "));
 }
 
 // Layers are found by computed style, not class, so a new fixed layer can't get into the shots.
 // Opacity keeps a sticky layer's room in the flow, so the item doesn't move between measuring and
 // shooting, and unlike `visibility` a descendant can't opt back in.
-async function shoot(page: Page, test: BrowserCase, item: Item, file: string): Promise<void> {
+async function shootAlone({ page, test, item }: Shooting, file: string): Promise<void> {
   const layout = () =>
     item.element.evaluate((node) => {
       const box = node.getBoundingClientRect();
@@ -475,27 +538,20 @@ async function shoot(page: Page, test: BrowserCase, item: Item, file: string): P
   await layers.dispose();
 }
 
-async function shootOnce(page: Page, test: BrowserCase, item: Item, width: number): Promise<Shots> {
-  return {
-    files: await shootSteps(page, test, item, 1, () => `${item.name}-${String(width)}.png`),
-  };
+async function shootOnce(shooting: Shooting): Promise<Shots> {
+  const { item, width } = shooting;
+  return { files: await shootSteps(shooting, 1, () => `${item.name}-${String(width)}.png`) };
 }
 
 // A stepper is shot once per step, with its buttons and caption, the way the owner sees each step.
-async function shootStepper(
-  page: Page,
-  test: BrowserCase,
-  item: Item,
-  width: number,
-): Promise<Shots> {
+async function shootStepper(shooting: Shooting): Promise<Shots> {
+  const { item, width } = shooting;
   const steps = await item.element.evaluate((node) =>
     Number(node.getAttribute("data-count") ?? "1"),
   );
   return {
     files: await shootSteps(
-      page,
-      test,
-      item,
+      shooting,
       steps,
       (step) => `${item.name}${steps > 1 ? `-step-${String(step)}` : ""}-${String(width)}.png`,
       stepperStepping,
@@ -505,15 +561,11 @@ async function shootStepper(
 
 // Only the first option or example is shot: `pnpm check` runs the others. The fields open filled
 // with the first example, so Start runs it.
-async function shootStage(
-  page: Page,
-  test: BrowserCase,
-  item: Item,
-  width: number,
-): Promise<Shots> {
+async function shootStage(shooting: Shooting): Promise<Shots> {
+  const { page, test, item, width } = shooting;
   const { element, name } = item;
   const asWritten = `${name}-as-written-${String(width)}.png`;
-  await shoot(page, test, item, asWritten);
+  await shootAlone(shooting, asWritten);
   const prompt = await element.$eval(".stage-say", (say) => say.textContent);
   const fields = await element.$$eval(".stage-field input", (nodes) =>
     nodes.map((node) => ({ name: node.name, value: node.value })),
@@ -564,7 +616,7 @@ async function shootStage(
   );
   if (steps === 0) {
     const refused = `${name}-refused-${String(width)}.png`;
-    await shoot(page, test, item, refused);
+    await shootAlone(shooting, refused);
     if (test.outcome === "passed") test.outcome = "refused";
     const refusal = await element.$eval(".stage-say", (say) => say.textContent);
     return {
@@ -573,9 +625,7 @@ async function shootStage(
     };
   }
   const files = await shootSteps(
-    page,
-    test,
-    item,
+    shooting,
     steps,
     (step) => `${name}-step-${String(step)}-${String(width)}.png`,
     stageStepping,
@@ -587,13 +637,12 @@ async function shootStage(
 }
 
 async function shootSteps(
-  page: Page,
-  test: BrowserCase,
-  item: Item,
+  shooting: Shooting,
   steps: number,
   fileFor: (step: number) => string,
   stepping?: Stepping,
 ): Promise<string[]> {
+  const { page, test, item } = shooting;
   const { element } = item;
   const files: string[] = [];
   const currentStep = (current: string) =>
@@ -603,7 +652,7 @@ async function shootSteps(
     const file = fileFor(step);
     if (stepping !== undefined)
       assertCase(test, `${file}: current step`, String(step), await currentStep(stepping.current));
-    await shoot(page, test, item, file);
+    await shootAlone(shooting, file);
     files.push(file);
     if (stepping !== undefined && step < steps) {
       const button = required(test, `${file}: forward exists`, await element.$(stepping.forward));
