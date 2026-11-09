@@ -1,12 +1,14 @@
 import { runTool } from "../run-tool.ts";
 import { matchLines } from "../match-lines.ts";
 import { platformFailure, unexplainedExit, type Step } from "../step.ts";
+import { isCode } from "../unchanged-inputs.ts";
 
 const diagnostic =
   /^(?<file>\S.*):(?<line>\d+):(?<column>\d+) - (?:error|warning) (?<source>\w+)\((?<code>\d+)\): (?<message>.*)$/;
 
 export const astroCheck: Step = {
   name: "astro check",
+  reads: isCode,
   async run(root) {
     const check = await runTool(root, "astro", [
       "check",

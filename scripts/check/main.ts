@@ -18,6 +18,7 @@ import { prettier } from "./steps/prettier.ts";
 import { testPlacement } from "./steps/test-placement.ts";
 import { restrictedBuildTypes, tsc } from "./steps/tsc.ts";
 import { vitest } from "./steps/vitest.ts";
+import { inputsOf, passedWith, rememberPass } from "./unchanged-inputs.ts";
 
 const root = process.cwd();
 const options = parseArgs({
@@ -81,10 +82,25 @@ async function runInTurn(steps: Step[]): Promise<Failure[]> {
   const failures: Failure[] = [];
   for (const step of steps) {
     const started = performance.now();
+    const inputs = inputsOf(root, step);
+    if (inputs !== undefined && passedWith(root, step, inputs)) {
+      reportUnchanged(step.name);
+      continue;
+    }
     const result = await step.run(root);
+    // A file edited while the step ran may be newer than what the step read.
+    if (inputs !== undefined && result.length === 0 && inputsOf(root, step) === inputs) {
+      rememberPass(root, step, inputs);
+    }
     failures.push(...report(step.name, result, performance.now() - started));
   }
   return failures;
+}
+
+function reportUnchanged(name: string): void {
+  const reason = "nothing it reads changed since it last passed";
+  provenance.step({ name, state: "passed", elapsedMs: null, failureCount: 0, reason });
+  console.log(`pnpm check: ${name} passed (not run again: ${reason})`);
 }
 
 function skip(steps: Step[], reason: string): Step[] {

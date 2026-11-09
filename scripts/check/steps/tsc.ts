@@ -2,6 +2,7 @@ import type { Failure } from "../../../src/check-failure.ts";
 import { runTool } from "../run-tool.ts";
 import { matchLines } from "../match-lines.ts";
 import { unexplainedExit, type Step } from "../step.ts";
+import { isCode } from "../unchanged-inputs.ts";
 
 const diagnostic =
   /^(?<file>\S.*)\((?<line>\d+),(?<column>\d+)\): error (?<code>TS\d+): (?<message>.*)$/;
@@ -31,6 +32,7 @@ const projects = [
 
 export const tsc: Step = {
   name: "tsc",
+  reads: isCode,
   run: (root) => checkProjects(root, projects),
 };
 

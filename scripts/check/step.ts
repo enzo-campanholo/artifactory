@@ -3,6 +3,9 @@ import type { ToolRun } from "./run-tool.ts";
 
 export interface Step {
   name: string;
+  // Whether the step's result can depend on this file. A step that says so isn't run again while
+  // every file it reads is as it was when the step last passed.
+  reads?: (file: string) => boolean;
   run(root: string): Promise<Failure[]>;
 }
 

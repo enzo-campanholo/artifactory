@@ -526,4 +526,25 @@ describe("check evidence for a working tree", () => {
     },
     checkTimeout,
   );
+
+  it(
+    "runs a step again only once a file it reads has changed since it passed, and never takes a failure for a pass",
+    async () => {
+      const stylesheet = join(repo.root, "design-system/src/page.css");
+      await writeFile(stylesheet, `${await readFile(stylesheet, "utf8")}\nbody{margin:0}\n`);
+      for (const run of [await repo.check(), await repo.check()]) {
+        expect(run.summary).toEqual([
+          "pnpm check: 1 failure",
+          "design-system/src/page.css:1:1 error prettier: is not formatted; run `pnpm format` (artifact skill: Platform changes)",
+        ]);
+        for (const typeCheck of ["astro check", "tsc", "ESLint"]) {
+          expect(run.output).toContain(
+            `pnpm check: ${typeCheck} passed (not run again: nothing it reads changed since it last passed)`,
+          );
+        }
+        expect(run.output).toMatch(/^pnpm check: Prettier failed \(\d+\.\d+s\)$/m);
+      }
+    },
+    checkTimeout,
+  );
 });

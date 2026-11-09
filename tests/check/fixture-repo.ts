@@ -62,7 +62,8 @@ const perRepoState = new Set([".astro", ".vite", ".vite-temp"]);
 // Fixture repos share one node_modules/.cache, apart from the repo's own, whose tsc build info
 // describes a different program and would be thrown out each time. Whatever a tool caches there
 // carries over, so it must be keyed by what it reads: D2's entries by each diagram's source, tsc's
-// build info checked against the files it reads, and jiti's by path and content.
+// build info checked against the files it reads, jiti's by path and content, and a check step's
+// passes by every file the step reads.
 const fixtureCache = join(repoRoot, "node_modules/.cache/fixture-repos");
 
 async function linkDependencies(root: string): Promise<void> {

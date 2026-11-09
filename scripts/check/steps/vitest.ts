@@ -2,6 +2,7 @@ import { readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { runTool } from "../run-tool.ts";
+import { pathsUnreadByTests } from "../seams.ts";
 import { platformFailure, unexplainedExit, type Step } from "../step.ts";
 
 interface VitestReport {
@@ -20,6 +21,10 @@ interface VitestReport {
 
 export const vitest: Step = {
   name: "Vitest",
+  // The browser acceptance runs only when asked for, so a pass without it says nothing about it.
+  ...(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE === "1"
+    ? {}
+    : { reads: (file: string) => !pathsUnreadByTests.some((path) => file.startsWith(path)) }),
   async run(root) {
     const reportFile = join(tmpdir(), `artifactory-vitest-${String(process.pid)}.json`);
     // The default reporter too, because the JSON report drops the error of a hook inside a

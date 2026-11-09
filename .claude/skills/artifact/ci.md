@@ -2,7 +2,9 @@
 
 ## Skipping Vitest
 
-`--last-passed` skips only Vitest, and only when every changed or untracked file is under `artifacts/`, `.scratch/` or `docs/`, or nothing changed. A platform file or an untracked root file runs the tests; an unavailable comparison SHA runs them too. The log gives the reason. Ordinary `pnpm check` always runs Vitest.
+`--last-passed` skips only Vitest, and only when every changed or untracked file is under `artifacts/`, `.scratch/` or `docs/`, or nothing changed. A platform file or an untracked root file runs the tests; an unavailable comparison SHA runs them too. The log gives the reason.
+
+Without `--last-passed`, `pnpm check` runs Vitest unless every file the tests read is as it was when they last passed on this machine. The type checks, ESLint, Prettier and knip are skipped the same way, each by the files it reads, and the log says `passed (not run again: …)`. A step that failed always runs again.
 
 ## Deploy steps
 
