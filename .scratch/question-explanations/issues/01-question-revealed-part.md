@@ -1,6 +1,6 @@
 # 01: Give the question frame one revealed part, used by the model answer
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Question explanations](../spec.md). Prefactor: no behaviour changes.
