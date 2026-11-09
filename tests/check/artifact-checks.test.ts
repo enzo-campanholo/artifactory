@@ -367,6 +367,7 @@ const customBuilds = {
   "artifacts/construcoes/index.mdx": artifact(fields("c0nstru1", "Biologia"), [
     'import Stage from "@artifactory/design-system/stage";',
     'import pontos from "./pontos.svg?raw";',
+    'import cores from "./cores.svg?raw";',
     "",
     ...stage("importa", ["A"], vertexTable),
     ...stage("alcanca", ["A"], vertexTable),
@@ -374,6 +375,15 @@ const customBuilds = {
     ...stage("vazia", ["A"], vertexTable),
     ...stage("forma", ["A", "B", "C"], vertexTable),
     ...stage("marca", ["A"], vertexTable),
+    "<Stage",
+    '  build="colore"',
+    '  choose={{ label: "Começar em", options: ["A"] }}',
+    '  prompt="Escolha um vértice."',
+    "  figure={cores}",
+    '  alt="Um vértice A sem cor, ligado a um vértice B da cor R."',
+    '  colours={["R", "G", "B"]}',
+    "/>",
+    "",
     ...stage("demais", ["A"], vertexTable),
     ...stage("trava", ["A", "B"], vertexTable),
     ...stage("dupla", ["A"], vertexTable),
@@ -556,6 +566,34 @@ const customBuilds = {
     "</svg>",
     "",
   ].join("\n"),
+  "artifacts/construcoes/cores.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">',
+    '  <line data-part="AB" x1="20" y1="20" x2="80" y2="20" class="stroke-text" />',
+    '  <g data-part="A">',
+    '    <circle cx="20" cy="20" r="12" class="fill-surface stroke-text" />',
+    '    <text x="20" y="20" data-swatch=""></text>',
+    "  </g>",
+    '  <g data-part="B">',
+    '    <circle cx="80" cy="20" r="12" class="fill-swatch-1 stroke-text" />',
+    '    <text x="80" y="20" data-swatch="1">R</text>',
+    "  </g>",
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/construcoes/colore.build.ts": build(
+    "export default defineBuild({",
+    "  steps: () => [",
+    "    { say: 'A fica G e B fica sem cor.', colours: { A: 2, B: null } },",
+    "    { say: 'AB fica R.', colours: { AB: 1 } },",
+    "    { say: 'Z fica R.', colours: { Z: 1 } },",
+    "    { say: 'A fica com a cor 4.', colours: { A: 4 } },",
+    "    { say: 'A fica com a cor 7.', colours: { A: 7 } },",
+    "    { say: 'A fica com a cor 1,5.', colours: { A: 1.5 } },",
+    "    { say: 'A fica com a cor 0.', colours: { A: 0 } },",
+    "    { say: 'A fica sem lista.', colours: ['A'] as never },",
+    "  ],",
+    "});",
+  ),
   "artifacts/construcoes/importa.build.ts": build(
     'import { readFileSync } from "node:fs";',
     "",
@@ -832,7 +870,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 131 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 138 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -933,7 +971,8 @@ describe.each([
           run.summary.filter(
             (line) =>
               line.startsWith("artifacts/construcoes/index.mdx") ||
-              line.startsWith("artifacts/construcoes/pontos.svg"),
+              line.startsWith("artifacts/construcoes/pontos.svg") ||
+              line.startsWith("artifacts/construcoes/cores.svg"),
           ),
         ).toEqual([]);
       });
@@ -976,6 +1015,13 @@ describe.each([
         expect(
           linesFor(run, "stage-run").filter((line) => !line.startsWith("artifacts/stack-machine/")),
         ).toEqual([
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 2 colours the part `AB`, which holds no label: put a `<text data-swatch>` in its `<g>`, empty if it's uncoloured as written (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 3 colours the part `Z`, which the drawing doesn't have (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 4 colours the part `A` with 4, past the 3 colours `colours` names: add its name to `colours`, or use 1 to 3 (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 5 colours the part `A` with 7, which isn't a swatch: give a whole number from 1 to 6, or `null` for uncoloured (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 6 colours the part `A` with 1.5, which isn't a swatch: give a whole number from 1 to 6, or `null` for uncoloured (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 7 colours the part `A` with 0, which isn't a swatch: give a whole number from 1 to 6, or `null` for uncoloured (artifact skill: Custom builds)",
+          "artifacts/construcoes/colore.build.ts:1:1 error stage-run: with `A`, step 8 has `colours` that isn't an object of colours by name (artifact skill: Custom builds)",
           "artifacts/construcoes/conteudo.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `0:push a|1:  add ; soma` in the row `código` and the column `Texto`, and the table as written has `—`; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/construcoes/conteudo.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `Lido/Texto tabela/—` in the row `tabela` and the column `Texto`, and the table as written has `—`; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/construcoes/conteudo.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `pt-BR` in the row `língua` and the column `Texto`, and the table as written has `—`; write the tables as the first example leaves them (artifact skill: Custom builds)",
@@ -1091,7 +1137,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 132 failures" : "pnpm check: 131 failures",
+        fullScope ? "pnpm check: 139 failures" : "pnpm check: 138 failures",
       );
     });
   },

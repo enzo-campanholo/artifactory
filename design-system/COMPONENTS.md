@@ -763,6 +763,31 @@ with ink over the hatching and turns its label's plate to ink and the label to t
 swatch drawn without an outline takes the mark's own, at 4 for `strong`, dashed for `dashed`.
 Name the coloured part's `<g>`, so the mark reaches its label too.
 
+**Steps colour parts.** A step's `colours` colours parts by their `data-part` name, so a
+colouring algorithm can be stepped through: each a swatch number from 1, up to the names in
+`colours` (1 to 6 without it), or `null` for uncoloured. The part's `fill-surface` and
+`fill-swatch-N` shapes take the swatch and its label the colour's name, and it reads exactly as
+one coloured as written, hatching, label, plate and marks; `null` gives it the ground and hides
+its label. A part left out stays as written. Each part a step colours is a `<g>` holding a
+label `<text x y data-swatch>`, left empty, `<text x="50" y="90" data-swatch=""></text>`, while
+it's uncoloured as written, which only a Stage accepts. Steps are whole, so name every colour
+the step shows, and going back shows that step's colours. A part a step colours takes every mark
+on that step. Write `say` to name the colours it sets by name ("D takes Y, which none of its
+coloured neighbours has."). When motion is allowed, a part's hatching cross-fades into the next
+over 0.2s; print and the page without JavaScript show the drawing as written, so draw it as the
+starting state, usually uncoloured. `colours` takes `number | null`, so a colour a build
+computes needs no cast.
+
+```ts
+// greedy.build.ts: each vertex takes the first colour no coloured neighbour has.
+const colours: Record<string, number> = {};
+steps.push({
+  say: "D takes Y, which none of its coloured neighbours has.",
+  colours: { ...colours, D: 3 },
+  parts: { D: "reversed", A: "strong", C: "strong" },
+});
+```
+
 **Tables** are found by their text: a row by its first cell, a column by its header, as the
 page shows them with the formatting dropped, so a first cell `*a*` is the row `a`. Write first
 cells and headers as plain words or symbols, without math. Keep each row's first cell and each
@@ -813,6 +838,8 @@ a", "lê o terceiro símbolo, b"), and say "a palavra vazia", never "ε".
 `pnpm check` runs the build on every option or example against the built page and fails on a
 throw, no steps, more than 200, a step that isn't shaped like a `Step`, an empty `say`, a part,
 row, column or code line the content doesn't have, a mark that changes nothing in its part,
+a colour on a part that holds no label, a colour that isn't a whole number from 1 to 6 or is
+past the names in `colours`,
 `lines` in a Stage without exactly one code block, more than one `reversed` line, `body` in a
 Stage without exactly one table or with no row as written, a `body` row without one text per
 column, or, with `input`, a step without `body` in a run whose other steps give it, or tables as
@@ -912,6 +939,13 @@ what it names, so name everything this step shows, not what changed since the la
   counter, and screen readers hear it after "Passo N de M." and, when a line is marked
   `reversed`, "Linha L.", so it must make sense without the drawing.
 - `parts` (`Record<string, Mark>`, optional): Marks on the drawing's parts, by their `data-part` name.
+- `colours` (`Record<string, number | null>`, optional): Colours on the drawing's parts, by their `data-part` name, each a swatch number from 1 to the
+  Stage's `colours` (1 to 6 without it), or `null` for uncoloured: its swatch shapes take the
+  ground and its label hides. A part's `fill-surface` and `fill-swatch-` shapes take swatch N
+  and its label colour N's name, as if written so. Each part must hold a label
+  `<text data-swatch>`, empty if it's uncoloured as written. Leave a part out to keep it as
+  written, and name every colour this step shows, not only the ones it changes. A number that
+  isn't a whole number from 1 to 6 refuses the run.
 - `lines` (`Record<number, Mark>`, optional): Marks on the code block's lines, by the number the page shows for each: from 1, or from the
   fence's `start` (` ```pascal start=0 ` makes the first line 0). Mark the line this step runs
   `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage must hold

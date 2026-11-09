@@ -700,6 +700,7 @@ const colouring = {
     'import hexagono from "./hexagono.svg?raw";',
     'import aresta from "./aresta.svg?raw";',
     'import marcas from "./marcas.svg?raw";',
+    'import vazio from "./vazio.svg?raw";',
     "",
     '<Figure src={hexagono} alt="Seis vértices, um de cada cor, de 1 a 6." />',
     "",
@@ -732,7 +733,54 @@ const colouring = {
     '  alt="Um vértice Az, ligado por uma aresta Vm a uma região Vm."',
     '  colours={["Az", "Vm"]}',
     "/>",
+    "",
+    "<Stage",
+    '  build="pinta"',
+    '  choose={{ label: "Começar em", options: ["a"] }}',
+    '  prompt="Escolha um vértice para começar."',
+    "  figure={vazio}",
+    '  alt="Um vértice a, ligado por uma aresta ab a uma região b, todos sem cor."',
+    '  colours={["Az", "Vm"]}',
+    "/>",
   ]),
+  "artifacts/coloracao/vazio.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60">',
+    '  <g data-part="ab">',
+    '    <line x1="30" y1="30" x2="170" y2="30" class="stroke-text" stroke-width="2" />',
+    '    <text x="100" y="30" data-swatch=""></text>',
+    "  </g>",
+    '  <g data-part="a">',
+    '    <circle cx="30" cy="30" r="22" class="fill-surface stroke-text" stroke-width="2" />',
+    '    <text x="30" y="30" data-swatch=""></text>',
+    "  </g>",
+    '  <g data-part="b">',
+    '    <rect x="170" y="8" width="44" height="44" class="fill-surface" />',
+    '    <text x="192" y="30" data-swatch=""></text>',
+    "  </g>",
+    "</svg>",
+    "",
+  ].join("\n"),
+  // The colour is computed as a `number`, and b, drawn without an outline or a colour, takes
+  // `dashed` on the step that colours it.
+  "artifacts/coloracao/pinta.build.ts": [
+    'import { defineBuild } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild({",
+    "  steps(start) {",
+    "    const vm: number = [start, start].length;",
+    "    return [",
+    "      { say: 'O vértice a fica Az.', colours: { a: 1 }, parts: { a: 'reversed' } },",
+    "      {",
+    "        say: 'A aresta ab e a região b ficam Vm.',",
+    "        colours: { a: 1, ab: vm, b: vm },",
+    "        parts: { b: 'dashed' },",
+    "      },",
+    "      { say: 'O vértice a volta a ficar sem cor.', colours: { a: null, ab: vm, b: vm } },",
+    "    ];",
+    "  },",
+    "});",
+    "",
+  ].join("\n"),
   "artifacts/coloracao/marcas.svg": [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60">',
     '  <g data-part="ab">',
@@ -1694,7 +1742,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       const ids = [...page.querySelectorAll("[id]")].map((element) => element.id);
       expect(new Set(ids).size).toBe(ids.length);
       const drawings = [...page.querySelectorAll('svg[role="img"]')];
-      expect(drawings).toHaveLength(5);
+      expect(drawings).toHaveLength(6);
       for (const drawing of drawings) {
         const hatchings = [...drawing.outerHTML.matchAll(/url\(#([^)]+)\)/g)].map(([, id]) => id);
         const states = drawing.closest(".stage-figure") === null ? 1 : 4;
@@ -1705,7 +1753,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       }
     });
 
-    it("draws each colour label on a square ground plate centred on it", async () => {
+    it("draws each colour label on a square ground plate centred on it, in a Stage as wide as the longest name a step can give it", async () => {
       const page = new new Window().DOMParser().parseFromString(
         await builtPage("coloracao"),
         "text/html",
@@ -1717,7 +1765,11 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
         ...["1", "2", "3", "4", "5", "6"],
         ...["1", "2", "3", "4", "5", "6"],
         ...["Vm", "Az", "Vm"],
+        ...["", "", ""],
       ]);
+      expect(
+        labels.slice(-3).map((label) => label.previousElementSibling?.getAttribute("width")),
+      ).toEqual(["24", "24", "24"]);
       for (const label of labels) {
         const plate = label.previousElementSibling;
         const side = Number(plate?.getAttribute("width"));
