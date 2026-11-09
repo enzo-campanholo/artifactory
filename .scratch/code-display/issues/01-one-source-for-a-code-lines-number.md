@@ -1,7 +1,7 @@
 # 01: One source for a code line's shown number
 
 Blocked by: None (can start immediately)
-Status: ready-for-agent
+Status: claimed
 
 Prefactor for [Code display](../spec.md). No behaviour changes: every page looks, steps, announces and prints as it does today.
 
