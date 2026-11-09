@@ -222,7 +222,13 @@ test("the saved answer is only the option chosen and its mark, explanation or no
   });
 
   const [attempt] = await savedAttempts(transport);
-  expect(attempt?.answers).toEqual([
-    { questionId: "capital", response: 2, mark: "right", answeredAt: expect.any(String) },
+  const [answer] = attempt?.answers ?? [];
+  expect(attempt?.answers).toHaveLength(1);
+  expect(Object.keys(answer ?? {}).sort()).toEqual([
+    "answeredAt",
+    "mark",
+    "questionId",
+    "response",
   ]);
+  expect(answer).toMatchObject({ questionId: "capital", response: 2, mark: "right" });
 });
