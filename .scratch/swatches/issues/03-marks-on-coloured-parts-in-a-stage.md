@@ -1,6 +1,6 @@
 # 03: A Stage's coloured drawing and the marks on its coloured parts
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02
 
 Source: [Swatches](../spec.md) › Behaviour: the Stage (marks and hover) and › Shared parts.
