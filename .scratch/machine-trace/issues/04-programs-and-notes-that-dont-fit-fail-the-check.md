@@ -1,6 +1,6 @@
 # 04: Programs and notes that don't fit fail `pnpm check`
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02
 
 **What to build:** an artifact agent who writes a MEPA listing the machine can't read, or notes that name what the program lacks, gets a `stage-run` failure naming the example and the code line, as other Stage runs do, rather than a throw pointing into the design system. So does a run that faults (02). The page refuses the same runs with the Stage's existing line. A machine's `parse` returns its problems, each naming a code line or a table cell, and the trace reports them ([Machine trace](../spec.md) › Failures).
