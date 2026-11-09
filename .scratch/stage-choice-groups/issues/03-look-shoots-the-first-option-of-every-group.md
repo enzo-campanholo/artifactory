@@ -1,6 +1,6 @@
 # 03: `pnpm look` shoots a choice-group Stage's first options
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02
 
 Spec: [Stage choice groups](../spec.md) › Runs and Look. Decisions: [Stage controls and drawing](../../artifact-generation-gaps/issues/03-stage-controls-and-drawing.md) › Answer.
