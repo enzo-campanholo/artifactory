@@ -657,7 +657,7 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
         `${name}: Stage action exists${group === "" ? "" : ` in ${group}`}`,
         await choice.$(".stage-option input"),
       );
-      const option = await action.evaluate((node) => (node as HTMLInputElement).value);
+      const option = await action.evaluate((node) => node.value);
       chosen.push(group === "" ? option : `${group} = ${option}`);
       actions.push({ group, action });
     }

@@ -31,7 +31,7 @@ Implementer of [02](02-a-stage-takes-two-or-more-choice-groups.md). Each group i
 
 Implementer of 03. Result: `pnpm look` branches on the Stage's `data-control`. A `choose` Stage gets its first option clicked in every `fieldset.stage-choice`, in the groups' order, before look waits for the run. Look then asserts each one is selected, and shoots the Stage as written and at every step, or its refusal, under the one-group file names. Under the Stage it prints `first options start = A, search = breadth, 2 steps` (or `…, refused: <line>`). One-group Stages still print `first option A, …` and typed Stages `first example …`. The `artifact` skill's Stage page › Look and `docs/agents/test-seams.md` say so.
 
-Commits: `ae1777a` (look, Look acceptance, skill, test seams).
+Commits: `ae1777a` (look, Look acceptance, skill, test seams) and the lint fix after the integration merge (an unneeded cast).
 
 Validation:
 
