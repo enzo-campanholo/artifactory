@@ -32,7 +32,7 @@ Implementer of this ticket, impeccable-gaps-implementation pass.
 
 **Result:** each typed field's definition, `Field` in `step-applier.ts` (`{ name, label?, kind: "number", min, max }`), sits on the built page once, as JSON in `data-fields` on `.stage-input`, beside `data-examples`. `Stage.astro` builds the list once from the props and renders the fields, the example line and the example checks from it; the inputs lose `data-min`/`data-max`. `fieldProblem` (was `numberProblem`) is the one rule: `Stage.astro`'s example check and the page's refusal (`#type` in `stage-element.ts`, which now walks `stageFields(this)` and words the line from the definition's `label ?? name` and bounds) both go through it. `stageControl` takes each named value's `kind` from the definition (`NamedValue["kind"]` is `Field["kind"]`), so `build-input` no longer gets `number` from a constant. No test added or moved; the `input` prop's type is unchanged, so `COMPONENTS.md` and `DESIGN.md` are untouched.
 
-**Commits:** 6784b22 (claim), f57c72f (the refactor), and this closing commit.
+**Commits:** 6784b22 (claim), f57c72f (the refactor), ca7d4c1 (closing), 8d8d772 (a field without `label` leaves it out of its definition, for `exactOptionalPropertyTypes`; the built page is byte-for-byte the same, since JSON drops an undefined label) and the commit recording it.
 
 **Validation:**
 
