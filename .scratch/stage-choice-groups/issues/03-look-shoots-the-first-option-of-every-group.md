@@ -22,3 +22,7 @@ Spec: [Stage choice groups](../spec.md) › Runs and Look. Decisions: [Stage con
 ### 2026-11-09: note from 01
 
 Implementer of [01](01-name-the-stage-s-control-instead-of-inferring-it.md). `scripts/look.ts`'s `shootStage` still tells a typed Stage from a `choose` one by whether a `.stage-field input` exists. 01 left it alone because the ticket didn't list it. `<artifact-stage>` now carries `data-control` (`choose` or `input`), and `stageControl` in `step-applier.ts` gives `takes`, so look can branch on those when it adds several groups.
+
+### 2026-11-09: note from 02
+
+Implementer of [02](02-a-stage-takes-two-or-more-choice-groups.md). Each group is a `fieldset.stage-choice[data-group="<name>"]` in the groups' order, its radios named `stage-<build>-<name>`; a one-group Stage's fieldset has no `data-group`. `stageGroups(stage)` in `step-applier.ts` returns `[{ name, options }]` (the radio inputs) and is the one reader the page and the check use; `stageControl(stage).takes` is `named` for groups. Clicking an option only starts the run once every group has one, so look must check one per group before waiting: today `shootStage` clicks `.stage-option input` once and would wait out its timeout, then fail "Stage ran or explicitly refused". The check orders combinations groups-first, options in order, so look's first options are the check's first combination. The catalog's `/catalog/stage/` has a two-group Stage (`graph-search`) to try it on; the `artifact` skill's Stage page › Look still describes one option.
