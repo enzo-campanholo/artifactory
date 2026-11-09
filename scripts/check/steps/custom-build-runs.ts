@@ -97,6 +97,9 @@ function runStage(
   const job: Job = { file: join(root, file), inputs, written, lang };
   const worker = new Worker(new URL("../build-runner.ts", import.meta.url), { workerData: job });
   const waiting = [...inputs];
+  // A program or notes that don't fit refuse every example alike, so each problem is named once,
+  // with the first example it refuses.
+  const unfitReported = new Set<string>();
   return new Promise((resolve) => {
     let timer: NodeJS.Timeout | undefined;
     const finish = () => {
@@ -138,8 +141,21 @@ function runStage(
         return;
       }
       if (run.refused === "problems") {
+        // A machine's view writes the same cells every step, so a column the content lacks would
+        // otherwise be named again for every step and row.
+        const reported = new Set<string>();
         for (const { step, problem } of run.problems) {
+          if (reported.has(problem)) continue;
+          reported.add(problem);
           fail(`${withOption} step ${String(step)} ${problem}`);
+        }
+      } else if (run.refused === "unfit") {
+        for (const { line, problem } of run.problems) {
+          const where = line === undefined ? "run" : `read line ${String(line)}`;
+          const message = `the machine can't ${where}: ${problem}`;
+          if (unfitReported.has(message)) continue;
+          unfitReported.add(message);
+          fail(`${withOption} ${message}`);
         }
       } else if (run.refused === "threw") {
         fail(

@@ -1,4 +1,4 @@
-import type { Fault, Machine } from "./machine.ts";
+import type { Fault, Machine, Problem } from "./machine.ts";
 
 /**
  * The four marks a step can put on the drawing, the tables and the code, named for what they
@@ -150,6 +150,16 @@ export class MachineFault extends Error {
   }
 }
 
+// A program or notes that don't fit the machine refuse every run, the same way.
+export class MachineProblems extends Error {
+  readonly problems: Problem[];
+
+  constructor(problems: Problem[]) {
+    super(problems.map(({ problem }) => problem).join("; "));
+    this.problems = problems;
+  }
+}
+
 const startingSay: Record<Content["lang"], string> = {
   "pt-BR": "A máquina ainda não deu nenhum passo.",
   en: "The machine hasn't taken a step yet.",
@@ -169,7 +179,9 @@ const startingSay: Record<Content["lang"], string> = {
  * The first step shows the starting state, then one step follows per step of the machine until it
  * halts, at most 200 in all, as for any build: a run past them is refused, so keep runs short
  * through the fields' bounds. Every cell whose text changed since the step before is `strong`. A
- * fault, such as a division by zero, refuses the run, naming the line and the fault.
+ * fault, such as a division by zero, refuses the run, naming the line and the fault. A program or
+ * notes that don't fit the machine, a `reads` name that isn't one of the Stage's fields included,
+ * refuse every run, `pnpm check` naming each problem and the code line it's on.
  */
 export function trace<Program, State, Notes, const Reads extends string>(
   machine: Machine<Program, State, Notes>,
@@ -177,15 +189,16 @@ export function trace<Program, State, Notes, const Reads extends string>(
 ): Build<Record<Reads, number>> {
   return {
     steps(input, content) {
+      const fields = Object.keys(input);
+      const unread = notes.reads
+        .filter((name) => !fields.includes(name))
+        .map((name) => ({
+          line: undefined,
+          problem: `\`reads\` names \`${name}\`, which isn't one of the Stage's fields`,
+        }));
       const parsed = machine.parse(content, notes);
-      if ("problems" in parsed) {
-        throw new Error(
-          parsed.problems
-            .map(({ line, problem }) =>
-              line === undefined ? problem : `line ${String(line)}: ${problem}`,
-            )
-            .join("; "),
-        );
+      if ("problems" in parsed || unread.length > 0) {
+        throw new MachineProblems([...unread, ...("problems" in parsed ? parsed.problems : [])]);
       }
       let state = machine.start(
         parsed.program,

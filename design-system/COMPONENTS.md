@@ -839,7 +839,9 @@ and its tables.
 The first step shows the starting state, then one step follows per step of the machine until it
 halts, at most 200 in all, as for any build: a run past them is refused, so keep runs short
 through the fields' bounds. Every cell whose text changed since the step before is `strong`. A
-fault, such as a division by zero, refuses the run, naming the line and the fault.
+fault, such as a division by zero, refuses the run, naming the line and the fault. A program or
+notes that don't fit the machine, a `reads` name that isn't one of the Stage's fields included,
+refuse every run, `pnpm check` naming each problem and the code line it's on.
 
 ```ts
 function trace<Program, State, Notes, const Reads extends string>(machine: Machine<Program, State, Notes>, notes: NoInfer<Notes> & { reads: readonly Reads[] }): Build<Record<Reads, number>>;
@@ -1074,8 +1076,15 @@ arguments and an optional `; comment`, and the last line is `FIM`:
   (`DIVI` drops the remainder, as Pascal's `div`).
 - `IMPR` pops the top onto the output, and `PARA` stops the machine.
 
-A run that divides by zero, reads with no field left, drops the stack below its bottom, reads a
-cell with no value or reaches `FIM` is refused, naming the line.
+**Failures**, each a `stage-run` failure of `pnpm check`. A listing the machine can't read is
+refused, naming the line: an instruction MEPA doesn't have ("`PUSH 3` isn't a MEPA
+instruction"), wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers"), a fence
+without `start=0`, `FIM` anywhere but on the last line, and a Stage with no code block or more
+than one. So is a `roles` or `after` note keyed to an address the listing doesn't have. A run is
+refused, naming the line, when it divides by zero, reads with no field left, drops the stack below
+its bottom, runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, reaches a cell below
+`M[0]`, or reaches `FIM`. A table without a column the view writes into fails as any Stage's
+does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
 
 **The registers table** has the rows `i`, `s`, `D[0]` and every other `D[k]` the listing names,
 then the input yet to be read and the output, each listing its values in order, `—` when empty.

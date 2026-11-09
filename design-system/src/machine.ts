@@ -9,9 +9,15 @@ export type Language = Content["lang"];
 // and the page says in the artifact's.
 export type Said = Record<Language, string>;
 
-// Reads the program from the content: a problem names the code line it's on, by its shown number.
-export type Parsed<Program> =
-  { program: Program } | { problems: { line: number | undefined; problem: string }[] };
+// What stops a program or its notes from running, in English for the check's failure line: the code
+// line it's on by its shown number, or none for a problem that isn't on one, such as a note's.
+export interface Problem {
+  line: number | undefined;
+  problem: string;
+}
+
+// Reads the program from the content and checks the notes against it, giving every problem found.
+export type Parsed<Program> = { program: Program } | { problems: Problem[] };
 
 export interface Fault {
   line: number;
