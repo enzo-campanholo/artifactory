@@ -135,12 +135,23 @@ export function stageControl(stage: Element): { control: Control; takes: Takes }
 
 // A typed field as the Stage defines it on its page, once: the page reads what the owner types by
 // it, and the Stage checks its examples and the check types the build by the same definition.
-export interface Field {
+export type Field = NumberField | TextField;
+
+interface NumberField {
   name: string;
   label?: string;
   kind: "number";
   min: number;
   max: number;
+}
+
+interface TextField {
+  name: string;
+  label?: string;
+  kind: "text";
+  alphabet?: string[];
+  minLength: number;
+  maxLength: number;
 }
 
 export function stageFields(stage: Element): Field[] {
@@ -155,13 +166,20 @@ export function typedNumber(text: string): number {
   return /^-?\d+$/.test(digits) ? Number(digits) : Number.NaN;
 }
 
+// Text as the owner types it, in NFC, so a symbol is one code point however it was typed. It isn't
+// trimmed: a trailing space is part of a hashing build's input.
+export function typedText(text: string): string {
+  return text.normalize("NFC");
+}
+
 // The page refuses what the owner types, and the Stage refuses its examples, by the same rule.
 export function fieldProblem(
-  { min, max }: Field,
+  field: Field,
   value: unknown,
-): "not-whole" | "out-of-bounds" | undefined {
+): "not-whole" | "out-of-bounds" | "not-text" | undefined {
+  if (field.kind === "text") return typeof value === "string" ? undefined : "not-text";
   if (typeof value !== "number" || !Number.isInteger(value)) return "not-whole";
-  return value < min || value > max ? "out-of-bounds" : undefined;
+  return value < field.min || value > field.max ? "out-of-bounds" : undefined;
 }
 
 // The Stage says its own lines in the language of the nearest `lang`, and hands builds the same.

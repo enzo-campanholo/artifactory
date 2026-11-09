@@ -359,9 +359,9 @@ o fator; c) integra em vez de derivar.
 `import Stage from "@artifactory/design-system/stage";`
 
 A part of the artifact that computes in the browser: an algorithm run from the start the owner
-picks, or a function traced on the numbers they type. Use it only when no component can do the
-job: a fixed sequence of steps is a `Stepper`, and anything that asks the owner something and
-records the answer is a question. A Stage is a block in the page, numbered on the figures'
+picks, or a function traced on the numbers or text they type. Use it only when no component can
+do the job: a fixed sequence of steps is a `Stepper`, and anything that asks the owner something
+and records the answer is a question. A Stage is a block in the page, numbered on the figures'
 series ("Figura 4.1"), and a page may hold several, each with its own build.
 
 You write two things:
@@ -371,7 +371,7 @@ You write two things:
   without JavaScript and in print, so write it to make sense with no step on it. With `choose` it
   is the starting state; with `input` it is the first example's result.
 - **A custom build**, a `<build>.build.ts` file next to the entry, which turns the option the
-  owner chose, or the numbers they typed, into steps. It imports only
+  owner chose, or what they typed, into steps. It imports only
   `@artifactory/design-system/stage-build` (below), and holds no CSS, colours, HTML or DOM
   code, and nothing that outlives a reload.
 
@@ -424,7 +424,8 @@ export default defineBuild({
 ```
 
 **Typed input.** Give `input` instead of `choose` when the owner types whole numbers, such as
-a function's arguments. The fields open filled with the first example, and the content as
+a function's arguments, or text, such as the word an automaton reads (**Typed text**, below). The
+fields open filled with the first example, and the content as
 written must be that example's result: `pnpm check` fails when a table as written isn't what
 the first example's last step leaves in it. A step shows the content as written with only what
 it names applied, so every step must name every cell whose value differs from that result, or
@@ -508,10 +509,86 @@ written. Put the example worth looking at first, since `pnpm look` shoots only t
 entries to `input.examples` for the edges, such as a zero. The page refuses a number that isn't
 whole or is out of bounds with the bounds in the step's line, and draws its field dashed.
 
-**Steps are whole.** `steps` returns every step for that option or those numbers, at least one
+**Typed text.** A field with `kind: "text"` takes text instead of a number:
+`{ name, label?, kind: "text", alphabet?, minLength?, maxLength }`. With `alphabet`, a list of
+symbols, each one character (one code point), it takes a word over them; without it, one line
+of any text, spaces included. `maxLength` is the most symbols it takes, and `minLength` the
+fewest, 0 if left out, so an empty field, the empty word, counts. `steps` gets the text as a
+`string`: `""` for the empty word, never trimmed or case-folded, since a trailing space is part
+of a hashing build's input, and in NFC, so `é` is one code point however it was typed. Count
+and walk its symbols by code point, `[...w]`, not by `w.length`. Write the examples in NFC too,
+as typing them does. A multi-character symbol, such as a parser's `id`, is the build's to split:
+give that field no alphabet and tokenise it in the build. Number fields and text fields mix in
+one Stage, such as a hash's text and modulus, `defineBuild<{ t: string; m: number }>`. Without
+JavaScript and in print, the line naming the first example sets a text bare in the code face,
+with no quotation marks, and the empty word as `ε`: "Aceita w? w = `aabba`". This one runs an
+automaton on the word typed:
+
+````mdx
+<Stage
+  build="automato"
+  input={{
+    label: "Aceita w?",
+    fields: [{ name: "w", kind: "text", alphabet: ["a", "b"], maxLength: 12 }],
+    examples: [{ w: "aabba" }, { w: "" }, { w: "bbbb" }, { w: "b" }],
+  }}
+  prompt="Digite uma palavra e comece."
+  caption="Um autômato que aceita as palavras com um número par de b."
+>
+
+| Variável | Valor |
+| -------- | ----- |
+| lido     | aabba |
+| estado   | q0    |
+| aceita   | sim   |
+
+</Stage>
+````
+
+```ts
+// automato.build.ts
+import { defineBuild, type CellChange, type Step } from "@artifactory/design-system/stage-build";
+
+export default defineBuild<{ w: string }>({
+  steps(input) {
+    const symbols = [...input.w];
+    let state = "q0";
+    const values = (read: number, accepts = "—"): CellChange[] => [
+      { row: "lido", column: "Valor", text: read === 0 ? "ε" : symbols.slice(0, read).join("") },
+      { row: "estado", column: "Valor", text: state },
+      { row: "aceita", column: "Valor", text: accepts },
+    ];
+    const steps: Step[] = [{ say: "Começa em q0, sem ter lido nada.", cells: values(0) }];
+    symbols.forEach((symbol, index) => {
+      const from = state;
+      if (symbol === "b") state = state === "q0" ? "q1" : "q0";
+      steps.push({
+        say: `Lê ${symbol}: de ${from} vai a ${state}.`,
+        rows: { estado: "strong" },
+        cells: values(index + 1),
+      });
+    });
+    const accepts = state === "q0";
+    steps.push({
+      say:
+        symbols.length === 0
+          ? "A palavra vazia acaba em q0: aceita."
+          : `A palavra acaba em ${state}: ${accepts ? "aceita" : "rejeita"}.`,
+      rows: { aceita: "reversed" },
+      cells: values(symbols.length, accepts ? "sim" : "não"),
+    });
+    return steps;
+  },
+});
+```
+
+`aabba` has two b's, so its last step, the seventh, leaves `q0` and `sim`, as the table is
+written. Every step names `aceita`, "—" until the last, so the answer doesn't show mid-run.
+
+**Steps are whole.** `steps` returns every step for that option or that input, at least one
 and at most 200. The Stage starts each step from the content as written and applies only what it
 names, so name everything the step shows, not what changed since the step before. A build that
-throws, or gives more than 200 steps, is refused in the step's line: with `input`, a typed number
+throws, or gives more than 200 steps, is refused in the step's line: with `input`, typed input
 the examples never tried can reach a bug the check never saw, and the page keeps working.
 
 **Code.** Write the code as one fenced code block between the Stage's tags, with its language,
@@ -677,7 +754,9 @@ for that step.
 
 **Say it for the ear.** `say` is read aloud after "Passo N de M. Linha L.": write operators in
 words ("o resto de 48 por 18", not "48 % 18"; "b não é zero", not "b != 0"), since a screen
-reader reads `%` as "por cento" and other operators symbol by symbol.
+reader reads `%` as "por cento" and other operators symbol by symbol. A screen reader reads a
+word such as `aabba` as one word, so when its symbols matter, spell them out ("lê a, a, b, b,
+a", "lê o terceiro símbolo, b"), and say "a palavra vazia", never "ε".
 
 `pnpm check` runs the build on every option or example against the built page and fails on a
 throw, no steps, more than 200, a step that isn't shaped like a `Step`, an empty `say`, a part,
@@ -709,13 +788,15 @@ With `choose`:
 
 With `input`:
 
-- `input` (`{ label: string; fields: { name: string; label?: string; min: number; max: number }[]; examples: Record<string, number>[] }`, required): What the owner types before the run: the label over the fields, and one field per whole
-  number, with the `name` `steps` gets it by, a `label` to show instead of the name, and the
-  smallest and largest number it takes. `steps` gets `{ [name]: number }`. `examples` are
-  inputs, each giving every field a whole number in its bounds, and `pnpm check` runs the build
-  on every one. The first fills the fields as written, so write the content as its result:
-  each table as its last step leaves it. The page refuses a number that isn't whole or is out
-  of bounds, and numbers the build throws on.
+- `input` (`{ label: string; fields: ( | { name: string; label?: string; kind?: "number"; min: number; max: number } | { name: string; label?: string; kind: "text"; alphabet?: string[]; minLength?: number; maxLength: number } )[]; examples: Record<string, number | string>[] }`, required): What the owner types before the run: the label over the fields, and one field per value, with
+  the `name` `steps` gets it by and a `label` to show instead of the name. A field without
+  `kind` takes a whole number, between its `min` and `max`, and `steps` gets it as a `number`. A
+  field with `kind: "text"` takes text, at most `maxLength` symbols and at least `minLength`
+  (0 if left out, so the empty word counts), each one of `alphabet` when given, and `steps` gets
+  it as a `string`, `""` for the empty word. `examples` are inputs, each giving every field a
+  value it takes, and `pnpm check` runs the build on every one. The first fills the fields as
+  written, so write the content as its result: each table as its last step leaves it. The page
+  refuses a number that isn't whole or is out of bounds, and input the build throws on.
 - `build` (`string`, required): The custom build: the name of the `<build>.build.ts` file next to the entry.
 - `prompt` (`string`, required): What to do first, shown where each step's line will be: "Escolha um vértice para começar."
 - `figure` (`string`, optional): A drawing the build marks, imported with `?raw` from an `.svg` file next to the entry. Name
@@ -782,10 +863,11 @@ what it names, so name everything this step shows, not what changed since the la
 
 #### `Typed`
 
-What the owner typed into a Stage's `input`: each field's whole number, by the field's `name`.
+What the owner typed into a Stage's `input`, by each field's `name`: a number field's whole
+number, or a text field's text as a `string`, in NFC, `""` for the empty word.
 
 ```ts
-type Typed = Record<string, number>;
+type Typed = Record<string, number | string>;
 ```
 
 #### `CodeLine`
@@ -819,18 +901,20 @@ did with its own.
 #### `Build`
 
 A custom build: what turns the owner's choice into steps. With `choose`, `steps` gets the option
-as text; with `input`, it gets each field's number, typed as `Input`. Either way its second
+as text; with `input`, it gets each field's value, typed as `Input`: a number field's whole
+number as a `number`, a text field's text as a `string`. Either way its second
 argument is the Stage's content as written (`Content`), which a build may leave out.
 
-- `steps` (`(input: Input, content: Content) => Step[]`, required): Every step for the option the owner chose or the numbers they typed, in order, at least one
+- `steps` (`(input: Input, content: Content) => Step[]`, required): Every step for the option the owner chose or the input they typed, in order, at least one
   and at most 200. Called again from step 1 whenever they choose again or press Start, with the
   content as written each time.
 
 #### `defineBuild`
 
 Wraps the build so TypeScript checks it. A `.build.ts` file's default export. With `input`,
-give the fields' names as its type, `defineBuild<{ a: number; b: number }>({ … })`, so `steps`
-gets them typed: `pnpm check` fails when they aren't the Stage's fields. `steps` gets the
+give the fields' names as its type, a number field's as `number` and a text field's as `string`,
+`defineBuild<{ a: number; b: number }>({ … })` or `defineBuild<{ w: string; m: number }>({ … })`,
+so `steps` gets them typed: `pnpm check` fails when they aren't the Stage's fields and kinds. `steps` gets the
 content as written second, typed `Content`, without a type of its own.
 
 ```ts

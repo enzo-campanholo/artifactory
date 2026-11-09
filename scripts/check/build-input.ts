@@ -11,8 +11,9 @@ interface StagedBuild {
 
 const givers: Record<Control, string> = { choose: "options", input: "fields" };
 
-const kindFlags: Record<NamedValue["kind"], typescript.TypeFlags> = {
-  number: typescript.TypeFlags.Number,
+const kindTypes: Record<NamedValue["kind"], { name: string; flags: typescript.TypeFlags }> = {
+  number: { name: "number", flags: typescript.TypeFlags.Number },
+  text: { name: "string", flags: typescript.TypeFlags.String },
 };
 
 // A build's input type comes from its own file and a Stage's fields from the entry, so neither
@@ -50,7 +51,7 @@ export function buildInputFailures(root: string, stages: StagedBuild[]): Failure
     const expected =
       takes.shape === "text"
         ? undefined
-        : `{ ${takes.values.map(({ name, kind }) => `${name}: ${kind}`).join("; ")} }`;
+        : `{ ${takes.values.map(({ name, kind }) => `${name}: ${kindTypes[kind].name}`).join("; ")} }`;
     const fix =
       expected === undefined
         ? "write `defineBuild` without a type"
@@ -110,7 +111,8 @@ function takesValuesNamed(
       const value = values.find(({ name }) => name === property.name);
       // An optional value's type is `number | undefined`, so this refuses it too.
       return (
-        value !== undefined && checker.getTypeOfSymbol(property).flags === kindFlags[value.kind]
+        value !== undefined &&
+        checker.getTypeOfSymbol(property).flags === kindTypes[value.kind].flags
       );
     })
   );

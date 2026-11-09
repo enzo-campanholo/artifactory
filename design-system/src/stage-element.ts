@@ -12,6 +12,7 @@ import {
   type StageNodes,
   type Written,
   typedNumber,
+  typedText,
 } from "./step-applier.ts";
 
 // Numbers in the step's line take a real minus sign, as the page writes them.
@@ -220,8 +221,8 @@ class ArtifactStage extends HTMLElement {
       const field = this.#part(
         `.stage-field input[name="${CSS.escape(definition.name)}"]`,
       ) as HTMLInputElement;
-      const value = typedNumber(field.value);
-      if (fieldProblem(definition, value) !== undefined) {
+      const value = definition.kind === "text" ? typedText(field.value) : typedNumber(field.value);
+      if (definition.kind === "number" && fieldProblem(definition, value) !== undefined) {
         const { label = definition.name, min, max } = definition;
         this.#refuse(this.#texts.refusedNumber(label, min, max));
         field.setAttribute("aria-invalid", "true");

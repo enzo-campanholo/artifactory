@@ -39,3 +39,12 @@ Nothing is truncated: pasted text longer than `maxLength` stays whole in the fie
 ### 2026-11-09: notes from Stage text input 01
 
 The page's refusal is `#type` in `stage-element.ts`. It walks `stageFields(this)`, the definitions on the page, and refuses the first field `fieldProblem` (`step-applier.ts`) refuses, with the line from `texts.refusedNumber(label ?? name, min, max)`. The text rule and its line join there, chosen by the definition's `kind`. A before/after capture of every Stage's refusals (record and PNG hashes, light and dark, en and pt-BR, catalog and `rsa-from-scratch`) is in the shared notes' `capture-stages.ts` pattern; 01 extended it with refusals (`aria-invalid`, `aria-describedby`, focus, border style).
+
+### 2026-11-09: notes from Stage text input 02
+
+Implementer of [02](02-a-stage-takes-a-text-field.md):
+
+- `#type` in `stage-element.ts` reads a text field with `typedText` (`step-applier.ts`: NFC, untrimmed) and a number field with `typedNumber`, by the definition's `kind`. It refuses only number fields today (`definition.kind === "number" && fieldProblem(…)`), since 02 has no text rule: once 03 puts the text rule in `fieldProblem`, drop the `kind` guard and choose the line (`refusedNumber` or the text line) by `kind`.
+- The text field carries `data-kind="text"` on its `.stage-field` label, and its box is the number field's own, so `&[aria-invalid="true"]`'s dashed border already reaches it.
+- The catalog's text Stage is "Typed text" on `catalog/stage.mdx`, build `even-bs.build.ts` (alphabet a and b, `maxLength` 12). Its build runs any text the page hands it; a word outside the alphabet reaches it until this ticket refuses it.
+- Browser scripts from 02, keyed by each Stage's build so a new catalog Stage doesn't shift the comparison: `capture-number-stages.ts` (number Stages loaded, stepped and refused, before/after) and `check-text-stage.ts` (the text Stage's look, NFC and trailing space at Start) in the shared notes.
