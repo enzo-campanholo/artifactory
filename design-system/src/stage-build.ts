@@ -1,3 +1,5 @@
+import type { Fault, Machine } from "./machine.ts";
+
 /**
  * The four marks a step can put on the drawing, the tables and the code, named for what they
  * mean. The Stage draws each one the same way everywhere:
@@ -130,4 +132,113 @@ export function defineBuild<Input extends string | Typed = string>(
   build: Build<Input>,
 ): Build<Input> {
   return build;
+}
+
+// More steps than this is no longer a walkthrough.
+export const mostSteps = 200;
+
+// A machine's fault refuses the run. The trace throws it through `steps`, which returns only steps,
+// and the step applier turns it into the refusal the page and the check give.
+export class MachineFault extends Error {
+  readonly line: number;
+  readonly fault: Fault["fault"];
+
+  constructor({ line, fault }: Fault) {
+    super(`line ${String(line)}: ${fault.en}`);
+    this.line = line;
+    this.fault = fault;
+  }
+}
+
+const startingSay: Record<Content["lang"], string> = {
+  "pt-BR": "A máquina ainda não deu nenhum passo.",
+  en: "The machine hasn't taken a step yet.",
+};
+
+/**
+ * A build that traces a machine the design system holds, such as MEPA
+ * (`@artifactory/design-system/machines/mepa`), on the owner's input: the build's whole default
+ * export, `export default trace(mepa, { reads: ["x", "y"], … })`. The machine reads its program
+ * from the Stage's content as written (MEPA's from the code block), so the program is written
+ * once, and says each step in the artifact's main language. `notes` are the program's own data,
+ * keyed by address, in the artifact's language, never read from the code's comments: `reads`
+ * names the Stage's fields in the order the machine reads them, exactly the Stage's fields, or
+ * `pnpm check` fails as `build-input`. Each machine's entry lists its other notes and its tables.
+ *
+ * The first step shows the starting state, then one step follows per step of the machine until it
+ * halts, at most 200 in all, as for any build: a run past them is refused, so keep runs short
+ * through the fields' bounds. Every cell whose text changed since the step before is `strong`. A
+ * fault, such as a division by zero, refuses the run, naming the line and the fault.
+ */
+export function trace<Program, State, Notes, const Reads extends string>(
+  machine: Machine<Program, State, Notes>,
+  notes: NoInfer<Notes> & { reads: readonly Reads[] },
+): Build<Record<Reads, number>> {
+  return {
+    steps(input, content) {
+      const parsed = machine.parse(content, notes);
+      if ("problems" in parsed) {
+        throw new Error(
+          parsed.problems
+            .map(({ line, problem }) =>
+              line === undefined ? problem : `line ${String(line)}: ${problem}`,
+            )
+            .join("; "),
+        );
+      }
+      let state = machine.start(
+        parsed.program,
+        notes.reads.map((name) => input[name]),
+      );
+      const steps = [{ say: startingSay[content.lang], ...machine.view(state) }];
+      for (let halted = false; !halted && steps.length <= mostSteps;) {
+        const moved = machine.step(state);
+        if ("fault" in moved) throw new MachineFault(moved.fault);
+        ({ state, halted } = moved);
+        steps.push({ say: moved.say, ...machine.view(state) });
+      }
+      return steps.map((step, index) => strongWhereChanged(step, steps[index - 1], content));
+    },
+  };
+}
+
+// A text diff can't see a write of the value a cell already held, so a view may still mark that
+// cell `strong` itself, and a cell the view marks keeps its mark.
+function strongWhereChanged(step: Step, before: Step | undefined, content: Content): Step {
+  if (before === undefined) return step;
+  const textOf = (shown: Step, row: string, column: string) =>
+    shown.cells?.findLast(
+      (cell) => cell.row === row && cell.column === column && cell.text !== undefined,
+    )?.text ?? writtenText(content, row, column);
+  const named = [...(before.cells ?? []), ...(step.cells ?? [])];
+  const changed = named.filter(
+    ({ row, column }, index) =>
+      named.findIndex((cell) => cell.row === row && cell.column === column) === index &&
+      textOf(step, row, column) !== textOf(before, row, column),
+  );
+  const cells = (step.cells ?? []).map((cell) =>
+    cell.mark === undefined &&
+    changed.some(({ row, column }) => row === cell.row && column === cell.column)
+      ? { ...cell, mark: "strong" as const }
+      : cell,
+  );
+  const unnamed = changed.filter(
+    ({ row, column }) => !cells.some((cell) => cell.row === row && cell.column === column),
+  );
+  return {
+    ...step,
+    cells: [
+      ...cells,
+      ...unnamed.map(({ row, column }) => ({ row, column, mark: "strong" as const })),
+    ],
+  };
+}
+
+function writtenText(content: Content, row: string, column: string): string | undefined {
+  for (const { columns, rows } of content.tables) {
+    const at = columns.indexOf(column);
+    const cells = rows.find(([first]) => first === row);
+    if (at >= 0 && cells !== undefined) return cells[at];
+  }
+  return undefined;
 }

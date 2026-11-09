@@ -148,6 +148,8 @@ function runStage(
         );
       } else if (run.refused === "no-steps") {
         fail(`${withOption} \`steps\` returns no steps; give it at least one`);
+      } else if (run.refused === "fault") {
+        fail(`${withOption} the machine faults at line ${String(run.line)}: ${run.fault.en}`);
       } else if (run.refused === "not-a-list") {
         fail(`${withOption} \`steps\` returns something that isn't a list of steps`);
       } else {

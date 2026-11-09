@@ -277,7 +277,93 @@ const customBuilds = {
       "| tabela | —     |",
       "| língua | —     |",
     ]),
+    ...typedStage("mepa-campos", "[{ a: 48, b: 18 }]", [
+      "```text start=0",
+      "INPP",
+      "PARA",
+      "FIM",
+      "```",
+      "",
+      "| Registrador | Valor |",
+      "| ----------- | ----: |",
+      "| i           |     1 |",
+      "| s           |    −1 |",
+      "| D[0]        |     0 |",
+      "| entrada     |    48 |",
+      "| saída       |     — |",
+    ]),
   ]),
+  // The first example worked by hand: 7 div 2 leaves 3 in M[2], not the 4 the table has, and the
+  // second divides by zero at line 8.
+  "artifacts/stack-machine/index.mdx": artifact(
+    [
+      "id: st4ckm4c",
+      "title: A stack machine",
+      "subject: Compilers",
+      "lang: en",
+      "published: 2026-10-15",
+    ],
+    [
+      'import Stage from "@artifactory/design-system/stage";',
+      "",
+      "<Stage",
+      '  build="divide"',
+      "  input={{",
+      '    label: "Run",',
+      '    fields: [{ name: "x", min: 0, max: 9 }, { name: "y", min: 0, max: 9 }],',
+      "    examples: [{ x: 7, y: 2 }, { x: 7, y: 0 }],",
+      "  }}",
+      '  prompt="Type x and y and run the program."',
+      ">",
+      "",
+      "```text start=0",
+      "INPP",
+      "AMEM 2",
+      "LEIT",
+      "ARMZ 0,0",
+      "LEIT",
+      "ARMZ 0,1",
+      "CRVL 0,0",
+      "CRVL 0,1",
+      "DIVI",
+      "IMPR",
+      "DMEM 2",
+      "PARA",
+      "FIM",
+      "```",
+      "",
+      "| Register | Value |",
+      "| -------- | ----: |",
+      "| i        |    11 |",
+      "| s        |    −1 |",
+      "| D[0]     |     0 |",
+      "| input    |     — |",
+      "| output   |     3 |",
+      "",
+      "| Cell | Data | Role | Top |",
+      "| ---- | ---: | ---- | --- |",
+      "| M[0] |    7 |      |     |",
+      "| M[1] |    2 |      |     |",
+      "| M[2] |    4 |      |     |",
+      "| M[3] |    2 |      |     |",
+      "",
+      "</Stage>",
+    ],
+  ),
+  "artifacts/stack-machine/divide.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["x", "y"], roles: { 1: ["x", "y"] } });',
+    "",
+  ].join("\n"),
+  "artifacts/construcoes/mepa-campos.build.ts": [
+    'import { trace } from "@artifactory/design-system/stage-build";',
+    'import mepa from "@artifactory/design-system/machines/mepa";',
+    "",
+    'export default trace(mepa, { reads: ["a"] });',
+    "",
+  ].join("\n"),
   "artifacts/construcoes/pontos.svg": [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">',
     '  <circle data-part="A" cx="20" cy="20" r="10" class="stroke-text" />',
@@ -556,7 +642,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 100 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 103 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -664,7 +750,7 @@ describe.each([
 
       it("fails a build that imports anything but the build contract, at the import", () => {
         expect(linesFor(run, "build-import")).toEqual([
-          "artifacts/construcoes/importa.build.ts:3:30 error build-import: `node:fs` isn't `@artifactory/design-system/stage-build`, the only module a build may import (artifact skill: Custom builds)",
+          "artifacts/construcoes/importa.build.ts:3:30 error build-import: `node:fs` isn't `@artifactory/design-system/stage-build` or a machine under `@artifactory/design-system/machines/`, the only modules a build may import (artifact skill: Custom builds)",
         ]);
       });
 
@@ -685,6 +771,7 @@ describe.each([
           "artifacts/construcoes/falta.build.ts:3:28 error build-input: `steps` takes `{ a: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/indice.build.ts:3:28 error build-input: `steps` takes `{ [name: string]: number; a: number; b: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/literal.build.ts:3:28 error build-input: `steps` takes `{ a: number; b: 7 }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
+          "artifacts/construcoes/mepa-campos.build.ts:4:16 error build-input: `steps` takes `{ a: number }`, but the Stage's fields give it `{ a: number; b: number }`: name exactly the Stage's fields in `reads` (artifact skill: Custom builds)",
           "artifacts/construcoes/opcional.build.ts:3:28 error build-input: `steps` takes `{ a: number; b?: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
           "artifacts/construcoes/texto.build.ts:3:28 error build-input: `steps` takes `{ a: number }`, but the Stage's options give it text: write `defineBuild` without a type (artifact skill: Custom builds)",
           "artifacts/construcoes/tipo.build.ts:3:28 error build-input: `steps` takes `{ a: number; c: number }`, but the Stage's fields give it `{ a: number; b: number }`: write `defineBuild<{ a: number; b: number }>` (artifact skill: Custom builds)",
@@ -736,6 +823,8 @@ describe.each([
           "artifacts/construcoes/uma-coluna.build.ts:1:1 error stage-run: with `A`, step 1 gives `body` a row of 2 cells (`início`, `48`), but the table has 1 column: give every row one text per column (artifact skill: Custom builds)",
           "artifacts/construcoes/uma-linha.build.ts:1:1 error stage-run: with `A`, step 1 marks the line `2`, which the code doesn't have: it has only line 1 (artifact skill: Custom builds)",
           "artifacts/construcoes/vazia.build.ts:1:1 error stage-run: with `A`, `steps` returns no steps; give it at least one (artifact skill: Custom builds)",
+          "artifacts/stack-machine/divide.build.ts:1:1 error stage-run: with `x = 7, y = 0`, the machine faults at line 8: division by zero (artifact skill: Custom builds)",
+          "artifacts/stack-machine/divide.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the first example, the last step leaves `3` in the row `M[2]` and the column `Data`, and the table as written has `4`; write the tables as the first example leaves them (artifact skill: Custom builds)",
         ]);
       });
     });
@@ -775,7 +864,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 101 failures" : "pnpm check: 100 failures",
+        fullScope ? "pnpm check: 104 failures" : "pnpm check: 103 failures",
       );
     });
   },

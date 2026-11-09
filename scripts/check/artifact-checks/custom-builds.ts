@@ -8,6 +8,7 @@ import { designSystemPackage } from "../../component-reference.ts";
 
 const stage = `${designSystemPackage}stage`;
 const stageBuild = `${designSystemPackage}stage-build`;
+const machines = `${designSystemPackage}machines/`;
 export const buildFile = /^[^/]+\.build\.ts$/;
 
 // The `build` of every Stage in the entry, by the name the entry imports the Stage under, or
@@ -57,19 +58,28 @@ export function unmatchedBuild(name: string, builds: string[]): string | undefin
 
 export async function buildImportFailures(root: string, artifact: Artifact): Promise<Failure[]> {
   const builds = artifact.besideEntry.filter((name) => buildFile.test(name));
+  const { exports } = JSON.parse(
+    await readFile(join(root, "design-system/package.json"), "utf8"),
+  ) as { exports: Record<string, string> };
+  const importable = new Set([
+    stageBuild,
+    ...Object.keys(exports)
+      .map((name) => `${designSystemPackage}${name.replace(/^\.\//, "")}`)
+      .filter((specifier) => specifier.startsWith(machines)),
+  ]);
   const failures = await Promise.all(
     builds.map(async (name) => {
       const file = `artifacts/${artifact.slug}/${name}`;
       const text = await readFile(join(root, file), "utf8");
       return importsIn(text).flatMap(({ specifier, offset }) =>
-        specifier === stageBuild
+        importable.has(specifier)
           ? []
           : [
               {
                 file,
                 ...positionAt(text, offset),
                 ruleId: "build-import",
-                message: `\`${specifier}\` isn't \`${stageBuild}\`, the only module a build may import`,
+                message: `\`${specifier}\` isn't \`${stageBuild}\` or a machine under \`${machines}\`, the only modules a build may import`,
                 skillSection: "Custom builds" as const,
               },
             ],

@@ -103,7 +103,7 @@ function buildSection(specifier: string, file: string, source: string): string {
   );
   return [
     `### The build: \`${specifier}\``,
-    "A build file imports only this module. Its default export is `defineBuild({ steps(choice) { … } })` with `choose`, or `defineBuild<{ a: number; b: number }>({ steps(input) { … } })` with `input`.",
+    "A build file imports only this module and the machines under `@artifactory/design-system/machines/`. Its default export is `defineBuild({ steps(choice) { … } })` with `choose`, or `defineBuild<{ a: number; b: number }>({ steps(input) { … } })` with `input`, or, for a machine the design system holds, `trace(machine, notes)`.",
     ...exported.map((declaration) => {
       const name = declaration.name?.getText(script) ?? "";
       const shape = typescript.isInterfaceDeclaration(declaration)

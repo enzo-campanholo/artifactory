@@ -12,3 +12,12 @@ Blocked by: 05
 - [ ] A test at the check's seam (fixture repos): a fixture trace whose `main` calls a subroutine with two parameters and a return value passes with its tables as written, worked out by hand.
 - [ ] The catalog's MEPA page's program uses every instruction MEPA now covers, a call with parameters and a returned value included, in both its Stages, and its memory tables show `Papel` and `Desl.`. Catalog work runs through impeccable in a local session.
 - [ ] Docs in the same commit: MEPA's doc comment covers the subroutine instructions, the `subroutines` note, `Desl.` and the new failure; `pnpm components` regenerates `COMPONENTS.md`; the `artifact` skill's `stage.md` lists the new failure.
+
+### 2026-11-09: what 02 leaves for records
+
+From machine trace 02's implementation (`design-system/src/machines/mepa.ts`):
+
+- `Desl.` (`Offset`) isn't written yet: a table with it keeps that column as written. Its doc comment says so, and your ticket fills it.
+- The registers table's `D[k]` rows are `D[0]` plus every `k` an `ARMZ` or `CRVL` names (`program.displays`). Add `ENPR`'s levels there.
+- Roles: an `AMEM n` note is a list of n roles; any other note is one role, for the cell that instruction writes. A cell an `ARMZ` writes keeps its role unless the note gives one. Any other write without a note leaves the cell with no role. A cell above `s` shows no role.
+- Faults are `{ fault: { line, fault: Said } }` from `step` (see 04's comment). `D[k]` with no value already faults.

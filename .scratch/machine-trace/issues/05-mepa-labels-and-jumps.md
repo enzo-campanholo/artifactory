@@ -11,3 +11,7 @@ Blocked by: 03, 04
 - [ ] Tests at the check's seam (fixture repos): a fixture trace with a jump passes with its tables as written, worked out by hand, and each new failure is asserted as its full failure line.
 - [ ] The catalog's MEPA page's program uses `DSVS`, `NADA` and a label in both its Stages, and steps through them in a browser. Catalog work runs through impeccable in a local session.
 - [ ] Docs in the same commit: MEPA's doc comment covers labels, `DSVS`, `NADA`, the `labels` note and the new failures; `pnpm components` regenerates `COMPONENTS.md`; the `artifact` skill's `stage.md` lists the new failures.
+
+### 2026-11-09: where labels go in MEPA's parse
+
+From machine trace 02's implementation: `instruction(text)` in `design-system/src/machines/mepa.ts` strips the `;` comment and reads one mnemonic and its comma-separated whole-number arguments, so `L1: NADA` fails today as "isn't a MEPA instruction". A line's address is its index in the listing, which `parse` checks starts at shown line 0. `view` dashes `state.i` and reverses `state.ran`, so a jump only sets `i`.
