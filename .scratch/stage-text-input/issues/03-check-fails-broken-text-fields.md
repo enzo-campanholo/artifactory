@@ -1,6 +1,6 @@
 # 03: The check fails a text field's broken examples and props
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02
 
 Spec: [Stage text input](../spec.md), section "Failures". The decisions are in [Typed words in a Stage](../../artifact-generation-gaps/issues/10-typed-words-in-a-stage.md) › Answer.
