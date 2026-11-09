@@ -1,6 +1,6 @@
 # 02: A SingleChoice shows its explanation once its answer locks
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01
 
 Spec: [Question explanations](../spec.md), sections Writing one, When it shows, How it looks and Documentation. The decisions are in the map ticket's `## Answer` (`artifact-generation-gaps` 01); don't reopen them.
