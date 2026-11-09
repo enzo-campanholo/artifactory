@@ -14,6 +14,7 @@ const labels = {
     ownRight: "I got it right",
     ownWrong: "I got it wrong",
     saving: "Saving",
+    answered: "Answered",
     notSaved: "Not saved",
     retry: "Try saving again",
     answeredElsewhere: "Already answered on another device",
@@ -25,6 +26,7 @@ const labels = {
     ownRight: "Acertei",
     ownWrong: "Errei",
     saving: "Salvando",
+    answered: "Respondidas",
     notSaved: "Não salva",
     retry: "Tentar salvar de novo",
     answeredElsewhere: "Já respondida em outro dispositivo",
@@ -33,15 +35,48 @@ const labels = {
 };
 
 type Labels = (typeof labels)["en"];
+type StatusWords = (keyof Labels)[];
 
 // Right or wrong shows only once the answer is saved: until then the box's outline says why not.
-const statusText: Record<PageAnswer["status"], (mark: ShownAnswer["mark"]) => (keyof Labels)[]> = {
+const markedStatusText: Record<PageAnswer["status"], (mark: ShownAnswer["mark"]) => StatusWords> = {
   saving: () => ["saving"],
   saved: (mark) => [mark],
   "not-saved": () => ["notSaved"],
   "answered-elsewhere": (mark) => [mark, "answeredElsewhere"],
   lost: () => ["notSaved", "signedOut"],
 };
+
+// A box holding several questions never says right or wrong: each question carries its own mark,
+// and the box shows no score.
+const setStatusText: Record<PageAnswer["status"], StatusWords> = {
+  saving: ["saving"],
+  saved: ["answered"],
+  "not-saved": ["notSaved"],
+  "answered-elsewhere": ["answeredElsewhere"],
+  lost: ["notSaved", "signedOut"],
+};
+
+const mostUrgentFirst: PageAnswer["status"][] = [
+  "not-saved",
+  "lost",
+  "saving",
+  "answered-elsewhere",
+];
+
+// The box reports its most urgent answer while any is saving, not saved, answered elsewhere or
+// signed out, and that every one is saved once all are. Otherwise it's open, and reports nothing.
+function boxReport(shown: readonly (ShownAnswer | undefined)[]): ShownAnswer | undefined {
+  const answered = shown.filter((answer) => answer !== undefined);
+  const restored = answered.every((answer) => answer.restored);
+  for (const status of mostUrgentFirst) {
+    const urgent = answered.find((answer) => answer.status === status);
+    if (urgent !== undefined) return { ...urgent, restored };
+  }
+  const [first] = answered;
+  return first !== undefined && answered.length === shown.length
+    ? { ...first, restored }
+    : undefined;
+}
 
 // A question box: its form, Check, status and recovery line, driving the answers of the questions
 // it holds. Its one Check saves every unanswered one of them together.
@@ -125,22 +160,35 @@ export abstract class QuestionBox extends HTMLElement {
       this.querySelector("form")?.reset();
       for (const answer of reopened) answer.reopen();
     }
-    const [shown] = this.answers.flatMap((answer) => answer.show(store) ?? []);
-    if (shown !== undefined) this.#report(store, shown, focused);
-    else if (reopened.length > 0) this.#clearReport();
+    const shown = this.answers.map((answer) => answer.show(store));
+    this.answersShown(shown);
+    const report = boxReport(shown);
+    this.showBoxStatus(report?.status);
+    if (report !== undefined) this.#report(store, report, focused);
+    else this.#clearReport();
     if (reopened.length > 0) this.responseChanged(false);
     else if (notShownYet) this.#syncRestoredResponse();
   }
 
-  #report(
-    store: Store,
-    { status: answerStatus, mark, restored }: ShownAnswer,
-    focused: Element | null,
-  ) {
+  // Each answer's element carries its own status; a box holding several questions carries the set's.
+  protected showBoxStatus(status: PageAnswer["status"] | undefined): void {
+    if (status === undefined) delete this.dataset.status;
+    else this.dataset.status = status;
+  }
+
+  protected statusWords({ status }: ShownAnswer): StatusWords {
+    return setStatusText[status];
+  }
+
+  // Called with each answer as shown, in the order of `answers`, on every change.
+  protected abstract answersShown(shown: readonly (ShownAnswer | undefined)[]): void;
+
+  #report(store: Store, report: ShownAnswer, focused: Element | null) {
+    const { status: answerStatus, restored } = report;
     const text = this.inPageLanguage(labels);
     const status = this.#part(".question-status");
     if (restored) status.setAttribute("aria-live", "off");
-    status.textContent = statusText[answerStatus](mark)
+    status.textContent = this.statusWords(report)
       .map((key) => text[key])
       .join(" · ");
     const recovery = this.#part(".question-recovery");
@@ -156,9 +204,16 @@ export abstract class QuestionBox extends HTMLElement {
       });
       recovery.append(retry);
     }
-    if (focused !== null && (!focused.isConnected || focused.closest(":disabled") !== null)) {
-      status.focus({ preventScroll: true });
-    }
+    if (focused !== null && this.#focusLeaves(focused)) status.focus({ preventScroll: true });
+  }
+
+  // Check hides once nothing is left to check, as a locked answer's controls are disabled.
+  #focusLeaves(focused: Element): boolean {
+    return (
+      !focused.isConnected ||
+      focused.closest(":disabled") !== null ||
+      (focused.matches(".question-check") && this.answers.every((answer) => answer.showsAnswer))
+    );
   }
 
   #clearReport() {
@@ -182,6 +237,18 @@ export abstract class QuestionElement extends QuestionBox implements QuestionRes
   abstract showResponse(response: Json): void;
 
   protected readonly answers = [new QuestionAnswer(this, this)];
+
+  protected override showBoxStatus(): void {
+    // Its one answer's status and mark are on the box itself already.
+  }
+
+  protected answersShown(): void {
+    // Its one answer shows its mark on the box, through its status and mark attributes.
+  }
+
+  protected override statusWords({ status, mark }: ShownAnswer): StatusWords {
+    return markedStatusText[status](mark);
+  }
 
   attributeChangedCallback() {
     const explanation = this.querySelector<HTMLElement>(":scope > form > .question-explanation");

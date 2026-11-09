@@ -13,3 +13,14 @@ The check finds a component's props by reading its tag; `answers` is a nested ob
 - [ ] An item ID reused by another item, in the same or another matching, or by a `SingleChoice`, `NumericQuestion` or `OpenQuestion`, fails at the second use and names the first use's line, in each direction, tested at the `pnpm check` seam.
 - [ ] Existing question-ID and statement-ID failures keep their positions (their tests pass unchanged).
 - [ ] The `artifact` skill, in the same commit: its Question IDs rule, which says to write `id` as a plain string so failures point at the right line, says the same of a matching item's key in `answers`.
+
+## Comments
+
+### 2026-11-09: from 03
+
+Implementer of [03](03-matching.md#comments). What you start from:
+
+- **Where item IDs come from:** each item's row carries the question markers (`questionMarkers` in `design-system/src/Matching.astro`), so `readQuestions` lists the items in page order and `checkedIds` (`src/id-failures.ts`) checks them with every other question. `locate`'s `question-id` target (`src/source-locator.ts`) only finds `id="…"` props, so an item's failure lands at `1:1`.
+- **The test to move:** `tests/check/artifact-failures.test.ts` › "fails a matching item's ID by the rules of a question ID, at the entry's start" uses the `regras-de-derivacao` fixture's `<Matching answers={{ "Regra_do_produto": 1, "regra-da-potencia": 2 }}>`, asserting both failures at `1:1` (the reuse names line 13, the `SingleChoice`'s `id`). Change it to the keys' positions; the same fixture covers "reused by a `SingleChoice`" in one direction.
+- **The skill line to change:** `rules.md` › Question IDs now ends "a failure in one points at the entry's `1:1`, so search the entry for the ID."; replace it with the plain-string rule for keys.
+- `Matching`'s module is `@artifactory/design-system/matching`, so find it by its import name as `componentPropOffsets` does for `statement`.

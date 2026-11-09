@@ -1,7 +1,8 @@
+import Matching from "../src/Matching.astro";
 import NumericQuestion from "../src/NumericQuestion.astro";
 import OpenQuestion from "../src/OpenQuestion.astro";
 import SingleChoice from "../src/SingleChoice.astro";
-import { numericKey, questionIds } from "./states.ts";
+import { matchingAnswers, numericKey, questionIds } from "./states.ts";
 
 ## The formula
 
@@ -33,6 +34,23 @@ $$
 What is the area of a circle of radius $3\,\mathrm{cm}$, to two decimal places?
 
 </NumericQuestion>
+
+<Matching answers={matchingAnswers}>
+
+What does each formula give, for a radius $r$?
+
+1. The circumference of a circle
+2. The area of a circle
+3. The surface area of a ball
+4. The volume of a ball
+
+---
+
+- $2 \pi r$
+- $\pi r^2$
+- $\frac{4}{3} \pi r^3$
+
+</Matching>
 
 ## Where it comes from
 

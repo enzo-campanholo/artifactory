@@ -146,6 +146,7 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "published: 2026-10-13",
         ],
         [
+          'import Matching from "@artifactory/design-system/matching";',
           'import NumericQuestion from "@artifactory/design-system/numeric-question";',
           'import SingleChoice from "@artifactory/design-system/single-choice";',
           "",
@@ -154,6 +155,25 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           "A $2\\,\\mathrm{kg}$ mass hangs on a spring with $k = 200\\,\\mathrm{N/m}$. What is its angular frequency $\\omega$?",
           "",
           "</NumericQuestion>",
+          "",
+          "## Special matrices",
+          "",
+          '<Matching answers={{ "identity-matrix": 1, "zero-matrix": 2, "rotation-matrix": 4 }}>',
+          "",
+          "Which real eigenvalues does each $2 \\times 2$ matrix have?",
+          "",
+          "1. Only $1$",
+          "2. Only $0$",
+          "3. Only $-1$",
+          "4. None",
+          "",
+          "---",
+          "",
+          "- The identity $I$",
+          "- The zero matrix",
+          "- A rotation by $90°$",
+          "",
+          "</Matching>",
           "",
           '<SingleChoice id="identity-eigenvalue" answer={1}>',
           "",
@@ -379,7 +399,10 @@ describe("a repo with published artifacts and drafts, some with questions", () =
           artifactId: "e1g3nv4l",
           questions: [
             { id: "spring-frequency", number: 1 },
-            { id: "identity-eigenvalue", number: 2 },
+            { id: "identity-matrix", number: 2, section: "Special matrices", math: [] },
+            { id: "zero-matrix", number: 3, section: "Special matrices", math: [] },
+            { id: "rotation-matrix", number: 4, section: "Special matrices", math: [] },
+            { id: "identity-eigenvalue", number: 5, section: "Special matrices", math: [] },
           ],
         },
         { artifactId: "l1m1t3s2", questions: [{ id: "limite-de-1-sobre-x", number: 1 }] },
@@ -488,6 +511,69 @@ describe("a repo with published artifacts and drafts, some with questions", () =
     it("isn't there on a single choice written without one", async () => {
       const page = await builtPage("limites");
       expect(page.querySelector("#q-limite-de-1-sobre-x .question-explanation")).toBeNull();
+    });
+  });
+
+  describe("a matching between other questions", () => {
+    async function matching(lang: "en" | "pt") {
+      const page = await builtPage("eigenvalues");
+      const { copy } = inLanguage(page.querySelector("artifact-matching"), lang);
+      const text = (node: Element | null | undefined) =>
+        node?.textContent.replace(/\s+/g, " ").trim();
+      return {
+        page,
+        box: copy,
+        header: text(copy?.querySelector(".question-number")),
+        hint: text(copy?.querySelector(".question-hint")),
+        options: [...(copy?.querySelectorAll(".matching-options > li") ?? [])].map(text),
+        rows: [...(copy?.querySelectorAll(".matching-item") ?? [])].map((row) => ({
+          anchor: row.id,
+          number: text(row.querySelector(".matching-item-number")),
+          item: text(row.querySelector(".matching-item-text")),
+          letters: [...row.querySelectorAll("label")].map(text),
+        })),
+      };
+    }
+
+    it("heads one box with its items' range and the hint, letters the options once and gives each item its own numbered row of letters, before the page's script runs", async () => {
+      const { box, header, hint, options, rows } = await matching("en");
+      expect(box?.hasAttribute("data-question-id")).toBe(false);
+      expect(header).toBe("Questions 2–4");
+      expect(hint).toBe("Match");
+      expect(options).toEqual(["a) Only 1", "b) Only 0", "c) Only −1", "d) None"]);
+      expect(rows).toEqual([
+        {
+          anchor: "q-identity-matrix",
+          number: "2",
+          item: "The identity I",
+          letters: ["a", "b", "c", "d"],
+        },
+        {
+          anchor: "q-zero-matrix",
+          number: "3",
+          item: "The zero matrix",
+          letters: ["a", "b", "c", "d"],
+        },
+        {
+          anchor: "q-rotation-matrix",
+          number: "4",
+          item: "A rotation by 90°",
+          letters: ["a", "b", "c", "d"],
+        },
+      ]);
+      const pt = await matching("pt");
+      expect([pt.header, pt.hint]).toEqual(["Questões 2–4", "Associe"]);
+    });
+
+    it("lists each item to revisit by its own number, and the question after the set continues the series", async () => {
+      const { page } = await matching("en");
+      const revisit = (id: string) =>
+        page.querySelector(`[data-wrong-for="${id}"] a [data-lang="en"]`)?.textContent.trim();
+      const link = (id: string) =>
+        page.querySelector(`[data-wrong-for="${id}"] a`)?.getAttribute("href");
+      expect(revisit("zero-matrix")).toBe("Question 3");
+      expect(link("zero-matrix")).toBe("#q-zero-matrix");
+      expect(revisit("identity-eigenvalue")).toBe("Question 5");
     });
   });
 
@@ -643,6 +729,9 @@ describe("a repo with published artifacts and drafts, some with questions", () =
             kind: "numeric",
             key: { value: "10", tolerance: 0.05 },
           },
+          { id: "identity-matrix", kind: "single-choice", key: 1 },
+          { id: "zero-matrix", kind: "single-choice", key: 2 },
+          { id: "rotation-matrix", kind: "single-choice", key: 4 },
           { id: "identity-eigenvalue", kind: "single-choice", key: 1 },
         ],
         g3n3t1c4: [],

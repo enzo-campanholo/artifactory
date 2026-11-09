@@ -23,6 +23,8 @@
     "./numeric-question": "./src/NumericQuestion.astro",
     "./numeric-question-element": "./src/numeric-question-element.ts",
     "./open-question": "./src/OpenQuestion.astro",
+    "./matching": "./src/Matching.astro",
+    "./matching-element": "./src/matching-element.ts",
     "./open-question-element": "./src/open-question-element.ts",
     "./proof": "./src/Proof.astro",
     "./question-element": "./src/question-element.ts",

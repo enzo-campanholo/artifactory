@@ -178,6 +178,52 @@ Some os anéis de raio $\rho$ e largura $\mathrm{d}\rho$: $\int_0^r 2 \pi \rho \
 - `id` (`string`, required): The question's ID: readable kebab-case, unique within the artifact and never reused, even
   after the question is removed. The owner's answers belong to it, and `#q-<id>` links to it.
 
+## Matching
+
+`import Matching from "@artifactory/design-system/matching";`
+
+Several auto-checked questions, one per item, that share one list of options and are checked
+together: the owner picks an option's letter for each item and presses Check once. Each item is
+a question of its own, numbered in the page's series with its own answer, and locks with its
+own mark: a tick on the right letter, and on a wrong item its chosen letter crossed out. The
+page letters the options a), b), c) and numbers the items, so do neither yourself. Use it
+instead of separate `SingleChoice` questions when several questions would repeat the same
+options, such as matching items to categories, terms to definitions or code to its output. Any
+option may be right for any number of items, or for none; when each option should be used once,
+say so in the prompt, since the page doesn't enforce it. For one question, use `SingleChoice`.
+
+Write the prompt, then the options as one numbered list, then a blank line, `---`, another blank
+line and the items as one bulleted list, which ends the matching. Options and items are one
+paragraph each of inline text, math and code:
+
+```mdx
+import Matching from "@artifactory/design-system/matching";
+
+<Matching answers={{ "variavel-global": 2, "variavel-local": 3, "objeto-new": 4 }}>
+
+Em que área de memória fica cada item?
+
+1. Código
+2. Dados
+3. Pilha
+4. Heap
+
+---
+
+- Uma variável global
+- Uma variável local
+- Um objeto criado com `new`
+
+</Matching>
+```
+
+### Props
+
+- `answers` (`Record<string, number>`, required): Each item's question ID, mapped to the number of its right option, counting from 1, in the
+  items' order. Each key is a question ID with every rule a question's `id` has: readable
+  kebab-case, unique among all the artifact's questions and never reused, even after the item is
+  removed. The owner's answers to the item belong to it, and `#q-<id>` links to the item's row.
+
 ## Proof
 
 `import Proof from "@artifactory/design-system/proof";`
@@ -245,7 +291,8 @@ presses Check, and the question locks and shows right or wrong once the answer i
 wrong answer also ticks the right option. The page letters the options a), b), c), so don't
 letter them yourself. Use it when exactly one option is right and the options can be read side
 by side. For a computed number, use `NumericQuestion`, since options would let the owner work
-backwards from them.
+backwards from them. When several questions would share the same options, write one `Matching`
+instead of repeating them.
 
 Write the question first, then the options as one numbered list at its end. Options can hold
 inline math and code, one paragraph each.
