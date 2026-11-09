@@ -1,6 +1,6 @@
 # 05: MEPA labels and jumps
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 03, 04
 
 **What to build:** a MEPA listing can name places with labels and jump to them, and the trace says where a jump lands in the artifact's own words. A line takes an optional label (`L1:`), `DSVS` jumps and `NADA` marks a place, and the `labels` note gives each label's place name ("o início de main"), said when a jump lands there or passes its `NADA` ([Machine trace](../spec.md) › Notes and MEPA).
