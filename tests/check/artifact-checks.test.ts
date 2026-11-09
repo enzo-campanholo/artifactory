@@ -248,6 +248,7 @@ const customBuilds = {
     ...typedStage("uniao", "[{ a: 48, b: 18 }]", ["Soma."]),
     ...stage("texto", ["A"], vertexTable),
     ...typedStage("linhas", "[{ a: 48, b: 18 }]", mdcCode),
+    ...stage("desde-zero", ["A"], ["```python start=0", ...mdcCode.slice(1)]),
     ...stage("sem-codigo", ["A"], vertexTable),
     ...stage("dois-codigos", ["A"], [...mdcCode, "", ...mdcCode]),
     ...stage("uma-linha", ["A"], ["```python", "print(1)", "```"]),
@@ -358,6 +359,14 @@ const customBuilds = {
     "    { say: 'Devolve a.', lines: { 9: 'reversed' } },",
     "    { say: 'Roda o laço.', lines: { 2: 'reversed', 3: 'reversed' } },",
     "    { say: 'Marca.', lines: { 0: 'strong', 2: 'negrito' } } as never,",
+    "  ],",
+    "});",
+  ),
+  "artifacts/construcoes/desde-zero.build.ts": build(
+    "export default defineBuild({",
+    "  steps: () => [",
+    "    { say: 'Recebe a e b.', lines: { 0: 'reversed', 3: 'muted' } },",
+    "    { say: 'Devolve a.', lines: { 4: 'reversed' } },",
     "  ],",
     "});",
   ),
@@ -518,7 +527,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 96 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 97 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -657,6 +666,7 @@ describe.each([
       it("runs every build on every option and example against the built page, naming it, the step and what's missing", () => {
         expect(linesFor(run, "stage-run")).toEqual([
           "artifacts/construcoes/demais.build.ts:1:1 error stage-run: with `A`, `steps` returns more than 200 steps (artifact skill: Custom builds)",
+          "artifacts/construcoes/desde-zero.build.ts:1:1 error stage-run: with `A`, step 2 marks the line `4`, which the code doesn't have: it has lines 0 to 3 (artifact skill: Custom builds)",
           "artifacts/construcoes/dois-codigos.build.ts:1:1 error stage-run: with `A`, step 1 has `lines`, but the Stage holds 2 code blocks: `lines` marks the lines of exactly one (artifact skill: Custom builds)",
           "artifacts/construcoes/duas-tabelas.build.ts:1:1 error stage-run: with `A`, step 1 has `body`, but the Stage holds 2 tables: `body` rewrites the rows of exactly one (artifact skill: Custom builds)",
           "artifacts/construcoes/escrita.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `0` in the row `b` and the column `Valor`, and the table as written has `12`; write the tables as the first example leaves them (artifact skill: Custom builds)",
@@ -672,10 +682,10 @@ describe.each([
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 2 marks the row `1`, which starts no row of this step's `body` (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 3 changes a cell in the row `1`, which this step's `body` doesn't have (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas-novas.build.ts:1:1 error stage-run: with `A`, step 4 has `body` that isn't a list of rows, each a list of texts (artifact skill: Custom builds)",
-          "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 2 marks the line `9`, which the code doesn't have: it has 4 lines (artifact skill: Custom builds)",
+          "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 2 marks the line `9`, which the code doesn't have: it has lines 1 to 4 (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 3 marks the lines 2 and 3 `reversed`, but only the one running line is `reversed` (artifact skill: Custom builds)",
           "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 4 marks `2` in `lines` with `negrito`, which isn't a mark (artifact skill: Custom builds)",
-          "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 4 marks the line `0`, which the code doesn't have: it has 4 lines (artifact skill: Custom builds)",
+          "artifacts/construcoes/linhas.build.ts:1:1 error stage-run: with `a = 48, b = 18`, step 4 marks the line `0`, which the code doesn't have: it has lines 1 to 4 (artifact skill: Custom builds)",
           "artifacts/construcoes/marca.build.ts:1:1 error stage-run: with `A`, step 1 marks the part `D` `dashed`, which changes nothing in it: `dashed` acts on shapes with a `stroke-` class (artifact skill: Custom builds)",
           "artifacts/construcoes/mesa-cresce.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves the row `2` (`2`, `12`, `6`) after the table's last row as written; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/construcoes/mesa-encolhe.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the table as written has the row `1` (`1`, `18`, `12`) after the last step's last row; write the tables as the first example leaves them (artifact skill: Custom builds)",
@@ -692,7 +702,7 @@ describe.each([
           "artifacts/construcoes/so-cabecalho.build.ts:1:1 error stage-run: with `A`, step 1 has `body`, but its table has no row as written for the new rows to copy: write one (artifact skill: Custom builds)",
           "artifacts/construcoes/trava.build.ts:1:1 error stage-run: with `A`, `steps` didn't return within 5 seconds (artifact skill: Custom builds)",
           "artifacts/construcoes/uma-coluna.build.ts:1:1 error stage-run: with `A`, step 1 gives `body` a row of 2 cells (`início`, `48`), but the table has 1 column: give every row one text per column (artifact skill: Custom builds)",
-          "artifacts/construcoes/uma-linha.build.ts:1:1 error stage-run: with `A`, step 1 marks the line `2`, which the code doesn't have: it has 1 line (artifact skill: Custom builds)",
+          "artifacts/construcoes/uma-linha.build.ts:1:1 error stage-run: with `A`, step 1 marks the line `2`, which the code doesn't have: it has only line 1 (artifact skill: Custom builds)",
           "artifacts/construcoes/vazia.build.ts:1:1 error stage-run: with `A`, `steps` returns no steps; give it at least one (artifact skill: Custom builds)",
         ]);
       });
@@ -733,7 +743,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 97 failures" : "pnpm check: 96 failures",
+        fullScope ? "pnpm check: 98 failures" : "pnpm check: 97 failures",
       );
     });
   },

@@ -216,7 +216,8 @@ interface Typed extends Staged {
  *
  * **Code.** Write the code as one fenced code block between the Stage's tags, with its language,
  * as anywhere else: it keeps its highlighting and line numbers, so never put code in a table. A
- * step marks its lines with `lines`, by number from 1 as the page numbers them. Mark the line the
+ * step marks its lines with `lines`, by the number the page shows for each: from 1, or from the
+ * fence's `start`, so under ` ```pascal start=0 ` the first line is 0. Mark the line the
  * step runs `reversed`, and only that one: the Stage draws it as a bar of ink across the code's
  * whole width, even where a long line scrolls sideways, and announces the step as "Passo 3 de 9.
  * Linha 3. …". A step with no `reversed` line is announced without one. The other marks work on

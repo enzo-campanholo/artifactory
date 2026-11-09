@@ -243,14 +243,12 @@ function applyStep(written: Written, step: unknown): { shown: Shown } | { proble
       `has \`lines\`, but the Stage holds ${blocks}: \`lines\` marks the lines of exactly one`,
     );
   } else if (lineNumbers !== undefined) {
-    const lineCount = lineNumbers.length;
+    const [first, last] = [String(lineNumbers[0]), String(lineNumbers.at(-1))];
+    const range = first === last ? `only line ${first}` : `lines ${first} to ${last}`;
     for (const [name, mark] of lineMarks) {
       if (lineNumbers.map(String).includes(name)) lines.set(Number(name), mark);
-      else {
-        problems.push(
-          `marks the line \`${name}\`, which the code doesn't have: it has ${String(lineCount)} ${lineCount === 1 ? "line" : "lines"}`,
-        );
-      }
+      else
+        problems.push(`marks the line \`${name}\`, which the code doesn't have: it has ${range}`);
     }
     const reversed = [...lines].flatMap(([line, mark]) => (mark === "reversed" ? [line] : []));
     if (reversed.length > 1) {

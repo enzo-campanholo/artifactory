@@ -40,9 +40,10 @@ export interface Step {
   /** Marks on the drawing's parts, by their `data-part` name. */
   parts?: Record<string, Mark>;
   /**
-   * Marks on the code block's lines, by line number from 1, as the page numbers them. Mark the line
-   * this step runs `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage
-   * must hold exactly one fenced code block.
+   * Marks on the code block's lines, by the number the page shows for each: from 1, or from the
+   * fence's `start` (` ```pascal start=0 ` makes the first line 0). Mark the line this step runs
+   * `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage must hold
+   * exactly one fenced code block.
    */
   lines?: Record<number, Mark>;
   /**

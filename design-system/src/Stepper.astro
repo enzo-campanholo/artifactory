@@ -41,9 +41,10 @@ interface FigureSteps extends Captioned, Described {
 
 interface CodeSteps extends Captioned {
   /**
-   * The lines each step highlights, one entry per step, counting lines from 1: `"3"`, `"3-5"`,
-   * `"3-"` (line 3 to the end) or `"1-2, 6"`. The other lines turn grey. Put one fenced code block
-   * inside the stepper, with blank lines around it.
+   * The lines each step highlights, one entry per step, by the numbers the page shows for them:
+   * from 1, or from the fence's `start`. `"3"`, `"3-5"`, `"3-"` (line 3 to the end) or `"1-2, 6"`.
+   * The other lines turn grey. Put one fenced code block inside the stepper, with blank lines
+   * around it.
    */
   lines: string[];
 }

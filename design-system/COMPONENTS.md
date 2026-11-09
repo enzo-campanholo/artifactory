@@ -432,7 +432,8 @@ the examples never tried can reach a bug the check never saw, and the page keeps
 
 **Code.** Write the code as one fenced code block between the Stage's tags, with its language,
 as anywhere else: it keeps its highlighting and line numbers, so never put code in a table. A
-step marks its lines with `lines`, by number from 1 as the page numbers them. Mark the line the
+step marks its lines with `lines`, by the number the page shows for each: from 1, or from the
+fence's `start`, so under ` ```pascal start=0 ` the first line is 0. Mark the line the
 step runs `reversed`, and only that one: the Stage draws it as a bar of ink across the code's
 whole width, even where a long line scrolls sideways, and announces the step as "Passo 3 de 9.
 Linha 3. …". A step with no `reversed` line is announced without one. The other marks work on
@@ -659,9 +660,10 @@ what it names, so name everything this step shows, not what changed since the la
   counter, and screen readers hear it after "Passo N de M." and, when a line is marked
   `reversed`, "Linha L.", so it must make sense without the drawing.
 - `parts` (`Record<string, Mark>`, optional): Marks on the drawing's parts, by their `data-part` name.
-- `lines` (`Record<number, Mark>`, optional): Marks on the code block's lines, by line number from 1, as the page numbers them. Mark the line
-  this step runs `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage
-  must hold exactly one fenced code block.
+- `lines` (`Record<number, Mark>`, optional): Marks on the code block's lines, by the number the page shows for each: from 1, or from the
+  fence's `start` (` ```pascal start=0 ` makes the first line 0). Mark the line this step runs
+  `reversed`, and only that one: the Stage says "Linha L." before `say`. The Stage must hold
+  exactly one fenced code block.
 - `body` (`string[][]`, optional): The table's body rows in this step, in place of the rows as written: one list of cell texts
   per row, one text per column, as plain text like `CellChange.text`. Each row takes the look of
   the last row as written. `rows` and `cells` then find rows among these, not the rows as
@@ -821,9 +823,10 @@ With `figure`:
 
 With `lines`:
 
-- `lines` (`string[]`, required): The lines each step highlights, one entry per step, counting lines from 1: `"3"`, `"3-5"`,
-  `"3-"` (line 3 to the end) or `"1-2, 6"`. The other lines turn grey. Put one fenced code block
-  inside the stepper, with blank lines around it.
+- `lines` (`string[]`, required): The lines each step highlights, one entry per step, by the numbers the page shows for them:
+  from 1, or from the fence's `start`. `"3"`, `"3-5"`, `"3-"` (line 3 to the end) or `"1-2, 6"`.
+  The other lines turn grey. Put one fenced code block inside the stepper, with blank lines
+  around it.
 - `captions` (`string[]`, optional): One short caption per step, in step order, shown beside the buttons. Screen readers announce
   it with the step number and, for code, the step's lines; without captions they hear only
   those. Leave it out only when the prose around the stepper already explains each step.

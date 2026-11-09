@@ -43,6 +43,13 @@ const mathAndCode = {
     "```pythn",
     'print("oi")',
     "```",
+    "",
+    ...["start=-1", "start=x", "start=1.5", "start", "start=01"].flatMap((start) => [
+      `\`\`\`python ${start}`,
+      'print("oi")',
+      "```",
+      "",
+    ]),
   ]),
   "artifacts/quimica/index.mdx": artifact(fields("qu1m1ca1", "Química", "Física"), [
     "Texto $x^{2$.",
@@ -384,6 +391,11 @@ describe("a repo whose artifacts break math, code, diagram, link, question ID, s
       'artifacts/fisica/index.mdx:9:38 error math: Temml can\'t render this math: Accented Unicode text character "é" used in math mode; write words as \\text{…} (artifact skill: Math)',
       "artifacts/fisica/index.mdx:13:1 error math: Temml can't render this math: Unsupported function name: \\foo (artifact skill: Math)",
       "artifacts/fisica/index.mdx:16:4 error code-language: `pythn` is not a code language Shiki knows (artifact skill: Code blocks)",
+      "artifacts/fisica/index.mdx:20:11 error code-start: `start=-1` must give the number of the block's first line, a whole number from 0, such as `start=0` (artifact skill: Code blocks)",
+      "artifacts/fisica/index.mdx:24:11 error code-start: `start=x` must give the number of the block's first line, a whole number from 0, such as `start=0` (artifact skill: Code blocks)",
+      "artifacts/fisica/index.mdx:28:11 error code-start: `start=1.5` must give the number of the block's first line, a whole number from 0, such as `start=0` (artifact skill: Code blocks)",
+      "artifacts/fisica/index.mdx:32:11 error code-start: `start` must give the number of the block's first line, a whole number from 0, such as `start=0` (artifact skill: Code blocks)",
+      "artifacts/fisica/index.mdx:36:11 error code-start: `start=01` must give the number of the block's first line, a whole number from 0, such as `start=0` (artifact skill: Code blocks)",
       "artifacts/quimica/index.mdx:9:12 error math: Temml can't render this math: Expected '}', got 'EOF' (artifact skill: Math)",
     ]);
   });
@@ -479,7 +491,7 @@ describe("a repo whose artifacts break math, code, diagram, link, question ID, s
   });
 
   it("reports every failure in one run, and nothing else", () => {
-    expect(run.summary[0]).toBe("pnpm check: 50 failures");
+    expect(run.summary[0]).toBe("pnpm check: 55 failures");
   });
 });
 
@@ -505,6 +517,41 @@ describe("a repo whose only failure is an artifact's math", () => {
     expect(existsSync(join(repo.root, "dist-worker/question-manifest.json"))).toBe(false);
     expect(existsSync(join(repo.root, "dist-worker/build-id.json"))).toBe(false);
     expect(existsSync(join(repo.root, "dist-worker/public-paths.json"))).toBe(false);
+  });
+});
+
+describe("a one-block Stepper whose `lines` name a line its `start=0` block doesn't have", () => {
+  let repo: FixtureRepo;
+  let run: CheckRun;
+
+  beforeAll(async () => {
+    repo = await createFixtureRepo({
+      "artifacts/pilha/index.mdx": artifact(fields("p1lha001", "Pilha", "Computação"), [
+        'import Stepper from "@artifactory/design-system/stepper";',
+        "",
+        '<Stepper lines={["0", "4"]}>',
+        "",
+        "```text start=0",
+        "push 2",
+        "push 3",
+        "add",
+        "print",
+        "```",
+        "",
+        "</Stepper>",
+      ]),
+    });
+    run = await repo.check(["--artifacts-only"]);
+  }, checkTimeout);
+
+  afterAll(() => repo.remove());
+
+  it("fails the build at the Stepper, naming the block's lines by the numbers the page shows", () => {
+    expect(run.exitCode).toBe(1);
+    expect(run.summary).toEqual([
+      "pnpm check: 1 failure",
+      'artifacts/pilha/index.mdx:11:1 error build: Stepper: lines "4" must list numbers from 0 to 3, such as "1", "1-3", "1-" or "0-1, 4" (artifact skill: Build failures)',
+    ]);
   });
 });
 

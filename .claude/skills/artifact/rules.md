@@ -69,9 +69,11 @@ Rule `math`. Before writing math, read [math.md](math.md).
 
 ## Code blocks
 
-Rule `code-language`.
+Rules `code-language` and `code-start`.
 
 - Give each fence its language in lowercase, as Shiki names it: ` ```ts `, ` ```python `, ` ```bash `, or ` ```text ` for plain text. A language Shiki doesn't know fails.
+- Lines are numbered from 1. When the source numbers its lines from something else, such as a listing whose addresses start at 0, give the fence `start` after the language, ` ```pascal start=0 `, and keep the source's numbers: never renumber the listing, and never write the numbers into the code. `start` takes a whole number from 0; anything else (`start=-1`, `start=x`, `start=1.5`, `start=01`, a bare `start`) fails at the fence as `code-start`.
+- Every line reference counts the number the page shows, from `start`: a one-block Stepper's `lines` and a Stage step's `lines` both name the block's first line `0` under `start=0`.
 - Math is never a fence: write ` ```math ` blocks as `$$…$$`.
 
 ## Diagrams and figures
