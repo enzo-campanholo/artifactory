@@ -9,12 +9,12 @@ Spec: [Private copy workflow](../spec.md) › A delegator verifies the child's c
 
 The work is docs-only and goes in a checkout of the upstream repo, in the delegation doc. Read `/writing-for-agents` before editing.
 
-- [ ] The delegation doc states the acceptance rule. Put it next to "The child reports completion in its final message", or in a short "Accepting a child's result" paragraph under Briefs, whichever reads better. Either way, it applies to every delegated child, not only reviewers.
-- [ ] The rule links Local evidence for what each `check.applicability` value means and doesn't restate those definitions.
-- [ ] The rule names its action positively (resume the child to finish the gate). It also rules out the two shortcuts: rerunning the gate as the delegator, and accepting the claim.
-- [ ] Briefs gain no separate line on ending a turn early. A brief already carries `CLAUDE.md`'s `scripts/heavy` rules, and they include that one.
-- [ ] Before writing the rule, confirm that `scripts/heavy --status --json` shows enough to tell a successful `--last-passed` run of the child's HEAD apart: its mode, its outcome, the HEAD it ran on, and that the source is unchanged since. If it does, the rule accepts such a run besides `current`, and the closing comment names the fields it reads. If it doesn't, stop and report to the owner what's missing instead of inventing a proxy.
-- [ ] Walk three cases through the edited doc and confirm each reaches the action above: a child that reports a pass with its check still running, a child whose check is `current`, and a child whose successful `--last-passed` run is of its HEAD with the source unchanged. Record the walk-through in the closing comment.
+- [x] The delegation doc states the acceptance rule. Put it next to "The child reports completion in its final message", or in a short "Accepting a child's result" paragraph under Briefs, whichever reads better. Either way, it applies to every delegated child, not only reviewers.
+- [x] The rule links Local evidence for what each `check.applicability` value means and doesn't restate those definitions.
+- [x] The rule names its action positively (resume the child to finish the gate). It also rules out the two shortcuts: rerunning the gate as the delegator, and accepting the claim.
+- [x] Briefs gain no separate line on ending a turn early. A brief already carries `CLAUDE.md`'s `scripts/heavy` rules, and they include that one.
+- [x] Before writing the rule, confirm that `scripts/heavy --status --json` shows enough to tell a successful `--last-passed` run of the child's HEAD apart: its mode, its outcome, the HEAD it ran on, and that the source is unchanged since. If it does, the rule accepts such a run besides `current`, and the closing comment names the fields it reads. If it doesn't, stop and report to the owner what's missing instead of inventing a proxy. _Met by the first comment's stop: it doesn't. The owner's [narrowing decision](../spec.md#2026-11-08-the-delegators-rule-narrowed-back-to-current) then superseded the `--last-passed` acceptance, so the rule accepts `current` only._
+- [x] Walk three cases through the edited doc and confirm each reaches the action above: a child that reports a pass with its check still running, a child whose check is `current`, and a child whose successful `--last-passed` run is of its HEAD with the source unchanged. Record the walk-through in the closing comment. _The owner's narrowing decision superseded the third case's action: the doc resumes that child instead of accepting it._
 
 ## Comments
 
@@ -49,3 +49,21 @@ Implementer for this ticket, delegated from the Artifact generation gaps session
 **Validation:** I ran the full `scripts/heavy pnpm check` at `f7af5c6` in this linked worktree. Every step passed except Vitest, which failed on one test only. It's the known environment failure: `tests/check/reporting.test.ts` › "attaches full success to actual tracked and nonignored working content without staging it" (`expected 'stale' to be 'current'`), recorded on ticket 01. Nothing else failed. The `gaps-implementation` tip is still `0735893`, this branch's base, so the merge brought in nothing and I didn't rerun the check. After the check, this paragraph is the only change.
 
 **Left undone:** every checklist item. They wait on the owner's choice between the two routes above.
+
+### 2026-11-08: rule written, accepting `current` only
+
+Implementer for this ticket, delegated from the Artifact generation gaps session. Where: `/home/isolino/.t3/worktrees/artifactory-oss/t3-f09dfff2`, branch `t3/f09dfff2`, based on `gaps-implementation`. Status stays `claimed` for the delegator's review.
+
+**Result.** `docs/agents/delegation.md` › Briefs gains a paragraph right after "The child reports completion in its final message", written for any child, not only reviewers. The delegator runs `scripts/heavy --status --json` in the child's worktree and accepts only `check.applicability: current` for the child's HEAD. On any other value, `unknown` from a `--last-passed` run included, it resumes the child to finish the gate, even when the child's final message reports a pass, and leaves the gate to the child rather than running it itself. The paragraph links [Local evidence](../../../docs/agents/delegation.md#local-evidence) for the values and doesn't restate them. Briefs gain no line on ending a turn early. This follows the owner's [narrowing decision](../spec.md#2026-11-08-the-delegators-rule-narrowed-back-to-current), which superseded the `--last-passed` widening; the checklist's `--last-passed` items are ticked with that note.
+
+**Walk-through against the edited doc:**
+
+- _Child reports a pass with its check still running:_ the job is `running` (or `interrupted_or_unknown` once its turn ended), and `check.applicability` is `unknown`. That isn't `current`, so the delegator resumes the child to finish the gate, despite the reported pass.
+- _Child's check is `current`:_ `check.applicability: current` for the child's HEAD, so the delegator accepts the result.
+- _Child's successful `--last-passed` run of its HEAD, source unchanged:_ `check.applicability: unknown`. The paragraph names this case, so the delegator resumes the child to finish the plain gate. Per the owner's decision, this replaces the ticket's original "accepts".
+
+**Commits:** `4c58617` (the rule), plus this comment and the checklist ticks.
+
+**Validation:** the full `scripts/heavy pnpm check` at `4c58617` in this linked worktree. Every step passed except Vitest, which failed on one test only: the known environment failure, `tests/check/reporting.test.ts` › "attaches full success to actual tracked and nonignored working content without staging it" (`expected 'stale' to be 'current'`), recorded on ticket 01. After the check, this comment and the checklist ticks are the only changes.
+
+**Left undone:** the delegator's review and closing. Widening the rule to `--last-passed` runs stays deferred, as the owner decided.
