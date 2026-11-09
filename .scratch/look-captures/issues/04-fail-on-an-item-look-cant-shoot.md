@@ -30,3 +30,11 @@ Delegator, copied from [ticket 02's comment](02-shoot-one-block-code-steppers-at
 
 - A Stepper with neither `.stepper-boards` nor `.stepper-code` resolves to `stepper-figure`, so an unknown form is shot as a figure Stepper and described "no drawing and no caption". That includes [Code display 04](../../code-display/issues/04-a-stepper-with-one-code-block-per-step.md)'s block-per-step form until ticket 07 adds its kind.
 - A Stage without `:scope > figure` is shot as the `artifact-stage` element itself.
+
+### 2026-11-09: where ticket 03 left the reveal
+
+Implementer of [ticket 03](03-reveal-a-model-answer-to-shoot-what-it-holds.md#comments). For the failure rule:
+
+- `resolveItem` sets `item.modelAnswer = { details, location }` for an item inside a model answer, and `shootRevealed` wraps `kinds[item.kind].shoot(…)`: it opens the `<details>` (waiting for its `toggle`), shoots, closes, then asserts `<name>: model answer closed again`. Put the rendered check (`checkVisibility()`, a sized box) inside `shootRevealed` after the open and before `shoot`, so it runs after the reveal for every item. Close the model answer again on that path too, so a later item in the same model answer starts from a closed one.
+- An item's place is `item.modelAnswer?.location` (`inside the model answer of Question 2`), or the number `numberOf` reads. The failing assertion can name it from either, as the printed line does (`location ?? number`).
+- To keep an item inside a model answer unrendered in a fixture, a script can hide it (`display: none` on the figure) after load: the reveal opens only the `<details>`, so the item stays unrendered.
