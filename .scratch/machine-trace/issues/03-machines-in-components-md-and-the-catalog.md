@@ -1,6 +1,6 @@
 # 03: Machines in `COMPONENTS.md` and the catalog
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02
 
 **What to build:** an artifact agent learns to write a MEPA trace from `COMPONENTS.md` alone, and the owner sees MEPA run on its own catalog page. `COMPONENTS.md` gains a **Machines** section generated from the machine modules' doc comments, the `Stage` entry points to it, and the catalog gains a MEPA page with a short program in a pt-BR and an English Stage ([Machine trace](../spec.md) › Documentation).
