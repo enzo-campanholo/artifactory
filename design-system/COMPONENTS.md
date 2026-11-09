@@ -1163,7 +1163,8 @@ MEPA, the stack machine Pascal-like languages compile to in Kowaltowski's textbo
 counter `i`, the stack top `s`, the display `D` and the memory `M`. Trace it in a Stage with
 `input` whose content is the listing, a registers table and a memory table, with a build of a
 few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR, laid out as a
-compiler lays out a program: a jump over the subroutines, none here, to the main program's start:
+compiler lays out a program: a jump over the subroutines to the main program's start, and a
+function, área(bases, altura), that the main program calls with a + b and h:
 
 ````mdx
 <Stage
@@ -1184,7 +1185,15 @@ compiler lays out a program: a jump over the subroutines, none here, to the main
 ```text start=0
 INPP
 AMEM 3        ; a, b, h
-DSVS L1       ; salta os procedimentos
+DSVS L1       ; salta a função
+L2: ENPR 1    ; área(bases, altura)
+CRVL 1,-5
+CRVL 1,-4
+MULT
+CRCT 2
+DIVI
+ARMZ 1,-6     ; o valor de retorno
+RTPR 1,2
 L1: NADA
 LEIT
 ARMZ 0,0
@@ -1192,13 +1201,12 @@ LEIT
 ARMZ 0,1
 LEIT
 ARMZ 0,2
+AMEM 1        ; o valor de retorno
 CRVL 0,0
 CRVL 0,1
 SOMA
 CRVL 0,2
-MULT
-CRCT 2
-DIVI
+CHPR L2,1
 IMPR
 DMEM 3
 PARA
@@ -1207,19 +1215,26 @@ FIM
 
 | Registrador | Valor |
 | ----------- | ----: |
-| i           |    19 |
+| i           |    26 |
 | s           |    −1 |
 | D[0]        |     0 |
+| D[1]        |     ? |
 | entrada     |     — |
 | saída       |    16 |
 
-| Célula | Dado | Papel | Topo |
-| ------ | ---: | ----- | ---- |
-| M[0]   |    3 |       |      |
-| M[1]   |    5 |       |      |
-| M[2]   |    4 |       |      |
-| M[3]   |   16 |       |      |
-| M[4]   |    2 |       |      |
+| Célula | Dado | Papel | Desl. | Topo |
+| ------ | ---: | ----- | ----: | ---- |
+| M[0]   |    3 |       |       |      |
+| M[1]   |    5 |       |       |      |
+| M[2]   |    4 |       |       |      |
+| M[3]   |   16 |       |       |      |
+| M[4]   |    8 |       |       |      |
+| M[5]   |    4 |       |       |      |
+| M[6]   |   24 |       |       |      |
+| M[7]   |    1 |       |       |      |
+| M[8]   |    ? |       |       |      |
+| M[9]   |   16 |       |       |      |
+| M[10]  |    2 |       |       |      |
 
 </Stage>
 ````
@@ -1231,15 +1246,23 @@ import mepa from "@artifactory/design-system/machines/mepa";
 
 export default trace(mepa, {
   reads: ["a", "b", "h"],
-  labels: { L1: "o início do programa principal" },
-  roles: { 1: ["base a", "base b", "altura h"], 4: "lido", 12: "a mais b", 16: "a área" },
-  after: { 18: "As variáveis a, b e h estão liberadas." },
+  labels: { L1: "o início do programa principal", L2: "o início de área" },
+  subroutines: { L2: { params: ["bases", "altura"], returns: true } },
+  roles: {
+    1: ["base a", "base b", "altura h"],
+    8: "a área",
+    18: ["valor de retorno"],
+    21: "parâmetro bases",
+    22: "parâmetro altura",
+  },
+  after: { 25: "As variáveis a, b e h estão liberadas." },
 });
 ```
 
 The tables as written are what the first example's last step leaves, as for any Stage with
-`input`: `PARA` keeps `i` on its own line, 19; every cell is above `s`, so none shows a role or
-`← s`; and M[3] and M[4] keep the last values the stack held there.
+`input`: `PARA` keeps `i` on its own line, 26; `RTPR` gave `D[1]` back the value `ENPR` kept in
+M[8], none; every cell is above `s`, so none shows a role, an offset or `← s`; and M[3] to M[10]
+keep the last values the stack held there.
 
 **The listing** is the Stage's one code block, fenced ` ```text start=0 `, so address k is the
 line the page shows as k: never type the addresses into it. Each line is an optional label
@@ -1249,39 +1272,50 @@ arguments and an optional `; comment`, and the last line is `FIM`:
 - `INPP` starts the program: `s` gets −1 and `D[0]` 0.
 - `AMEM n` reserves n cells on the stack, and `DMEM n` frees n.
 - `LEIT` reads the next field, in the order `reads` names them, onto the stack.
-- `ARMZ k,n` stores the top in `M[D[k] + n]` and pops it; `CRVL k,n` pushes a copy of it.
+- `ARMZ k,n` stores the top in `M[D[k] + n]` and pops it; `CRVL k,n` pushes a copy of it. n may
+  be negative: `CRVL 1,-5` reads a subroutine's parameter.
 - `CRCT c` pushes the constant c.
 - `SOMA`, `MULT` and `DIVI` replace the two cells at the top with their sum, product or quotient
   (`DIVI` drops the remainder, as Pascal's `div`).
 - `DSVS L` jumps: `i` gets the address of the line labelled `L`. MEPA has no conditional jump
   yet, so a jump back to an earlier line repeats forever and runs past the Stage's 200 steps.
 - `NADA` does nothing: it marks a place, usually labelled, for a jump to land on.
+- `CHPR L,k` calls the subroutine at the label `L`, of level k: it pushes the return address,
+  the next line's, and k, and jumps to `L`.
+- `ENPR k` enters level k: it pushes `D[k]` and points `D[k]` at the next cell, the record's
+  base, offset 0. The caller's arguments sit below the base, the last at −4, and a return value
+  the caller reserved below the first.
+- `RTPR k,n` returns from a subroutine with n parameters: `D[k]` gets back the value `ENPR`
+  pushed, `i` the return address, and `s` drops by n + 3, leaving the return value on top.
 - `IMPR` pops the top onto the output, and `PARA` stops the machine.
 
 **Failures**, each a `stage-run` failure of `pnpm check`. A listing the machine can't read is
 refused, naming the line: an instruction MEPA doesn't have ("`PUSH 3` isn't a MEPA
 instruction"), wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers", "`DSVS 3`
-isn't `DSVS L`, with a label"), a jump to a label no line has ("`DSVS L9` jumps to the label
-`L9`, which the listing doesn't have: it has `L1`"), a label on two lines ("the label `L1` is
-already on line 1"), a label with no instruction after it, a fence without `start=0`, `FIM`
-anywhere but on the last line, and a Stage with no code block or more than one. So is a `roles`
-or `after` note keyed to an address the listing doesn't have, and a `labels` note naming a label
-no line has ("`labels` names the label `L2`, which the listing doesn't have: it has `L1`"). A run
-is refused, naming the line, when it divides by zero, reads with no field left, drops the stack
-below its bottom, runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, reaches a
-cell below `M[0]`, or reaches `FIM`. A table without a column the view writes into fails as any
-Stage's does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
+isn't `DSVS L`, with a label"), a jump or call to a label no line has ("`DSVS L9` jumps to the
+label `L9`, which the listing doesn't have: it has `L1`", "`CHPR L9,1` calls the label `L9`, …"),
+a label on two lines ("the label `L1` is already on line 1"), a label with no instruction after
+it, a fence without `start=0`, `FIM` anywhere but on the last line, and a Stage with no code block
+or more than one. So is a `roles` or `after` note keyed to an address the listing doesn't have, a
+`labels` note naming a label no line has ("`labels` names the label `L2`, which the listing
+doesn't have: it has `L1`"), and a `subroutines` note on a label no `CHPR` calls ("`subroutines`
+names the label `L2`, which no `CHPR` calls: the listing calls `L1`"). A run is refused, naming
+the line, when it divides by zero, reads with no field left, drops the stack below its bottom,
+runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, returns to a cell with no
+value, reaches a cell below `M[0]`, or reaches `FIM`. A table without a column the view writes
+into fails as any Stage's does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
 
-**The registers table** has the rows `i`, `s`, `D[0]` and every other `D[k]` the listing names,
-then the input yet to be read and the output, each listing its values in order, `—` when empty.
-Its headers and the last two rows' names follow the artifact's main language. In pt-BR, as the
-example's, and in English, after the same run:
+**The registers table** has the rows `i`, `s`, `D[0]` and every other `D[k]` an `ARMZ`, `CRVL`,
+`ENPR` or `RTPR` names, then the input yet to be read and the output, each listing its values in
+order, `—` when empty. Its headers and the last two rows' names follow the artifact's main
+language. In pt-BR, as the example's, and in English, after the same run:
 
 | Register | Value |
 | -------- | ----: |
-| i        |    17 |
+| i        |    26 |
 | s        |    −1 |
 | D[0]     |     0 |
+| D[1]     |     ? |
 | input    |     — |
 | output   |    16 |
 
@@ -1293,22 +1327,33 @@ fails. Its columns are `Célula | Dado | Papel | Desl. | Topo` in pt-BR, and in 
 | ---- | ---: | ---- | -----: | --- |
 | M[0] |    3 |      |        |     |
 
-`Papel` (`Role`) and `Desl.` (`Offset`) are optional: leave `Papel` out and no role is shown, and
-`Desl.`, for the offsets in a subroutine's record, is kept as written. A cell above `s` is
-`muted` and shows no role, `← s` marks the top, and a cell with no value shows `?`. The cell
-each step writes is `strong`, even when it already held that value.
+`Papel` (`Role`) and `Desl.` (`Offset`) are optional: leave one out and the view doesn't write
+it. `Desl.` shows each cell of a subroutine's record its offset from the record's base, from its
+return value and parameters, as `subroutines` gives them, up to the top: −6 for área's return
+value, −5 and −4 for its parameters, −3 for the return address, −2 for the level, −1 for the
+kept `D[k]`, then 0 up for its locals. A record holds its cells from its `ENPR` to its `RTPR`,
+and the topmost record holding a cell gives its offset; a cell outside every record shows none.
+A cell above `s` is `muted` and shows no role or offset, `← s` marks the top, and a cell with no
+value shows `?`. The cells each step writes are `strong`, even when one already held that value.
 
 **The lines:** the instruction that ran is `reversed`, and the one `i` points at next is
 `dashed` until the machine stops.
 
 **Notes**, besides `reads`, in the artifact's language: `labels`, by label, the place each label
 names (`L1: "o início de main"`), said beside the label when a jump lands there ("Desvia para L1,
-o início de main: i recebe 3.") and when the run passes its `NADA` ("Passa por L1, o início de
-main, e não faz nada."); a label without one is said alone. `roles`, by address, the role of the
-cell that instruction writes (`11: "lido"`), or for an `AMEM n` a list of n roles, one per cell
-it reserves (`1: ["x, global", "y, global"]`). A cell an `ARMZ` writes keeps its role unless the
-note gives one; any other write without one has no role. `after`, by address, a sentence added to
-that instruction's step (`14: "As globais x e y estão liberadas."`).
+o início de main: i recebe 3."), when a call goes there ("Chama L2, o início de div: …") and when
+the run passes its `NADA` ("Passa por L1, o início de main, e não faz nada."); a label without
+one is said alone. `subroutines`, by the label `CHPR` calls, the subroutine's parameters, first
+to last, and whether it returns a value (`L2: { params: ["a", "b"], returns: true }`): they give
+`Desl.` its offsets, and `ENPR` says where each parameter and the return value sit ("Os
+parâmetros a e b estão em M[3] e M[4], nos deslocamentos menos 5 e menos 4."), as `RTPR` says
+the value it leaves on top. `roles`, by address, the role of the cell that instruction writes
+(`11: "lido"`), or for an `AMEM n` a list of n roles, one per cell it reserves
+(`1: ["x, global", "y, global"]`), and for a `CHPR` a list of 2. A cell an `ARMZ` writes keeps
+its role unless the note gives one. Without one, `CHPR`'s cells are the return address and the
+level ("endereço de retorno", "nível 1") and `ENPR`'s the kept display ("D[1] guardado"), and any
+other write has no role. `after`, by address, a sentence added to that instruction's step
+(`14: "As globais x e y estão liberadas."`).
 
 ## Colours in diagrams
 
