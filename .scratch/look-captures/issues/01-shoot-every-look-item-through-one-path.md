@@ -1,6 +1,6 @@
 # 01: Shoot every look item through one path
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [What `pnpm look` captures](../spec.md)
