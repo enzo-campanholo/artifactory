@@ -1,13 +1,15 @@
 ---
 import { componentError } from "./component-errors.ts";
+import { swatchPatterns } from "./swatches.ts";
 
 interface Props {
   svg: string;
   alt: string;
   minScale?: number | undefined;
+  swatches?: boolean | undefined;
 }
 
-const { svg, alt, minScale = 2 / 3 } = Astro.props;
+const { svg, alt, minScale = 2 / 3, swatches = false } = Astro.props;
 
 const root = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(svg);
 if (root === null)
@@ -28,6 +30,9 @@ const ownAttributes = Object.fromEntries(
 const content = drawing.replace(/<rect\b[^>]*>/g, (rect) =>
   rect.replace(/\s(?:rx|ry)\s*=\s*(?:"[^"]*"|'[^']*')/g, ""),
 );
+
+// Only a drawing that fills with swatches gets their patterns, so every other drawing stays as written.
+const swatched = swatches && content.includes("fill-swatch-") ? swatchPatterns() : undefined;
 
 const viewBox = ownAttributes.viewBox ?? viewBoxOfSize(ownAttributes.width, ownAttributes.height);
 if (viewBox === undefined) {
@@ -61,7 +66,11 @@ const minWidthStyle =
 ---
 
 <svg {...attributes} style={minWidthStyle} role="img" aria-label={alt}>
-  <g aria-hidden="true" set:html={content} />
+  <g
+    aria-hidden="true"
+    style={swatched?.style}
+    set:html={swatched ? swatched.defs + content : content}
+  />
 </svg>
 
 <style>

@@ -1177,3 +1177,14 @@ Each class paints an SVG element with a token:
 - `stroke-border`: `--color-border`
 
 The `text`, `muted` and `accent` classes are ink: use them for lines and labels. The `tint`, `surface` and `border` classes are too faint to read on the page: use them for fills and gridlines, never for text or a line that carries meaning, unless it sits on an ink fill.
+
+### Swatches
+
+When colour is the subject (a graph or map colouring, an edge colouring, a red-black tree), each colour is a swatch: a hatching in ink on the ground, never a hue or a line form. In a `Figure` or a `Stage` drawing, never a `Stepper`, fill an area (a vertex, a region) with its colour's class, in swatch order, at most 6 to a drawing; an area left in the ground is uncoloured:
+
+- `fill-swatch-1`: diagonal lines `/`
+- `fill-swatch-2`: diagonal lines `\`
+- `fill-swatch-3`: cross-hatch, both diagonals
+- `fill-swatch-4`: horizontal lines
+- `fill-swatch-5`: vertical lines
+- `fill-swatch-6`: dots

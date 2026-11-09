@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <g>
+    <line x1="230" y1="100" x2="195" y2="39" class="stroke-text" stroke-width="2" />
+    <line x1="195" y1="39" x2="125" y2="39" class="stroke-text" stroke-width="2" />
+    <line x1="125" y1="39" x2="90" y2="100" class="stroke-text" stroke-width="2" />
+    <line x1="90" y1="100" x2="125" y2="161" class="stroke-text" stroke-width="2" />
+    <line x1="125" y1="161" x2="195" y2="161" class="stroke-text" stroke-width="2" />
+    <line x1="195" y1="161" x2="230" y2="100" class="stroke-text" stroke-width="2" />
+    <line x1="230" y1="100" x2="90" y2="100" class="stroke-text" stroke-width="2" />
+    <line x1="195" y1="39" x2="125" y2="161" class="stroke-text" stroke-width="2" />
+    <line x1="125" y1="39" x2="195" y2="161" class="stroke-text" stroke-width="2" />
+  </g>
+  <g>
+    <circle cx="125" cy="39" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" />
+    <rect x="116" y="30" width="18" height="18" class="fill-surface" />
+    <text x="125" y="44.5" text-anchor="middle" font-size="15" data-swatch="1">1</text>
+  </g>
+  <g>
+    <circle cx="195" cy="39" r="22" class="fill-swatch-2 stroke-text" stroke-width="2" />
+    <rect x="186" y="30" width="18" height="18" class="fill-surface" />
+    <text x="195" y="44.5" text-anchor="middle" font-size="15" data-swatch="2">2</text>
+  </g>
+  <g>
+    <circle cx="230" cy="100" r="22" class="fill-swatch-3 stroke-text" stroke-width="2" />
+    <rect x="221" y="91" width="18" height="18" class="fill-surface" />
+    <text x="230" y="105.5" text-anchor="middle" font-size="15" data-swatch="3">3</text>
+  </g>
+  <g>
+    <circle cx="195" cy="161" r="22" class="fill-swatch-4 stroke-text" stroke-width="2" />
+    <rect x="186" y="152" width="18" height="18" class="fill-surface" />
+    <text x="195" y="166.5" text-anchor="middle" font-size="15" data-swatch="4">4</text>
+  </g>
+  <g>
+    <circle cx="125" cy="161" r="22" class="fill-swatch-5 stroke-text" stroke-width="2" />
+    <rect x="116" y="152" width="18" height="18" class="fill-surface" />
+    <text x="125" y="166.5" text-anchor="middle" font-size="15" data-swatch="5">5</text>
+  </g>
+  <g>
+    <circle cx="90" cy="100" r="22" class="fill-swatch-6 stroke-text" stroke-width="2" />
+    <rect x="81" y="91" width="18" height="18" class="fill-surface" />
+    <text x="90" y="105.5" text-anchor="middle" font-size="15" data-swatch="6">6</text>
+  </g>
+</svg>

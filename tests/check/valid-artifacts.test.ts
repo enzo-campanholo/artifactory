@@ -442,6 +442,55 @@ const rewrittenStage = {
   ].join("\n"),
 };
 
+const colouring = {
+  "artifacts/coloracao/index.mdx": artifact(fields("c0l0r4c4", "Coloração", "Grafos"), [
+    'import Figure from "@artifactory/design-system/figure";',
+    'import Stage from "@artifactory/design-system/stage";',
+    'import hexagono from "./hexagono.svg?raw";',
+    "",
+    '<Figure src={hexagono} alt="Seis vértices, um de cada cor, de 1 a 6." />',
+    "",
+    '<Figure src={hexagono} alt="Os mesmos seis vértices outra vez." />',
+    "",
+    "<Stage",
+    '  build="cores"',
+    '  choose={{ label: "Começar em", options: ["1", "2"] }}',
+    '  prompt="Escolha um vértice para começar."',
+    "  figure={hexagono}",
+    '  alt="Seis vértices, um de cada cor, de 1 a 6."',
+    ">",
+    "",
+    "| Vértice | Cor |",
+    "| ------- | --: |",
+    "| 1       |   1 |",
+    "| 2       |   2 |",
+    "",
+    "</Stage>",
+  ]),
+  "artifacts/coloracao/hexagono.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 60">',
+    ...[1, 2, 3, 4, 5, 6].map((swatch) => {
+      const x = String(swatch * 45 - 15);
+      return [
+        `  <g data-part="${String(swatch)}">`,
+        `    <circle cx="${x}" cy="30" r="22" class="fill-swatch-${String(swatch)} stroke-text" stroke-width="2" />`,
+        `    <text x="${x}" y="35" text-anchor="middle" font-size="15" data-swatch="${String(swatch)}">${String(swatch)}</text>`,
+        "  </g>",
+      ].join("\n");
+    }),
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/coloracao/cores.build.ts": [
+    'import { defineBuild } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild({",
+    "  steps: (start) => [{ say: `Começa no vértice ${start}.`, parts: { [start]: 'strong' } }],",
+    "});",
+    "",
+  ].join("\n"),
+};
+
 // The first example worked by hand: x = −4 and y = 2 leave (−4 + 2) × 2 div 3, which is −1, in
 // M[2] and the output, the stack back below its bottom and every cell freed. In the second, the
 // jump skips printing 9, so x = 6 is stored in M[0], copied to M[1] and printed alone.
@@ -837,6 +886,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ...typedStage,
       ...rewrittenStage,
       ...machineTrace,
+      ...colouring,
       ...renamedTwiceAndBack,
       ...statementsAndCitations,
       ...draft,
@@ -1026,6 +1076,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       expect(hiddenGroups).toHaveLength(6);
       expect(page).toContain("início");
       expect(page).toContain('class="fill-tint stroke-accent"');
+      expect(page, "a page whose drawings use no swatches").not.toContain("<pattern");
     });
 
     it("lays diagrams out with ELK unless the D2 file chooses another engine", async () => {
@@ -1069,6 +1120,24 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
         "Archivo 500 italic",
         "Archivo 700",
       ]);
+    });
+
+    it("gives each drawing that uses swatches six hatchings of its own, which its swatches reach and no other drawing on the page repeats", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("coloracao"),
+        "text/html",
+      ) as unknown as Document;
+      const ids = [...page.querySelectorAll("[id]")].map((element) => element.id);
+      expect(new Set(ids).size).toBe(ids.length);
+      const drawings = [...page.querySelectorAll('svg[role="img"]')];
+      expect(drawings).toHaveLength(3);
+      for (const drawing of drawings) {
+        const hatchings = [...drawing.outerHTML.matchAll(/url\(#([^)]+)\)/g)].map(([, id]) => id);
+        expect(new Set(hatchings).size).toBe(6);
+        for (const id of hatchings) {
+          expect(drawing.querySelector(`pattern[id="${id ?? ""}"]`)).not.toBeNull();
+        }
+      }
     });
 
     it("renders an image next to the entry, optimized", async () => {
