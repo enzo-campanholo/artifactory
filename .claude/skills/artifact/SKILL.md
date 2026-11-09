@@ -65,6 +65,8 @@ Before starting one, read [lifecycle.md](lifecycle.md): each has its own steps a
 
 For every new or changed diagram, figure and `Stage` (its build included), run `pnpm look <slug>`. It builds the site and screenshots each `Diagram`, `Figure`, diagram or figure `Stepper` (every step) and `Stage` at 393 px (a phone) and 1920 px (a 1080p screen) into `.look/<slug>/`. Each shot is the item alone, as wide as it sits on the page, so the 1920 px shots are the text column's width, not the screen's. Above each item's files it prints the item's number, its kind, the number its caption shows (`Figure 2.1`) and its `alt`. Cite a figure or Stage in the prose by that printed number. Open every PNG and compare it with its `alt`: labels overlapping or cut off, text too small at 393 px, a drawing far wider than it is tall, a step that shows the wrong part, a mark that doesn't read at 393 px. Fix and look again, until every screenshot matches its `alt` and reads well at both widths.
 
+Each shot is the item alone, with the bottom bar, the notices and the rail hidden: look hides every fixed or sticky layer outside the item for the shot, then shows it again. A bar or notice in a shot is a look bug to report, not something to fix in the artifact: never move content to keep it clear of the bar.
+
 Look also writes `.look/<slug>/results.json` and a `contact-sheet.html` that helps find shots; judge the original PNGs. `captured-awaiting-visual-review` means a person still has to look, never a visual pass. Failed assertions, unavailable Chromium and unsupported capabilities aren't passes either.
 
 Before judging a `Stage`'s shots, read [stage.md](stage.md#look): which run Look shoots, what it prints, and what each step's shot is compared with.
