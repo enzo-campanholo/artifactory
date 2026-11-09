@@ -66,3 +66,10 @@ All upstream, since the copy matches upstream outside `artifacts/`:
 Owner, /to-tickets review in the Artifact generation gaps session, 2026-11-08, every recommendation accepted. Each bullet amends this spec or fills a gap in it; the tickets in `issues/` carry the detail.
 
 - **A delegator verifies the child's check** (02), amending "only when … `check.applicability: current`": the delegator also accepts a successful `--last-passed` run of the child's HEAD with the source unchanged since. The implementer first confirms that `scripts/heavy --status --json` shows enough (mode, outcome, HEAD, source unchanged) to tell such a run apart, and stops and reports if it doesn't, rather than inventing a proxy.
+
+### 2026-11-08: the delegator's rule narrowed back to `current`
+
+Owner, Artifact generation gaps implementation session, 2026-11-08, answering ticket 02's field-check stop ([its comment](issues/02-delegator-verifies-the-childs-check.md#comments)). This supersedes the ticketing decision above that widened the rule to `--last-passed` runs, for ticket 02's scope only.
+
+- **Approved:** the spec's original rule. A delegator accepts a child's check only when `scripts/heavy --status --json`, run in the child's worktree, shows `check.applicability: current` for the child's HEAD. On anything else, `unknown` from a `--last-passed` run included, it resumes the child to finish the gate. Reason: the status shows neither the HEAD a `--last-passed` run checked nor whether the source changed since. Children in worktrees run the plain gate anyway.
+- **Deferred:** widening the rule to `--last-passed` runs, which waits on a platform change to the status. No ticket is filed for it.
