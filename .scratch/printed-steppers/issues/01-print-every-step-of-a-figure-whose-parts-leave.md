@@ -25,3 +25,14 @@ Specified in [Printed Steppers](../spec.md), which carries the decisions; don't 
 - [ ] Seam 1 (`tests/check`, the built site's figures) covers, against a fixture artifact with a figure that builds up and one whose parts leave and that defines a marker: which form each prints, each step's parts, its frame and heading, the unique ids and resolving references, and the single label. Expected values come from the fixture drawings as written. Mutating the rule (treating every figure as build-up, or every one as moving) turns a test red.
 - [ ] Print-media screenshots, in light, of the catalog's `orbit-steps.svg` Stepper (every step, "N." alone), the RSA sample's `powers-of-three.svg` Stepper (once, with its captions), the catalog's D2 Stepper and its one-block code Stepper (both as before), with a page break falling between two printed steps in at least one. A printed step shows its colour classes as the screen figure does.
 - [ ] The `Stepper` doc comment, `COMPONENTS.md`, `DESIGN.md` › Stepper and the `artifact` skill's **Stepped figures** say the new rule, in the same commit; `pnpm check` passes.
+
+## Comments
+
+### 2026-11-09: what code display 04 left in the Stepper's print block
+
+Implementer of [Code display 04](../../code-display/issues/04-a-stepper-with-one-code-block-per-step.md), which landed first.
+
+- **The block-per-step form prints as D2 boards do**, with the same heading: each step is a `div[data-in-steps]` holding `p.stepper-step` ("N." and the caption, `display: none` on screen) and the block's `pre`, inside `.stepper-blocks`. Its print rules sit in their own `.stepper-blocks` block after `.stepper-boards`: the steps stack with `row-gap: var(--space-4)`, each `break-inside: avoid`, the hidden ones made visible. A printed figure step can reuse that wrapper shape and heading as written.
+- **On screen** every block shares one grid cell (`grid-area: 1 / 1`) and the ones off their step are `visibility: hidden`; print undoes that with `grid-area: auto` and `display: block`. If you rework the shared `[data-off]` rules (`.stepper-figure [data-off], .stepper-captions > [data-off]`), keep `.stepper-blocks > [data-off]` hidden on screen and shown in print.
+- **The one-block reset** (`.stepper-code .line` back to unmarked in print) stays scoped to `.stepper-code`; the block-per-step form keeps its `{…}` marks in print, so don't widen it.
+- `steppedCode` and `steppedFigure` in `stepper.ts` are unchanged but for the several-blocks refusal at the top of `steppedCode`; the new form's own function is `steppedBlocks`.

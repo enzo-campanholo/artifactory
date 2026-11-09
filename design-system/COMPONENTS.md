@@ -1052,10 +1052,11 @@ A secante tem inclinação $\frac{4 - 0}{2 - 0} = 2$ e $f'(c) = 2c$, então $c =
 
 Steps the owner through a mechanism, a diagram or a code walkthrough one step at a time, with
 back and forward buttons above it. Use it when the order is the point: the stages of a process,
-a drawing built up part by part, or a program read a few lines at a time. For a picture that
-reads at once, use `Diagram` or `Figure`.
+a drawing built up part by part, a program read a few lines at a time, or code rewritten step
+by step. For a picture that reads at once, use `Diagram` or `Figure`.
 
-Give it exactly one of `diagram`, `figure` or `lines`:
+Give it one of `diagram`, `figure` or `lines`, or, for code that changes between steps, none of
+them and one code block per step:
 
 ````mdx
 import mitose from "./mitose.d2?steps";
@@ -1072,6 +1073,22 @@ import bomba from "./bomba.svg?raw";
 ```
 
 </Stepper>
+
+<Stepper captions={["Soma dentro do laço.", "Tira a soma do laço.", "Usa a fórmula."]}>
+
+```pascal {3}
+…
+```
+
+```pascal {2-3}
+…
+```
+
+```pascal
+…
+```
+
+</Stepper>
 ````
 
 A D2 diagram steps through its `steps` boards, each drawn as a whole, in one frame the size of
@@ -1079,13 +1096,24 @@ the largest board: write every board so it reads on its own. Diagrams and drawin
 colours as in `Diagram` and `Figure`. A stepper needs at least two steps, and `captions`, when
 given, needs one caption per step.
 
-Printed, a stepper shows every step: each board under its number and caption, and code with each
-step's lines and caption listed under it. A figure prints once, at its last step, with the
-captions listed under it, so make the last step the complete drawing.
+Code: use `lines` when the code stays the same and only the lines in play change; put one fenced
+code block per step inside the stepper, with blank lines around each, when the code itself
+changes between steps. Never draw code as a figure stepper, which loses its text and copying.
+Each block stands alone, with its own language, `start` and numbers, and its fence's `{…}` marks
+that step's lines: the rest turn grey, and a block without `{…}` shows in full ink. The stepper
+doesn't compare blocks, so mark the lines that changed, or, before a deletion, the line about to
+go in the step before. It shows one block at a time, in one frame as tall as the tallest block,
+so stepping doesn't move the page. Screen readers hear the step number, the marked lines and the
+caption.
+
+Printed, a stepper shows every step: each board, or each code block with its marks, under its
+number and caption, and a one-block stepper's code with each step's lines and caption listed
+under it. A figure prints once, at its last step, with the captions listed under it, so
+make the last step the complete drawing.
 
 ### Props
 
-Give one of these 3 sets of props.
+Give one of these 4 sets of props.
 
 With `diagram`:
 
@@ -1093,9 +1121,10 @@ With `diagram`:
   board is the first step, unless everything is drawn under `steps`, and each board in `steps`
   is the next.
 - `alt` (`string`, required): What the drawing shows as a whole, in a sentence or two. Screen readers read it.
-- `captions` (`string[]`, optional): One short caption per step, in step order, shown beside the buttons. Screen readers announce
-  it with the step number and, for code, the step's lines; without captions they hear only
-  those. Leave it out only when the prose around the stepper already explains each step.
+- `captions` (`string[]`, optional): One short caption per step (per code block, with one code block per step), in step order,
+  shown beside the buttons. Screen readers announce it with the step number and, for code, the
+  step's lines; without captions they hear only those. Leave it out only when the prose around
+  the stepper already explains each step.
 
 With `figure`:
 
@@ -1104,9 +1133,10 @@ With `figure`:
   4, `"2-"` from step 2 to the end, and `"1, 3"` in steps 1 and 3. Elements without one always
   show. The highest step number named is the number of steps.
 - `alt` (`string`, required): What the drawing shows as a whole, in a sentence or two. Screen readers read it.
-- `captions` (`string[]`, optional): One short caption per step, in step order, shown beside the buttons. Screen readers announce
-  it with the step number and, for code, the step's lines; without captions they hear only
-  those. Leave it out only when the prose around the stepper already explains each step.
+- `captions` (`string[]`, optional): One short caption per step (per code block, with one code block per step), in step order,
+  shown beside the buttons. Screen readers announce it with the step number and, for code, the
+  step's lines; without captions they hear only those. Leave it out only when the prose around
+  the stepper already explains each step.
 
 With `lines`:
 
@@ -1114,9 +1144,17 @@ With `lines`:
   from 1, or from the fence's `start`. `"3"`, `"3-5"`, `"3-"` (line 3 to the end) or `"1-2, 6"`.
   The other lines turn grey. Put one fenced code block inside the stepper, with blank lines
   around it, and no `{…}` in its fence: `lines` marks the lines here.
-- `captions` (`string[]`, optional): One short caption per step, in step order, shown beside the buttons. Screen readers announce
-  it with the step number and, for code, the step's lines; without captions they hear only
-  those. Leave it out only when the prose around the stepper already explains each step.
+- `captions` (`string[]`, optional): One short caption per step (per code block, with one code block per step), in step order,
+  shown beside the buttons. Screen readers announce it with the step number and, for code, the
+  step's lines; without captions they hear only those. Leave it out only when the prose around
+  the stepper already explains each step.
+
+With none of `diagram`, `figure` or `lines`:
+
+- `captions` (`string[]`, optional): One short caption per step (per code block, with one code block per step), in step order,
+  shown beside the buttons. Screen readers announce it with the step number and, for code, the
+  step's lines; without captions they hear only those. Leave it out only when the prose around
+  the stepper already explains each step.
 
 ## Machines
 

@@ -594,6 +594,74 @@ describe("a one-block Stepper whose `lines` name a line its `start=0` block does
 
 describe.each([
   {
+    stepper: "`lines` and several code blocks",
+    tag: '<Stepper lines={["1", "1"]}>',
+    blocks: 2,
+    failure:
+      "Stepper: `lines` steps through one code block, but it has 2: keep one block, or take `lines` off to show one code block per step",
+  },
+  {
+    stepper: "one code block and no `lines`",
+    tag: "<Stepper>",
+    blocks: 1,
+    failure:
+      "Stepper: it has 1 code block and none of `diagram`, `figure` or `lines`: give it one fenced code block per step, at least two, or `lines` to step through one block",
+  },
+  {
+    stepper: "a `diagram` and code blocks",
+    tag: '<Stepper diagram={passos} alt="Os passos.">',
+    blocks: 2,
+    failure:
+      "Stepper: a `diagram` Stepper holds nothing inside it: give it the `diagram` alone, or none of `diagram`, `figure` or `lines` and one fenced code block per step",
+  },
+  {
+    stepper: "a `figure` and code blocks",
+    tag: '<Stepper figure={figura} alt="Os passos.">',
+    blocks: 2,
+    failure:
+      "Stepper: a `figure` Stepper holds nothing inside it: give it the `figure` alone, or none of `diagram`, `figure` or `lines` and one fenced code block per step",
+  },
+])("a Stepper with $stepper", ({ tag, blocks, failure }) => {
+  let repo: FixtureRepo;
+  let run: CheckRun;
+
+  beforeAll(async () => {
+    repo = await createFixtureRepo({
+      "artifacts/pilha/index.mdx": artifact(fields("p1lha001", "Pilha", "Computação"), [
+        'import Stepper from "@artifactory/design-system/stepper";',
+        'import passos from "./passos.d2?steps";',
+        'import figura from "./passos.svg?raw";',
+        "",
+        tag,
+        "",
+        ...Array.from({ length: blocks }, (_, index) => [
+          "```text",
+          `push ${String(index + 2)}`,
+          "```",
+          "",
+        ]).flat(),
+        "</Stepper>",
+      ]),
+      "artifacts/pilha/passos.d2": "a\nsteps: {\n  b: {\n    b\n  }\n}\n",
+      "artifacts/pilha/passos.svg":
+        '<svg viewBox="0 0 10 10"><circle r="4" data-step="1" /><rect width="4" height="4" data-step="2" /></svg>\n',
+    });
+    run = await repo.check(["--artifacts-only"]);
+  }, checkTimeout);
+
+  afterAll(() => repo.remove());
+
+  it("fails the build at the Stepper, saying how to write the form it meant", () => {
+    expect(run.exitCode).toBe(1);
+    expect(run.summary).toEqual([
+      "pnpm check: 1 failure",
+      `artifacts/pilha/index.mdx:13:1 error build: ${failure} (artifact skill: Build failures)`,
+    ]);
+  });
+});
+
+describe.each([
+  {
     component: "a one-block Stepper",
     tag: ['<Stepper lines={["1", "2"]}>'],
     failure:

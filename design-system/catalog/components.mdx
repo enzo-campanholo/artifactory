@@ -324,3 +324,41 @@ print
 ```
 
 </Stepper>
+
+Code rewritten step by step, one code block per step. The first marks the loop about to go, the second the line that replaces it; the last, a stack machine's listing numbered from 0 as its addresses are, marks nothing and shows in full ink:
+
+<Stepper
+  captions={[
+    "The loop adds each number to the sum.",
+    "The loop is replaced by Gauss's formula.",
+    "The formula, compiled for the stack machine.",
+  ]}
+>
+
+```ts {3-5}
+export function sumTo(n: number): number {
+  let sum = 0;
+  for (let i = 1; i <= n; i++) {
+    sum += i;
+  }
+  return sum;
+}
+```
+
+```ts {2}
+export function sumTo(n: number): number {
+  return (n * (n + 1)) / 2;
+}
+```
+
+```text start=0
+push n
+push n
+push 1
+add
+mul
+push 2
+div
+```
+
+</Stepper>

@@ -40,15 +40,33 @@ export function steppedFigure(svg: string): { svg: string; count: number } {
 }
 
 const codeBlock = /<pre\b/g;
+const wholeCodeBlock = /<pre\b[\s\S]*?<\/pre>/g;
 const markedBlock = /<pre\b[^>]*\sdata-marks\b/;
 const codeLine = /<span class="line(?: [^"]*)?" data-line="(\d+)"/g;
+
+// Each block keeps the marks its fence's `{…}` gave it, which `rich-content.css` already greys.
+export function steppedBlocks(html: string): string[] {
+  const blocks = html.match(wholeCodeBlock) ?? [];
+  if (blocks.length < 2)
+    throw componentError(
+      "Stepper",
+      `it has ${String(blocks.length)} code block${blocks.length === 1 ? "" : "s"} and none of \`diagram\`, \`figure\` or \`lines\`: give it one fenced code block per step, at least two, or \`lines\` to step through one block`,
+    );
+  return blocks;
+}
 
 // The block marks lines as `rich-content.css` greys them, with its lines outside the step `data-off`.
 export function steppedCode(
   html: string,
   lines: string[],
 ): { html: string; linesOfStep: number[][] } {
-  if (html.match(codeBlock)?.length !== 1)
+  const blocks = html.match(codeBlock)?.length ?? 0;
+  if (blocks > 1)
+    throw componentError(
+      "Stepper",
+      `\`lines\` steps through one code block, but it has ${String(blocks)}: keep one block, or take \`lines\` off to show one code block per step`,
+    );
+  if (blocks === 0)
     throw componentError("Stepper", "put exactly one fenced code block inside `<Stepper lines>`");
   if (markedBlock.test(html))
     throw componentError(
