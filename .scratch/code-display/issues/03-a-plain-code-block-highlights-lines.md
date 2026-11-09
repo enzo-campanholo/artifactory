@@ -1,7 +1,7 @@
 # 03: A plain code block highlights lines with `{…}`
 
 Blocked by: 01, 02
-Status: ready-for-agent
+Status: claimed
 
 **What to build:** an agent writes ` ```ts {3, 5-6} ` and the block marks lines 3, 5 and 6. The fence can combine this with `start` (` ```pascal start=0 {0-2} `). `{…}` uses the Stepper `lines` grammar (`3`, `3-5`, `3-` to the end, `1-2, 6`) and counts the number the page shows, from the block's `start`. Marked lines look like the lines of one Stepper step: ink, with the line number at the frame's strong weight. Every other line, its line number and comments included, takes the one grey. The highlight shows the same in print, since a plain block has no steps to list, and stays readable in forced colours, as the Stepper step does. A fence without `{…}` shows in full ink, as today. The highlight is visual only: screen readers hear the block as they do without it, since the prose names the lines.
 
