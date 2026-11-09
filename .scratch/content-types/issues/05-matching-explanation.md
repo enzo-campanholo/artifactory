@@ -1,6 +1,6 @@
 # 05: A matching's explanation
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 03 (Matching); [Question explanations 02](../../question-explanations/issues/02-single-choice-explanation.md)
 
 Spec: [Content types](../spec.md) › Writing one and Checking; [Question explanations](../../question-explanations/spec.md) for what an explanation holds, how it looks and when it shows.
