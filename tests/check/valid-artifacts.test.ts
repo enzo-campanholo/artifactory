@@ -92,6 +92,25 @@ const mathAndCode = {
       "",
       "</Stepper>",
       "",
+      '<Stepper captions={["Empilha.", "Soma.", "Imprime."]}>',
+      "",
+      "```text start=0",
+      "push 2",
+      "push 3",
+      "```",
+      "",
+      "```pascal {2}",
+      "x := 2;",
+      "x := x + 3;",
+      "writeln(x);",
+      "```",
+      "",
+      "```ts",
+      "console.log(2 + 3);",
+      "```",
+      "",
+      "</Stepper>",
+      "",
       "| t (s) | x (m) |",
       "| ----- | ----- |",
       "|     0 |     2 |",
@@ -1273,6 +1292,60 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             .join(" "),
         ),
       ).toEqual(["1 (linha 0)", "2 (linhas 1–3)"]);
+    });
+
+    it("puts each of a Stepper's code blocks in its own step, under its number and caption, with its own numbers and marks", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("movimento-uniforme"),
+        "text/html",
+      ) as unknown as Document;
+      const stepper = page.querySelectorAll("artifact-stepper")[1];
+      expect(stepper?.getAttribute("data-count")).toBe("3");
+      expect(stepper?.querySelector(".stepper-code")).toBeNull();
+      expect(
+        [...(stepper?.querySelectorAll("[data-in-steps]:has(> pre)") ?? [])].map((step) => {
+          const pre = step.querySelector(":scope > pre");
+          return {
+            step: step.getAttribute("data-in-steps"),
+            shown: !step.hasAttribute("data-off"),
+            heading: step.querySelector(":scope > .stepper-step")?.textContent,
+            marks: pre?.hasAttribute("data-marks"),
+            lines: [...(pre?.querySelectorAll("code > .line") ?? [])].map((line) => [
+              line.getAttribute("data-line"),
+              line.hasAttribute("data-off") ? "grey" : "ink",
+            ]),
+          };
+        }),
+      ).toEqual([
+        {
+          step: "1",
+          shown: true,
+          heading: "1. Empilha.",
+          marks: false,
+          lines: [
+            ["0", "ink"],
+            ["1", "ink"],
+          ],
+        },
+        {
+          step: "2",
+          shown: false,
+          heading: "2. Soma.",
+          marks: true,
+          lines: [
+            ["1", "grey"],
+            ["2", "ink"],
+            ["3", "grey"],
+          ],
+        },
+        {
+          step: "3",
+          shown: false,
+          heading: "3. Imprime.",
+          marks: false,
+          lines: [["1", "ink"]],
+        },
+      ]);
     });
 
     it("wraps each table in a group Tab reaches, named in the artifact's main language", async () => {

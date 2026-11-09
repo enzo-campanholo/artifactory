@@ -189,16 +189,28 @@ function propsSection(
     : variantsOf(props.type, script);
   if (variants.length === 1) return ["### Props", propList(variants[0] ?? [], script)].join("\n\n");
   const namesIn = (variant: PropsVariant) => variant.map((member) => propName(member, script));
+  const owns = variants.map((variant, index) => {
+    const others = variants.filter((_, otherIndex) => otherIndex !== index).flatMap(namesIn);
+    return namesIn(variant).filter((name) => !others.includes(name));
+  });
   return [
     "### Props",
     `Give one of these ${String(variants.length)} sets of props.`,
     ...variants.map((variant, index) => {
-      const others = variants.filter((_, otherIndex) => otherIndex !== index).flatMap(namesIn);
-      const own = namesIn(variant).filter((name) => !others.includes(name));
-      const label = `With ${own.map((name) => `\`${name}\``).join(" and ")}:`;
+      const own = owns[index] ?? [];
+      const label =
+        own.length > 0
+          ? `With ${listed(own, "and")}:`
+          : `With none of ${listed(owns.flat(), "or")}:`;
       return [label, propList(variant, script)].join("\n\n");
     }),
   ].join("\n\n");
+}
+
+function listed(names: string[], conjunction: string): string {
+  const quoted = names.map((name) => `\`${name}\``);
+  const last = quoted.pop() ?? "";
+  return quoted.length === 0 ? last : `${quoted.join(", ")} ${conjunction} ${last}`;
 }
 
 function variantsOf(type: typescript.TypeNode, script: typescript.SourceFile): PropsVariant[] {

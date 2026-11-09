@@ -388,7 +388,7 @@
       {
         "name": "step-fade",
         "value": "opacity 0.2s, visibility 0.2s",
-        "purpose": "Stepper parts cross-fading and a new D2 board fading in; only under prefers-reduced-motion: no-preference."
+        "purpose": "Stepper parts cross-fading and a new D2 board or code block fading in (the block it replaces leaves at once); only under prefers-reduced-motion: no-preference."
       },
       {
         "name": "eye",
