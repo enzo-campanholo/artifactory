@@ -67,6 +67,8 @@ For every new or changed diagram, figure, `Stepper` and `Stage` (its build inclu
 
 Look doesn't shoot plain code blocks, tables or questions: read them in the source, and `pnpm check` catches what goes wrong in them. Nor does it shoot dark mode or print, which are checked on the design system's catalog.
 
+Each shot is the item alone, with the bottom bar, the notices and the rail hidden: look hides every fixed or sticky layer outside the item for the shot, then shows it again. A bar or notice in a shot is a look bug to report, not something to fix in the artifact: never move content to keep it clear of the bar.
+
 Look also writes `.look/<slug>/results.json` and a `contact-sheet.html` that helps find shots; judge the original PNGs. `captured-awaiting-visual-review` means a person still has to look, never a visual pass. Failed assertions, unavailable Chromium and unsupported capabilities aren't passes either.
 
 Before judging a `Stage`'s shots, read [stage.md](stage.md#look): which run Look shoots, what it prints, and what each step's shot is compared with.
