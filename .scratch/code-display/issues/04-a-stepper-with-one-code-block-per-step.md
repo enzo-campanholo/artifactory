@@ -1,7 +1,7 @@
 # 04: A Stepper with one code block per step
 
 Blocked by: 02, 03
-Status: ready-for-agent
+Status: claimed
 
 **What to build:** an agent shows code being rewritten step by step. It writes a `Stepper` whose children are two or more fenced code blocks, one code block per step, with blank lines around each. It gives none of `diagram`, `figure` or `lines`. `captions`, when given, has one caption per block. Each block stands alone: its own language, its own `start`, its own line numbers and its own `{…}` marks, which are that step's marked lines, greyed as a plain block greys them (ticket 03). A block without `{…}` shows in full ink.
 
