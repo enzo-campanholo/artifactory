@@ -5,7 +5,7 @@
 # The agents share a small memory slice that systemd-oomd watches, and it kills a whole agent when
 # that slice is under pressure. `nix develop` alone peaks at about 450 MB and ESLint at over 1 GB, so
 # this leaves the agent's scope before starting either: the command runs in a scope of its own under
-# the heavy slice, limited to 3 GB, first in line for the kernel's out-of-memory killer. It also
+# the heavy slice, limited to 4 GB, first in line for the kernel's out-of-memory killer. It also
 # takes the queue, except for `pnpm build`, `pnpm check` and `pnpm look`, which take it themselves
 # (the queue isn't re-entrant). Where no user manager can start a scope, it runs here.
 set -euo pipefail
@@ -31,7 +31,7 @@ case "${1-} ${2-}" in
 esac
 
 if systemd-run --user --scope --quiet true 2> /dev/null; then
-  exec systemd-run --user --scope --quiet --collect --slice=artifactory-heavy.slice -p MemoryMax=3G \
+  exec systemd-run --user --scope --quiet --collect --slice=artifactory-heavy.slice -p MemoryMax=4G \
     "${command[@]}"
 fi
 exec "${command[@]}"

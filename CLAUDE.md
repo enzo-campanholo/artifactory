@@ -24,4 +24,4 @@ On NixOS, `node`, `pnpm` and `npx` exist only inside `nix develop`, so run every
 - `scripts/heavy`, `pnpm build`, `pnpm check` and `pnpm look` wait in one queue every worktree shares. A queued command prints `Waiting to run …` with the running command's PID and checkout: leave it waiting.
 - Inside a queued command, run the unwrapped inner executable: `pnpm build`, `pnpm check` and `pnpm look` take the queue themselves, and the queue isn't re-entrant, so `scripts/heavy` around one of them inside another queued command is refused.
 - End a turn only once every command you started has finished: the session ends with the turn and takes the command with it.
-- Exit 137 means a process was killed. Each `scripts/heavy` command runs in a 3 GB scope of its own, first in line for the out-of-memory killer, so systemd-oomd kills the command rather than the agent: inspect memory and running jobs before retrying.
+- Exit 137 means a process was killed. Each `scripts/heavy` command runs in a 4 GB scope of its own, first in line for the out-of-memory killer, so systemd-oomd kills the command rather than the agent: inspect memory and running jobs before retrying.

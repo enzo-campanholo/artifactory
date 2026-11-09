@@ -76,8 +76,9 @@ function report(name: string, failures: Failure[], elapsedMs: number): Failure[]
   return failures;
 }
 
-// One step at a time: each runs a TypeScript program or a build, and the Vitest step runs whole
-// fixture checks. Side by side they need more than the 7 GB a development machine may have.
+// One step at a time: each runs a TypeScript program or a build, and the Vitest step's two workers
+// run whole fixture checks, which come through here too. Steps side by side on top of that would
+// outgrow the 4 GB a heavy command gets.
 async function runInTurn(steps: Step[]): Promise<Failure[]> {
   const failures: Failure[] = [];
   for (const step of steps) {

@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
-import { cp, mkdir, mkdtemp, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { promisify } from "node:util";
 import { pathsUnreadByTests } from "../../scripts/check/seams.ts";
 import { closingBlockIn } from "../../src/check-failure.ts";
@@ -146,6 +147,43 @@ export async function headCommit(repo: FixtureRepo): Promise<string> {
 }
 
 async function checkIn(root: string, args: string[]): Promise<CheckRun> {
-  const { exitCode, stdout, output } = await runIn(root, "pnpm", ["check", ...args]);
+  const check = () => runIn(root, "pnpm", ["check", ...args]);
+  const { exitCode, stdout, output } = await (args.includes("--artifacts-only")
+    ? check()
+    : oneFullScopeCheckAtATime(check));
   return { exitCode, output, summary: closingBlockIn(stdout) };
+}
+
+const fullScopeTurn = join(fixtureCache, "full-scope-check.pid");
+
+// Vitest's two workers each run fixture checks, and a full-scope one can hold ESLint's 1.6 GB. Two
+// of those side by side outgrow the memory a heavy command gets, so they take turns.
+async function oneFullScopeCheckAtATime<T>(check: () => Promise<T>): Promise<T> {
+  for (;;) {
+    try {
+      await writeFile(fullScopeTurn, String(process.pid), { flag: "wx" });
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+    if (await holderEnded()) await rm(fullScopeTurn, { force: true });
+    else await sleep(250);
+  }
+  try {
+    return await check();
+  } finally {
+    await rm(fullScopeTurn, { force: true });
+  }
+}
+
+// A worker killed mid-check leaves its turn behind.
+async function holderEnded(): Promise<boolean> {
+  const holder = Number(await readFile(fullScopeTurn, "utf8").catch(() => ""));
+  if (!Number.isSafeInteger(holder) || holder <= 0) return false;
+  try {
+    process.kill(holder, 0);
+    return false;
+  } catch {
+    return true;
+  }
 }

@@ -59,7 +59,7 @@ Tests exist so agents can rewrite code freely while behaviour holds. A test that
 - A bug fix adds a test only if no existing test could have caught it, and extending the nearest existing test comes first.
 - Name a test after the behaviour ("a retried answer that returns your own answer counts as saved"), never after the bug or the ticket.
 - When a behaviour is removed, delete its tests.
-- Keep Vitest on the single worker `vitest.config.ts` sets.
+- Keep Vitest on the two workers `vitest.config.ts` sets, and start a fixture repo's check through `FixtureRepo.check`, which keeps two full-scope checks from running side by side: more than that outgrows the memory a heavy command gets.
 
 ### The four seams
 
