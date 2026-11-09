@@ -182,6 +182,8 @@ const leaveItOut: Record<string, string> = {
   opacity: "diagrams don't fade",
 };
 
+const toSwatches = "leave it out, and draw a colouring as a Figure with swatches";
+
 // Each refusal names what asked for it by its key in the file, such as `a.b` or `a -> b`.
 function refusalsIn(board: D2Map, owner: string[] = []): Refusal[] {
   return (board.nodes ?? []).flatMap(({ map_key: key }) => {
@@ -212,7 +214,8 @@ function refusalsIn(board: D2Map, owner: string[] = []): Refusal[] {
       const asked =
         last === "opacity" ? !(Number(value) >= 1) : value !== "false" && value !== "none";
       if (reason !== undefined && asked) {
-        refuse(`${named(2)} sets \`style.${last}\`, but ${reason}: leave it out`);
+        const instead = last === "fill-pattern" ? toSwatches : "leave it out";
+        refuse(`${named(2)} sets \`style.${last}\`, but ${reason}: ${instead}`);
       }
       if (
         ["fill", "stroke", "font-color"].includes(last) &&
@@ -220,7 +223,7 @@ function refusalsIn(board: D2Map, owner: string[] = []): Refusal[] {
         !/^(?:[A-Z]+\d|transparent)$/.test(value)
       ) {
         refuse(
-          `${named(2)} sets \`style.${last}\` to \`${value}\`, but diagrams take their colours from the design system: leave it out`,
+          `${named(2)} sets \`style.${last}\` to \`${value}\`, but diagrams take their colours from the design system: ${toSwatches}`,
         );
       }
     }

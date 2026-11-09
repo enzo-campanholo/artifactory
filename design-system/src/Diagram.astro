@@ -35,7 +35,8 @@ import { drawInStandard, smallestLabelSize } from "./d2-board.ts";
  * the file (`style.fill`, `style.stroke` or `style.font-color` as `"#…"` or a colour name),
  * `style.shadow`, `style.fill-pattern`, `style.animated`, `style.opacity` below 1, `sketch`, a legend
  * (`vars.d2-legend`), and a `link`, `tooltip` or `icon`, or a link in a markdown label. Say it in
- * the prose instead.
+ * the prose instead. When colour is the subject, such as a colouring of a graph's vertices, draw
+ * it as a `Figure` with swatches (see "Colourings" under `Figure`): D2 draws no swatches.
  *
  * The layout engine is ELK; a file may choose `dagre` or `tala` with
  * `vars: { d2-config: { layout-engine: dagre } }`.
