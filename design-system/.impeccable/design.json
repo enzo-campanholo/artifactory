@@ -610,7 +610,7 @@
       },
       {
         "name": "The One Grey Rule",
-        "body": "Grey means unavailable or background, and there is one grey for unavailable (`text-muted`). Don't stack fades: a muted element is not also faded. Nothing fades while it waits: the artifact page paints in ink from its first frame, from the answers this device last showed. Code lines outside a stepper's step are not a faded region: they take the one grey, comments and line numbers included. A Stage's `muted` mark is this grey's \"unavailable\": an edge that can no longer join, a row already settled.",
+        "body": "Grey means unavailable or background, and there is one grey for unavailable (`text-muted`). Don't stack fades: a muted element is not also faded. Nothing fades while it waits: the artifact page paints in ink from its first frame, from the answers this device last showed. Code lines outside a stepper's step, or outside the lines a plain code block marks with `{…}`, are not a faded region: they take the one grey, comments and line numbers included, and GrayText in forced colours. A Stage's `muted` mark is this grey's \"unavailable\": an edge that can no longer join, a row already settled.",
         "section": "colors"
       },
       {

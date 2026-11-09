@@ -44,7 +44,7 @@ interface CodeSteps extends Captioned {
    * The lines each step highlights, one entry per step, by the numbers the page shows for them:
    * from 1, or from the fence's `start`. `"3"`, `"3-5"`, `"3-"` (line 3 to the end) or `"1-2, 6"`.
    * The other lines turn grey. Put one fenced code block inside the stepper, with blank lines
-   * around it.
+   * around it, and no `{…}` in its fence: `lines` marks the lines here.
    */
   lines: string[];
 }
@@ -357,26 +357,6 @@ const printedSteps = linesOfStep
       opacity: 0;
     }
 
-    /* Shiki's spans read their colour from these variables, so a line passes the grey to them. */
-    @media screen {
-      .stepper-code .line[data-off] {
-        --astro-code-foreground: var(--color-text-muted);
-        --astro-code-token-keyword: var(--color-text-muted);
-        --astro-code-token-function: var(--color-text-muted);
-        --astro-code-token-parameter: var(--color-text-muted);
-        --astro-code-token-string: var(--color-text-muted);
-        --astro-code-token-string-expression: var(--color-text-muted);
-        --astro-code-token-constant: var(--color-text-muted);
-        --astro-code-token-punctuation: var(--color-text-muted);
-        --astro-code-token-link: var(--color-text-muted);
-      }
-
-      .stepper-code .line:not([data-off])::before {
-        color: var(--color-text);
-        font-weight: var(--font-weight-frame-strong);
-      }
-    }
-
     @media (prefers-reduced-motion: no-preference) {
       .stepper [data-in-steps] {
         transition:
@@ -432,6 +412,16 @@ const printedSteps = linesOfStep
 
       .stepper-controls {
         display: none;
+      }
+
+      /* The steps' lines are listed under the code, so it prints as a block that marks none. */
+      .stepper-code .line {
+        --code-line-colour: initial;
+
+        &::before {
+          color: var(--color-text-muted);
+          font-weight: inherit;
+        }
       }
 
       .stepper-boards {

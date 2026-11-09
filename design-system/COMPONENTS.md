@@ -630,7 +630,8 @@ step runs `reversed`, and only that one: the Stage draws it as a bar of ink acro
 whole width, even where a long line scrolls sideways, and announces the step as "Passo 3 de 9.
 Linha 3. …". A step with no `reversed` line is announced without one. The other marks work on
 lines too, by the same meanings: `strong` sets a line at 600, `dashed` draws it in a dashed box
-and `muted` greys it whole, such as the branch an `if` didn't take.
+and `muted` greys it whole, such as the branch an `if` didn't take. Since the steps mark the
+lines, the fence takes no `{…}`.
 
 **A table that grows.** A step's `body` replaces the table's rows, so a teste de mesa gains a row
 each time the loop runs, as one written by hand does. Each row is a list of cell texts, one per
@@ -1107,7 +1108,7 @@ With `lines`:
 - `lines` (`string[]`, required): The lines each step highlights, one entry per step, by the numbers the page shows for them:
   from 1, or from the fence's `start`. `"3"`, `"3-5"`, `"3-"` (line 3 to the end) or `"1-2, 6"`.
   The other lines turn grey. Put one fenced code block inside the stepper, with blank lines
-  around it.
+  around it, and no `{…}` in its fence: `lines` marks the lines here.
 - `captions` (`string[]`, optional): One short caption per step, in step order, shown beside the buttons. Screen readers announce
   it with the step number and, for code, the step's lines; without captions they hear only
   those. Leave it out only when the prose around the stepper already explains each step.

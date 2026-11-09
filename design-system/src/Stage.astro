@@ -311,7 +311,8 @@ interface Typed extends Staged {
  * whole width, even where a long line scrolls sideways, and announces the step as "Passo 3 de 9.
  * Linha 3. …". A step with no `reversed` line is announced without one. The other marks work on
  * lines too, by the same meanings: `strong` sets a line at 600, `dashed` draws it in a dashed box
- * and `muted` greys it whole, such as the branch an `if` didn't take.
+ * and `muted` greys it whole, such as the branch an `if` didn't take. Since the steps mark the
+ * lines, the fence takes no `{…}`.
  *
  * **A table that grows.** A step's `body` replaces the table's rows, so a teste de mesa gains a row
  * each time the loop runs, as one written by hand does. Each row is a list of cell texts, one per
@@ -512,6 +513,7 @@ type GivenField = Typed["input"]["fields"][number];
 const fieldsProblems = (input?.fields ?? []).map(fieldPropsProblems);
 // A catalog page's builds sit in `catalog/`, as an artifact's sit beside its entry.
 const slug = Astro.params.slug;
+const content = await Astro.slots.render("default");
 const buildFile = `/${slug === undefined ? "design-system/catalog" : `artifacts/${slug}`}/${build}.build.ts`;
 const problems = [
   ...(existsSync(join(process.cwd(), buildFile))
@@ -529,6 +531,11 @@ const problems = [
   ...(input?.examples ?? []).flatMap((example, index) => exampleProblems(index + 1, example)),
   ...(figure !== undefined && alt === undefined ? ["give `alt` with `figure`"] : []),
   ...(beside === true && figure === undefined ? ["set `beside` only with `figure`"] : []),
+  ...(/<pre\b[^>]*\sdata-marks\b/.test(content)
+    ? [
+        "its code block marks lines with `{…}`, but a Stage marks them itself, step by step, with `lines`: take `{…}` off the fence",
+      ]
+    : []),
 ];
 if (problems.length > 0) throw componentError("Stage", problems.join("; "));
 
@@ -714,7 +721,7 @@ const width = (field: Field) =>
       </div>
     )}
     <div class="stage-content">
-      <slot />
+      <Fragment set:html={content} />
     </div>
     <figcaption>
       <span class="figure-number">
