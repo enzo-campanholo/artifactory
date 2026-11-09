@@ -23,3 +23,9 @@ Spec: [Stage text input](../spec.md), section "Failures". The decisions are in [
 - [ ] The `Stage`'s doc comment, where it lists what the check fails, names the text field's rules. Then `pnpm components`.
 - [ ] Stays inside the Stage: no shared part changes. Number Stages on the catalog and in the sample artifact (`rsa-from-scratch`) still pass the check.
 - [ ] A missing `maxLength`, or one that isn't a whole number of at least 1, fails, naming the field.
+
+## Comments
+
+### 2026-11-09: notes from Stage text input 01
+
+`Stage.astro`'s `exampleProblems` checks each example against the definitions in `fields` through `fieldProblem` (`step-applier.ts`), the rule the page also refuses typed input by. Give the text rule's problems there, so the check's example failures and the page's refusals keep one rule; the props' own failures (alphabet, `minLength`, `maxLength`) sit with the other `problems` above it.

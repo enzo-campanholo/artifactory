@@ -1,9 +1,10 @@
 import type { Build, Typed } from "./stage-build.ts";
 import {
+  fieldProblem,
   mainLanguage,
-  numberProblem,
   runBuild,
   stageControl,
+  stageFields,
   stageNodes,
   writtenContent,
   type Control,
@@ -215,16 +216,14 @@ class ArtifactStage extends HTMLElement {
       field.removeAttribute("aria-invalid");
       field.removeAttribute("aria-describedby");
     }
-    for (const field of this.#fields) {
-      const bounds = {
-        name: field.name,
-        min: Number(field.dataset.min),
-        max: Number(field.dataset.max),
-      };
+    for (const definition of stageFields(this)) {
+      const field = this.#part(
+        `.stage-field input[name="${CSS.escape(definition.name)}"]`,
+      ) as HTMLInputElement;
       const value = typedNumber(field.value);
-      if (numberProblem(bounds, value) !== undefined) {
-        const name = field.labels?.[0]?.querySelector("span")?.textContent ?? field.name;
-        this.#refuse(this.#texts.refusedNumber(name, bounds.min, bounds.max));
+      if (fieldProblem(definition, value) !== undefined) {
+        const { label = definition.name, min, max } = definition;
+        this.#refuse(this.#texts.refusedNumber(label, min, max));
         field.setAttribute("aria-invalid", "true");
         const say = this.#part(".stage-say");
         say.id ||= `stage-say-${String(++refusals)}`;
@@ -232,7 +231,7 @@ class ArtifactStage extends HTMLElement {
         field.focus();
         return;
       }
-      typed[field.name] = value;
+      typed[definition.name] = value;
     }
     void this.#run(typed);
   }
