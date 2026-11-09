@@ -569,6 +569,16 @@ header unique among the Stage's tables, since a name that matches more than one 
 check. A part and a row may share a name: `parts` marks only the drawing, and `rows` only the
 tables.
 
+**The content as written reaches the build.** `steps` gets it as its second argument, typed
+`Content`: `code`, each code block's lines in order, each with the number the page shows
+(`line`) and its plain text (`text`); `tables`, each table's headers (`columns`) and rows as
+written (`rows`), as plain text and found as `rows` and `cells` find them, even in a run that
+gives `body`; and `lang`, the artifact's main language, `"pt-BR"` or `"en"`, to say the steps
+in. Read a program from the code block, or a table's starting values, rather than writing them
+again in the build: `steps({ a, b }, { code: [listing = []] })` takes the first block's lines.
+The page and `pnpm check` hand every run the same content, a fresh copy each time, so a run may
+change its own. A build that doesn't need it leaves the argument out.
+
 **Beside the drawing.** A Stage sets its tables under its drawing. Set `beside` only where the
 owner must see a step's marks and its table's rows together to follow the step, such as a graph
 and its table of keys and parents, which stacked sit a scroll apart; most Stages leave it out.
@@ -695,19 +705,50 @@ What the owner typed into a Stage's `input`: each field's whole number, by the f
 type Typed = Record<string, number>;
 ```
 
+#### `CodeLine`
+
+One line of the Stage's code block as written.
+
+- `line` (`number`, required): The number the page shows for it: from 1, or from the fence's `start`.
+- `text` (`string`, required): Its text, as plain text: no highlighting, no line number, its indentation kept.
+
+#### `WrittenTable`
+
+One of the Stage's tables as written, as plain text, as `rows` and `cells` find it.
+
+- `columns` (`string[]`, required): Each column's header text, in order.
+- `rows` (`string[][]`, required): Each body row as its cells' texts, one per column, in order.
+
+#### `Content`
+
+The Stage's content as written, `steps`'s second argument, so a build reads what the content
+already says, such as a program in the code block, rather than writing it twice. The page and
+`pnpm check` hand every run the same content, a fresh copy each time, whatever an earlier run
+did with its own.
+
+- `lang` (`"pt-BR" | "en"`, required): The artifact's main language, for saying each step in it: `"pt-BR"` or `"en"`, as the Stage
+  chooses its own lines.
+- `code` (`CodeLine[][]`, required): Each fenced code block's lines, one list per block in the content's order, each line in order
+  with the number the page shows for it: ` ```text start=0 ` makes the first line 0.
+- `tables` (`WrittenTable[]`, required): Each table, in the content's order, with its rows as written, even in a run whose steps give
+  `body`.
+
 #### `Build`
 
 A custom build: what turns the owner's choice into steps. With `choose`, `steps` gets the option
-as text; with `input`, it gets each field's number, typed as `Input`.
+as text; with `input`, it gets each field's number, typed as `Input`. Either way its second
+argument is the Stage's content as written (`Content`), which a build may leave out.
 
-- `steps` (`(input: Input) => Step[]`, required): Every step for the option the owner chose or the numbers they typed, in order, at least one
-  and at most 200. Called again from step 1 whenever they choose again or press Start.
+- `steps` (`(input: Input, content: Content) => Step[]`, required): Every step for the option the owner chose or the numbers they typed, in order, at least one
+  and at most 200. Called again from step 1 whenever they choose again or press Start, with the
+  content as written each time.
 
 #### `defineBuild`
 
 Wraps the build so TypeScript checks it. A `.build.ts` file's default export. With `input`,
 give the fields' names as its type, `defineBuild<{ a: number; b: number }>({ … })`, so `steps`
-gets them typed: `pnpm check` fails when they aren't the Stage's fields.
+gets them typed: `pnpm check` fails when they aren't the Stage's fields. `steps` gets the
+content as written second, typed `Content`, without a type of its own.
 
 ```ts
 function defineBuild<Input extends string | Typed = string>(build: Build<Input>): Build<Input>;

@@ -1,5 +1,6 @@
 import type { Build, Typed } from "./stage-build.ts";
 import {
+  mainLanguage,
   numberProblem,
   runBuild,
   stageNodes,
@@ -46,7 +47,7 @@ const target = 44;
 class ArtifactStage extends HTMLElement {
   #build: Promise<Build<string | Typed> | undefined> = Promise.resolve(undefined);
   #nodes: StageNodes = { parts: [], tables: [], code: [] };
-  #written: Written = { parts: [], tables: [], codeLineNumbers: [] };
+  #written: Written = { parts: [], tables: [], code: [] };
   #asWritten = new Map<Element, Node[]>();
   #rowToCopy: Element | undefined;
   #stepRows: Element[] = [];
@@ -130,8 +131,7 @@ class ArtifactStage extends HTMLElement {
   }
 
   get #texts() {
-    const lang = this.closest("[lang]")?.getAttribute("lang") ?? "en";
-    return lang.startsWith("pt") ? texts.pt : texts.en;
+    return mainLanguage(this) === "pt-BR" ? texts.pt : texts.en;
   }
 
   #part(selector: string): HTMLElement {
@@ -216,7 +216,7 @@ class ArtifactStage extends HTMLElement {
     const run =
       build === undefined
         ? { refused: "no-steps" as const }
-        : runBuild(build, input, this.#written);
+        : runBuild(build, input, this.#written, mainLanguage(this));
     if ("refused" in run) {
       const typed = typeof input !== "string";
       this.#refuse(
@@ -281,7 +281,7 @@ class ArtifactStage extends HTMLElement {
       if (mark === undefined) part.removeAttribute("data-mark");
       else part.setAttribute("data-mark", mark);
     });
-    const lineNumbers = this.#written.codeLineNumbers.flat();
+    const lineNumbers = this.#written.code.flat().map(({ line }) => line);
     this.#nodes.code.flat().forEach((line, index) => {
       const mark = shown?.lines.get(lineNumbers[index] ?? 0);
       if (mark === undefined) line.removeAttribute("data-mark");

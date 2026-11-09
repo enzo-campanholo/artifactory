@@ -265,6 +265,18 @@ const customBuilds = {
       passTable,
     ),
     ...stage("mesa-volta", ["A"], passTable),
+    ...typedStage("conteudo", "[{ a: 48, b: 18 }, { a: 7, b: 0 }]", [
+      "```text start=0",
+      "push a",
+      "  add ; soma",
+      "```",
+      "",
+      "| Lido   | Texto |",
+      "| ------ | ----- |",
+      "| código | —     |",
+      "| tabela | —     |",
+      "| língua | —     |",
+    ]),
   ]),
   "artifacts/construcoes/pontos.svg": [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">',
@@ -426,6 +438,23 @@ const customBuilds = {
   "artifacts/construcoes/mesa-volta.build.ts": build(
     "export default defineBuild({",
     "  steps: () => [{ say: 'Começa.', body: [['início', '48', '18']] }, { say: 'Volta.' }],",
+    "});",
+  ),
+  "artifacts/construcoes/conteudo.build.ts": build(
+    "export default defineBuild<{ a: number; b: number }>({",
+    "  steps(_input, { lang, code, tables }) {",
+    "    const [lines = []] = code;",
+    "    const [table] = tables;",
+    "    if (lines.length !== 2 || table?.rows[0]?.[1] !== '—') throw new Error('o conteúdo mudou');",
+    "    const seen = [",
+    "      lines.map(({ line, text }) => `${String(line)}:${text}`).join('|'),",
+    "      `${table.columns.join('/')} ${(table.rows[1] ?? []).join('/')}`,",
+    "      lang,",
+    "    ];",
+    "    code.length = 0;",
+    "    for (const row of table.rows) row.fill('mudou');",
+    "    return [{ say: 'Lê.', cells: ['código', 'tabela', 'língua'].map((row, at) => ({ row, column: 'Texto', text: seen[at] ?? '' })) }];",
+    "  },",
     "});",
   ),
   "artifacts/construcoes/sobra.build.ts": build(oneStep),
@@ -665,6 +694,9 @@ describe.each([
 
       it("runs every build on every option and example against the built page, naming it, the step and what's missing", () => {
         expect(linesFor(run, "stage-run")).toEqual([
+          "artifacts/construcoes/conteudo.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `0:push a|1:  add ; soma` in the row `código` and the column `Texto`, and the table as written has `—`; write the tables as the first example leaves them (artifact skill: Custom builds)",
+          "artifacts/construcoes/conteudo.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `Lido/Texto tabela/—` in the row `tabela` and the column `Texto`, and the table as written has `—`; write the tables as the first example leaves them (artifact skill: Custom builds)",
+          "artifacts/construcoes/conteudo.build.ts:1:1 error stage-run: with `a = 48, b = 18`, the first example, the last step leaves `pt-BR` in the row `língua` and the column `Texto`, and the table as written has `—`; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/construcoes/demais.build.ts:1:1 error stage-run: with `A`, `steps` returns more than 200 steps (artifact skill: Custom builds)",
           "artifacts/construcoes/desde-zero.build.ts:1:1 error stage-run: with `A`, step 2 marks the line `4`, which the code doesn't have: it has lines 0 to 3 (artifact skill: Custom builds)",
           "artifacts/construcoes/dois-codigos.build.ts:1:1 error stage-run: with `A`, step 1 has `lines`, but the Stage holds 2 code blocks: `lines` marks the lines of exactly one (artifact skill: Custom builds)",

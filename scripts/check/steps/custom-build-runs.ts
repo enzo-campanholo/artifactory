@@ -3,8 +3,9 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 import { Window } from "happy-dom";
-import type { Typed } from "@artifactory/design-system/stage-build";
+import type { Content, Typed } from "@artifactory/design-system/stage-build";
 import {
+  mainLanguage,
   rowTexts,
   stageNodes,
   writtenContent,
@@ -26,6 +27,7 @@ interface StageOnPage {
   fields: string[] | undefined;
   inputs: (string | Typed)[];
   written: Written;
+  lang: Content["lang"];
 }
 
 // Each Stage's build runs on every option or example against the content as the built page holds
@@ -70,6 +72,7 @@ async function stagesOnPages(root: string): Promise<StageOnPage[]> {
               )
             : (JSON.parse(examples) as Typed[]),
         written: writtenContent(stageNodes(element as unknown as Element)),
+        lang: mainLanguage(element as unknown as Element),
       });
     }
   }
@@ -78,7 +81,7 @@ async function stagesOnPages(root: string): Promise<StageOnPage[]> {
 
 function runStage(
   root: string,
-  { file, fields, inputs, written }: StageOnPage,
+  { file, fields, inputs, written, lang }: StageOnPage,
 ): Promise<Failure[]> {
   const failures: Failure[] = [];
   const fail = (message: string, line = 1, column = 1) => {
@@ -91,7 +94,7 @@ function runStage(
       skillSection: "Custom builds",
     });
   };
-  const job: Job = { file: join(root, file), inputs, written };
+  const job: Job = { file: join(root, file), inputs, written, lang };
   const worker = new Worker(new URL("../build-runner.ts", import.meta.url), { workerData: job });
   const waiting = [...inputs];
   return new Promise((resolve) => {

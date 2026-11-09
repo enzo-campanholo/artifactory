@@ -341,6 +341,16 @@ interface Typed extends Staged {
  * check. A part and a row may share a name: `parts` marks only the drawing, and `rows` only the
  * tables.
  *
+ * **The content as written reaches the build.** `steps` gets it as its second argument, typed
+ * `Content`: `code`, each code block's lines in order, each with the number the page shows
+ * (`line`) and its plain text (`text`); `tables`, each table's headers (`columns`) and rows as
+ * written (`rows`), as plain text and found as `rows` and `cells` find them, even in a run that
+ * gives `body`; and `lang`, the artifact's main language, `"pt-BR"` or `"en"`, to say the steps
+ * in. Read a program from the code block, or a table's starting values, rather than writing them
+ * again in the build: `steps({ a, b }, { code: [listing = []] })` takes the first block's lines.
+ * The page and `pnpm check` hand every run the same content, a fresh copy each time, so a run may
+ * change its own. A build that doesn't need it leaves the argument out.
+ *
  * **Beside the drawing.** A Stage sets its tables under its drawing. Set `beside` only where the
  * owner must see a step's marks and its table's rows together to follow the step, such as a graph
  * and its table of keys and parents, which stacked sit a scroll apart; most Stages leave it out.

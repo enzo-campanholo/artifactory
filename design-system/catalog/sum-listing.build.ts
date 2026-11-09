@@ -1,7 +1,7 @@
 import { defineBuild, type CellChange, type Step } from "../src/stage-build.ts";
 
 export default defineBuild<{ a: number; b: number }>({
-  steps({ a, b }) {
+  steps({ a, b }, { code: [listing = []] }) {
     const values = (stack: number[], printed?: number): CellChange[] => [
       {
         row: "stack",
@@ -16,26 +16,30 @@ export default defineBuild<{ a: number; b: number }>({
         mark: printed === undefined ? undefined : "strong",
       },
     ];
+    const [pushA, pushB, add, print] = listing;
+    if (pushA === undefined || pushB === undefined || add === undefined || print === undefined) {
+      return [{ say: "The listing needs four instructions." }];
+    }
     const sum = a + b;
     const steps: Step[] = [
       {
-        say: `push a puts ${String(a)} on the stack.`,
-        lines: { 0: "reversed" },
+        say: `${pushA.text} puts ${String(a)} on the stack.`,
+        lines: { [pushA.line]: "reversed" },
         cells: values([a]),
       },
       {
-        say: `push b puts ${String(b)} on top of it.`,
-        lines: { 1: "reversed" },
+        say: `${pushB.text} puts ${String(b)} on top of it.`,
+        lines: { [pushB.line]: "reversed" },
         cells: values([a, b]),
       },
       {
-        say: `add takes ${String(a)} and ${String(b)} off and pushes their sum, ${String(sum)}.`,
-        lines: { 2: "reversed" },
+        say: `${add.text} takes ${String(a)} and ${String(b)} off and pushes their sum, ${String(sum)}.`,
+        lines: { [add.line]: "reversed" },
         cells: values([sum]),
       },
       {
-        say: `print takes ${String(sum)} off the stack and prints it.`,
-        lines: { 3: "reversed" },
+        say: `${print.text} takes ${String(sum)} off the stack and prints it.`,
+        lines: { [print.line]: "reversed" },
         cells: values([], sum),
       },
     ];
