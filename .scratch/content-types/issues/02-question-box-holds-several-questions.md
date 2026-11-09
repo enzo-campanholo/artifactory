@@ -1,6 +1,6 @@
 # 02: Let one question box hold several questions
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: [Question explanations 01](../../question-explanations/issues/01-question-revealed-part.md)
 
 Spec: [Content types](../spec.md) › Behaviour: the matching, and Shared parts. A prefactor for 03: no behaviour changes.
