@@ -377,9 +377,9 @@ describe("check evidence for a working tree", () => {
     checkTimeout,
   );
 
-  it.each(["checks", "jobs"])(
-    "keeps artifact-only success qualified and the combined gate footer final when %s evidence fails",
-    async (directory) => {
+  it(
+    "keeps artifact-only success qualified",
+    async () => {
       const scoped = await repo.check(["--artifacts-only"]);
       expect(scoped.exitCode).toBe(0);
       expect(scoped.output).toContain("Full-scope checking is required before publication.");
@@ -392,7 +392,13 @@ describe("check evidence for a working tree", () => {
       });
       expect(observed.report.source.drifted).toBe(false);
       expect(observed.status.check.applicability).toBe("unknown");
+    },
+    checkTimeout,
+  );
 
+  it.each(["checks", "jobs"])(
+    "keeps the combined gate footer final when %s evidence fails",
+    async (directory) => {
       const checks = join(admin, "artifactory-heavy/checks");
       const target = join(admin, "artifactory-heavy", directory);
       const backup = `${target}-saved`;
