@@ -286,6 +286,17 @@ const unfitMachineStages = [
   ...machineStage("jumps", ["INPP", "DSVS L9", "L1: NADA", "PARA", "FIM"]),
   ...machineStage("labelled", ["INPP", "L1: NADA", "L1: NADA", "L2:", "PARA", "FIM"]),
   ...machineStage("labels", ["INPP", "PARA", "FIM"]),
+  ...machineStage("calls", ["INPP", "CHPR L9,1", "CHPR L1", "L1: NADA", "PARA", "FIM"]),
+  ...machineStage("subroutines", [
+    "INPP",
+    "AMEM 1",
+    "CHPR L1,1",
+    "PARA",
+    "L1: ENPR 1",
+    "RTPR 1,0",
+    "L2: NADA",
+    "FIM",
+  ]),
   ...machineStage("reads", ["INPP", "PARA", "FIM"]),
   ...machineStage("no-registers", ["INPP", "PARA", "FIM"], { tables: memoryTable }),
   ...machineStage("no-top", ["INPP", "PARA", "FIM"], {
@@ -334,6 +345,7 @@ const unfitMachineBuilds = {
       "no-para",
       "jumps",
       "labelled",
+      "calls",
       "no-registers",
       "no-top",
       "unroled",
@@ -345,6 +357,9 @@ const unfitMachineBuilds = {
   "artifacts/stack-machine/reads.build.ts": machineBuild('reads: ["x", "z"]'),
   "artifacts/stack-machine/labels.build.ts": machineBuild(
     'reads: ["x", "y"], labels: { L2: "the end" }',
+  ),
+  "artifacts/stack-machine/subroutines.build.ts": machineBuild(
+    'reads: ["x", "y"], subroutines: { L1: { params: ["a"], returns: false }, L2: { params: [], returns: true } }',
   ),
 };
 
@@ -817,7 +832,7 @@ describe.each([
         expect(run.output.indexOf(qualification)).toBeLessThan(
           run.output.indexOf("pnpm check: astro build"),
         );
-        expect(run.output).toContain(`${qualification}\n\npnpm check: 128 failures\n`);
+        expect(run.output).toContain(`${qualification}\n\npnpm check: 131 failures\n`);
         expect(run.output).toContain("pnpm check: restricted build tsc failed");
         expect(run.output).not.toMatch(
           /pnpm check: (astro check|tsc|ESLint|Prettier|Vitest) (passed|failed)/,
@@ -1016,6 +1031,8 @@ describe.each([
           "artifacts/stack-machine/arguments.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 4: `DSVS 3` isn't `DSVS L`, with a label (artifact skill: Custom builds)",
           "artifacts/stack-machine/below-zero.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: M[−1] doesn't exist (artifact skill: Custom builds)",
           "artifacts/stack-machine/bottom.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine faults at line 1: the stack would drop below its bottom (artifact skill: Custom builds)",
+          "artifacts/stack-machine/calls.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: `CHPR L9,1` calls the label `L9`, which the listing doesn't have: it has `L1` (artifact skill: Custom builds)",
+          "artifacts/stack-machine/calls.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 2: `CHPR L1` isn't `CHPR L,k`, with a label and 1 whole number (artifact skill: Custom builds)",
           "artifacts/stack-machine/divide.build.ts:1:1 error stage-run: with `x = 7, y = 0`, the machine faults at line 8: division by zero (artifact skill: Custom builds)",
           "artifacts/stack-machine/divide.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the first example, the last step leaves `3` in the row `M[2]` and the column `Data`, and the table as written has `4`; write the tables as the first example leaves them (artifact skill: Custom builds)",
           "artifacts/stack-machine/from-one.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: the listing starts at address 0: fence it ` ```text start=0 ` (artifact skill: Custom builds)",
@@ -1033,6 +1050,7 @@ describe.each([
           "artifacts/stack-machine/notes.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `after` names the address 9, which the listing doesn't have: it has addresses 0 to 2 (artifact skill: Custom builds)",
           "artifacts/stack-machine/notes.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `roles` names the address 7, which the listing doesn't have: it has addresses 0 to 2 (artifact skill: Custom builds)",
           "artifacts/stack-machine/reads.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `reads` names `z`, which isn't one of the Stage's fields (artifact skill: Custom builds)",
+          "artifacts/stack-machine/subroutines.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't run: `subroutines` names the label `L2`, which no `CHPR` calls: the listing calls `L1` (artifact skill: Custom builds)",
           "artifacts/stack-machine/unknown.build.ts:1:1 error stage-run: with `x = 7, y = 2`, the machine can't read line 1: `PUSH 3` isn't a MEPA instruction (artifact skill: Custom builds)",
         ]);
       });
@@ -1073,7 +1091,7 @@ describe.each([
           : []),
       ]);
       expect(run.summary[0]).toBe(
-        fullScope ? "pnpm check: 129 failures" : "pnpm check: 128 failures",
+        fullScope ? "pnpm check: 132 failures" : "pnpm check: 131 failures",
       );
     });
   },

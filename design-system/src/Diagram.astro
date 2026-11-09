@@ -28,7 +28,8 @@ import { drawInStandard, smallestLabelSize } from "./d2-board.ts";
  * headings, and rectangles, squares and containers are drawn with square corners whatever
  * `style.border-radius` says, so leave that out. Code labels, `sql_table` and `class` members and
  * `style.font: mono` are set in D2's own monospace. The page numbers each diagram by its section
- * ("Diagrama 4.1").
+ * ("Diagrama 4.1"), except inside a question's model answer or explanation, where it shows its
+ * caption with no number.
  *
  * The check fails a file that asks for what the design system doesn't draw: colours written in
  * the file (`style.fill`, `style.stroke` or `style.font-color` as `"#…"` or a colour name),

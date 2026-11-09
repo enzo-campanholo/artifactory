@@ -1,12 +1,12 @@
 import Stage from "../src/Stage.astro";
 
-MEPA's machine trace: a Stage whose build is `trace(mepa, notes)`, running the listing written in its code block on the numbers typed. The listing works out a trapezoid's area, (a + b) × h div 2, with every instruction MEPA covers: `INPP`, `AMEM`, `DSVS`, `NADA`, `LEIT`, `ARMZ`, `CRVL`, `SOMA`, `MULT`, `CRCT`, `DIVI`, `IMPR`, `DMEM`, `PARA` and `FIM`. It opens as a compiler lays out a program: `DSVS L1` jumps over the subroutines to `L1: NADA`, the main program's start, and since this program has none, it lands on the next line. A label names its line's address, and the build's `labels` note names its place, said when the jump lands there and when the run passes the `NADA`. The same program runs in a pt-BR Stage and in an English Stage, each with its tables as written in its language and its build's notes in that language too, so each says its steps in its own.
+MEPA's machine trace: a Stage whose build is `trace(mepa, notes)`, running the listing written in its code block on the numbers typed. The listing works out a trapezoid's area, (a + b) × h div 2, with every instruction MEPA covers: `INPP`, `AMEM`, `DSVS`, `ENPR`, `CRVL`, `MULT`, `CRCT`, `DIVI`, `ARMZ`, `RTPR`, `NADA`, `LEIT`, `SOMA`, `CHPR`, `IMPR`, `DMEM`, `PARA` and `FIM`. It opens as a compiler lays out a program: `DSVS L1` jumps over the function área(bases, altura) to `L1: NADA`, the main program's start. The main program reads a, b and h, reserves a cell for the return value, pushes a + b and h as the arguments and calls `CHPR L2,1`. `ENPR 1` sets `D[1]` to the record's base, the function reads its parameters at offsets −5 and −4 (`CRVL 1,-5`), stores the area in the return value at −6, and `RTPR 1,2` returns with it on top. A label names its line's address; the build's `labels` note names its place, said when a jump or a call lands there and when the run passes the `NADA`, and its `subroutines` note gives área's parameters and its return value, so the memory table's `Desl.` column shows each record cell's offset. The same program runs in a pt-BR Stage and in an English Stage, each with its tables as written in its language and its build's notes in that language too, so each says its steps in its own.
 
-The catalog script pressed Start on a = 3, b = 5, h = 4 and stepped to step 14, where `SOMA` runs. Line 12, the instruction that ran, is reversed, and line 13, where `i` points next, is dashed. What the step changed is strong: `i`, `s`, the sum 8 in M[3] and `← s` moving to it from M[4]. M[4] is above `s`, so it's muted and shows no role. Without JavaScript and in print, each Stage shows its tables as written: the first example's last step, where `DMEM 3` has freed every cell, so none shows a role or the top.
+The catalog script pressed Start on a = 3, b = 5, h = 4 and stepped to step 24, inside área, where `ARMZ 1,-6` stores the area 16 in the return value's cell. Line 9, the instruction that ran, is reversed, and line 10, the `RTPR` where `i` points next, is dashed. What the step changed is strong: `i`, `s`, the 16 in M[3] and `← s` moving to M[8] from M[9]. The record runs from M[3], the return value at offset −6, through the parameters at −5 and −4 and the return address, the level and the kept `D[1]` at −3 to −1. M[9] and M[10] are above `s`, so they're muted and show no role or offset. Without JavaScript and in print, each Stage shows its tables as written: the first example's last step, where `DMEM 3` has freed every cell, so none shows a role, an offset or the top.
 
 ## In Portuguese
 
-<div lang="pt-BR" data-catalog-run="start" data-catalog-step="14">
+<div lang="pt-BR" data-catalog-run="start" data-catalog-step="24">
 
 <Stage
   build="mepa-trapezio"
@@ -23,13 +23,21 @@ The catalog script pressed Start on a = 3, b = 5, h = 4 and stepped to step 14, 
     ],
   }}
   prompt="Digite as bases e a altura e rode o programa."
-  caption="A área do trapézio na MEPA, uma instrução por passo."
+  caption="A área do trapézio na MEPA, com uma função, uma instrução por passo."
 >
 
 ```text start=0
 INPP
 AMEM 3        ; a, b, h
-DSVS L1       ; salta os procedimentos
+DSVS L1       ; salta a função
+L2: ENPR 1    ; área(bases, altura)
+CRVL 1,-5
+CRVL 1,-4
+MULT
+CRCT 2
+DIVI
+ARMZ 1,-6     ; o valor de retorno
+RTPR 1,2
 L1: NADA
 LEIT
 ARMZ 0,0
@@ -37,13 +45,12 @@ LEIT
 ARMZ 0,1
 LEIT
 ARMZ 0,2
+AMEM 1        ; o valor de retorno
 CRVL 0,0
 CRVL 0,1
 SOMA
 CRVL 0,2
-MULT
-CRCT 2
-DIVI
+CHPR L2,1
 IMPR
 DMEM 3
 PARA
@@ -52,19 +59,26 @@ FIM
 
 | Registrador | Valor |
 | ----------- | ----: |
-| i           |    19 |
+| i           |    26 |
 | s           |    −1 |
 | D[0]        |     0 |
+| D[1]        |     ? |
 | entrada     |     — |
 | saída       |    16 |
 
-| Célula | Dado | Papel | Topo |
-| ------ | ---: | ----- | ---- |
-| M[0]   |    3 |       |      |
-| M[1]   |    5 |       |      |
-| M[2]   |    4 |       |      |
-| M[3]   |   16 |       |      |
-| M[4]   |    2 |       |      |
+| Célula | Dado | Papel | Desl. | Topo |
+| ------ | ---: | ----- | ----: | ---- |
+| M[0]   |    3 |       |       |      |
+| M[1]   |    5 |       |       |      |
+| M[2]   |    4 |       |       |      |
+| M[3]   |   16 |       |       |      |
+| M[4]   |    8 |       |       |      |
+| M[5]   |    4 |       |       |      |
+| M[6]   |   24 |       |       |      |
+| M[7]   |    1 |       |       |      |
+| M[8]   |    ? |       |       |      |
+| M[9]   |   16 |       |       |      |
+| M[10]  |    2 |       |       |      |
 
 </Stage>
 
@@ -72,7 +86,7 @@ FIM
 
 ## In English
 
-<div lang="en" data-catalog-run="start" data-catalog-step="14">
+<div lang="en" data-catalog-run="start" data-catalog-step="24">
 
 <Stage
   build="mepa-trapezoid"
@@ -89,13 +103,21 @@ FIM
     ],
   }}
   prompt="Type the bases and the height and run the program."
-  caption="A trapezoid's area on MEPA, one instruction per step."
+  caption="A trapezoid's area on MEPA, with a function, one instruction per step."
 >
 
 ```text start=0
 INPP
 AMEM 3        ; a, b, h
-DSVS L1       ; skips the procedures
+DSVS L1       ; skips the function
+L2: ENPR 1    ; area(bases, height)
+CRVL 1,-5
+CRVL 1,-4
+MULT
+CRCT 2
+DIVI
+ARMZ 1,-6     ; the return value
+RTPR 1,2
 L1: NADA
 LEIT
 ARMZ 0,0
@@ -103,13 +125,12 @@ LEIT
 ARMZ 0,1
 LEIT
 ARMZ 0,2
+AMEM 1        ; the return value
 CRVL 0,0
 CRVL 0,1
 SOMA
 CRVL 0,2
-MULT
-CRCT 2
-DIVI
+CHPR L2,1
 IMPR
 DMEM 3
 PARA
@@ -118,19 +139,26 @@ FIM
 
 | Register | Value |
 | -------- | ----: |
-| i        |    19 |
+| i        |    26 |
 | s        |    −1 |
 | D[0]     |     0 |
+| D[1]     |     ? |
 | input    |     — |
 | output   |    16 |
 
-| Cell | Data | Role | Top |
-| ---- | ---: | ---- | --- |
-| M[0] |    3 |      |     |
-| M[1] |    5 |      |     |
-| M[2] |    4 |      |     |
-| M[3] |   16 |      |     |
-| M[4] |    2 |      |     |
+| Cell  | Data | Role | Offset | Top |
+| ----- | ---: | ---- | -----: | --- |
+| M[0]  |    3 |      |        |     |
+| M[1]  |    5 |      |        |     |
+| M[2]  |    4 |      |        |     |
+| M[3]  |   16 |      |        |     |
+| M[4]  |    8 |      |        |     |
+| M[5]  |    4 |      |        |     |
+| M[6]  |   24 |      |        |     |
+| M[7]  |    1 |      |        |     |
+| M[8]  |    ? |      |        |     |
+| M[9]  |   16 |      |        |     |
+| M[10] |    2 |      |        |     |
 
 </Stage>
 

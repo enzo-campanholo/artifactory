@@ -82,7 +82,8 @@ interface Typed extends Staged {
  * picks, or a function traced on the numbers or text they type. Use it only when no component can
  * do the job: a fixed sequence of steps is a `Stepper`, and anything that asks the owner something
  * and records the answer is a question. A Stage is a block in the page, numbered on the figures'
- * series ("Figura 4.1"), and a page may hold several, each with its own build.
+ * series ("Figura 4.1") except inside a question's model answer or explanation, and a page may
+ * hold several, each with its own build.
  *
  * You write two things:
  *
@@ -744,7 +745,7 @@ const width = (field: Field) =>
     <div class="stage-content">
       <Fragment set:html={content} />
     </div>
-    <figcaption>
+    <figcaption data-uncaptioned={caption === undefined ? "" : undefined}>
       <span class="figure-number">
         <span data-lang="en">Figure</span>
         <span data-lang="pt">Figura</span>&#32;

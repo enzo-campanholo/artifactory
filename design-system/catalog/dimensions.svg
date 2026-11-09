@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 110">
+  <path d="M20 80H80" class="stroke-text" stroke-width="2" />
+  <text x="50" y="100" text-anchor="middle" font-size="12">r</text>
+  <rect x="120" y="30" width="50" height="50" class="fill-tint stroke-text" stroke-width="2" />
+  <text x="145" y="100" text-anchor="middle" font-size="12">r²</text>
+  <g class="fill-tint stroke-text" stroke-width="2" stroke-linejoin="round">
+    <path d="M210 40H260V90H210Z" />
+    <path d="M210 40L230 20H280L260 40Z" />
+    <path d="M260 40L280 20V70L260 90Z" />
+  </g>
+  <text x="245" y="106" text-anchor="middle" font-size="12">r³</text>
+</svg>

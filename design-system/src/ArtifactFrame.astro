@@ -781,6 +781,18 @@ const unansweredResume = {
         content: counter(artifact-diagram);
       }
 
+      /* CSS can't count what a closed model answer or a hidden explanation hides, so a figure in
+         a question's revealed part takes no number: counting it would renumber every figure after
+         the question as it opens or locks. */
+      .question-revealed :is(figure.figure, figure.diagram) {
+        counter-increment: none;
+
+        > figcaption > .figure-number,
+        > figcaption[data-uncaptioned] {
+          display: none;
+        }
+      }
+
       /* One count per question, as the page's questions block numbers them: a matching's box holds
          several, each on its own row. */
       [data-question-id] {
