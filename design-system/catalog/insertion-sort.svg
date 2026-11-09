@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 170">
+  <defs>
+    <marker id="insertion-sort-arrow" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0L8 4L0 8Z" class="fill-text" />
+    </marker>
+  </defs>
+  <path d="M50 40V32H192V40" fill="none" class="stroke-text" stroke-width="1.5" />
+  <path d="M196 40V32H290V40" fill="none" class="stroke-muted" stroke-width="1.5" />
+  <text x="121" y="24" text-anchor="middle" font-size="12">sorted</text>
+  <text x="243" y="24" text-anchor="middle" font-size="12" class="fill-muted">unsorted</text>
+  <rect x="50" y="48" width="144" height="40" class="fill-tint" />
+  <path d="M50 48H290V88H50ZM98 48V88M146 48V88M194 48V88M242 48V88" fill="none" class="stroke-text" stroke-width="2" />
+  <text x="40" y="73" text-anchor="end" font-size="15" class="font-code">a</text>
+  <text x="74" y="73" text-anchor="middle" font-size="15" class="font-code">2</text>
+  <text x="122" y="73" text-anchor="middle" font-size="15" class="font-code">3</text>
+  <text x="170" y="73" text-anchor="middle" font-size="15" class="font-code">7</text>
+  <text x="218" y="73" text-anchor="middle" font-size="15" class="font-code">1</text>
+  <text x="266" y="73" text-anchor="middle" font-size="15" class="font-code">9</text>
+  <text x="74" y="106" text-anchor="middle" font-size="12" class="font-code fill-muted">0</text>
+  <text x="122" y="106" text-anchor="middle" font-size="12" class="font-code fill-muted">1</text>
+  <text x="170" y="106" text-anchor="middle" font-size="12" class="font-code fill-muted">2</text>
+  <text x="218" y="106" text-anchor="middle" font-size="12" class="font-code fill-muted">3</text>
+  <text x="266" y="106" text-anchor="middle" font-size="12" class="font-code fill-muted">4</text>
+  <path d="M218 146V120" fill="none" class="stroke-text" stroke-width="2" marker-end="url(#insertion-sort-arrow)" />
+  <text x="218" y="162" text-anchor="middle" font-size="15" class="font-code">i</text>
+</svg>

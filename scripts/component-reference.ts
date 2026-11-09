@@ -379,6 +379,14 @@ function figureColours(css: string, swatches: string[]): string {
       `${figureColoursFile}: give \`fill-swatch-1\` to \`fill-swatch-${String(swatches.length)}\` a rule each, in order, as \`.figure .fill-swatch-N { fill: var(--swatch-N); }\``,
     );
   }
+  const codeFace = /\.figure \.(font-[a-z]+) \{[^}]*font-family: var\(--font-mono\);[^}]*\}/.exec(
+    css,
+  )?.[1];
+  if (codeFace === undefined) {
+    throw new Error(
+      `${figureColoursFile}: give the code face a class, as \`.figure .font-code { font-family: var(--font-mono); … }\``,
+    );
+  }
   const colours = (ink: boolean) => {
     const names = [
       ...new Set(
@@ -394,6 +402,8 @@ function figureColours(css: string, swatches: string[]): string {
     "Each class paints an SVG element with a token:",
     rules.map(([, className, token]) => `- \`${className ?? ""}\`: \`${token ?? ""}\``).join("\n"),
     `The ${colours(true)} classes are ink: use them for lines and labels. The ${colours(false)} classes are too faint to read on the page: use them for fills and gridlines, never for text or a line that carries meaning, unless it sits on an ink fill.`,
+    "### Code in figures",
+    `Text takes the face of the page's headings, Archivo. \`${codeFace}\` sets a \`<text>\` in the code face instead, Recursive in mono mode, as code blocks are: give it to code, identifiers and instructions (\`push 2\`, \`head\`, \`x := 0\`), and nothing else. It combines with a colour class, as \`class="${codeFace} fill-muted"\`, and a Stage's \`strong\` mark still sets it in bold.`,
     "### Swatches",
     `When colour is the subject (a graph or map colouring, an edge colouring, a red-black tree), each colour is a swatch: a hatching in ink on the ground, never a hue or a line form. In a \`Figure\` or a \`Stage\` drawing, never a \`Stepper\`, fill an area (a vertex, a region) with its colour's class, in swatch order, at most ${String(swatches.length)} to a drawing; an area left in the ground is uncoloured:`,
     swatches.map((draws, index) => `- \`fill-swatch-${String(index + 1)}\`: ${draws}`).join("\n"),

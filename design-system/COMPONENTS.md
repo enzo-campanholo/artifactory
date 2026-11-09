@@ -71,7 +71,8 @@ import celula from "./celula.svg?raw";
 
 Colour the drawing with the `fill-` and `stroke-` classes under "Colours in figures", which
 follow the site in light mode, dark mode and print. Shapes and text without a fill are drawn in
-the text colour, and text uses the face of the page's headings. The page numbers each figure by
+the text colour, and text uses the face of the page's headings, or the code face with
+`font-code` for code, identifiers and instructions. The page numbers each figure by
 its section ("Figura 4.1"), except inside a question's model answer or explanation, where it
 shows its caption with no number, so never cite one there by number. Colours written in the file
 (`fill="#…"`) don't follow dark mode, so leave them out.
@@ -1446,6 +1447,10 @@ Each class paints an SVG element with a token:
 - `stroke-border`: `--color-border`
 
 The `text`, `muted` and `accent` classes are ink: use them for lines and labels. The `tint`, `surface` and `border` classes are too faint to read on the page: use them for fills and gridlines, never for text or a line that carries meaning, unless it sits on an ink fill.
+
+### Code in figures
+
+Text takes the face of the page's headings, Archivo. `font-code` sets a `<text>` in the code face instead, Recursive in mono mode, as code blocks are: give it to code, identifiers and instructions (`push 2`, `head`, `x := 0`), and nothing else. It combines with a colour class, as `class="font-code fill-muted"`, and a Stage's `strong` mark still sets it in bold.
 
 ### Swatches
 

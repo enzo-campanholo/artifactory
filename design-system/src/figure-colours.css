@@ -109,4 +109,12 @@
   .figure .stroke-border {
     stroke: var(--color-border);
   }
+
+  /* Code in the code face, as `pre` sets it. It keeps the drawing's weight, so a Stage's `strong`
+     mark still sets it in bold, and drops the frame's narrowing, which is Archivo's. */
+  .figure .font-code {
+    font-family: var(--font-mono);
+    font-stretch: normal;
+    font-variation-settings: "MONO" 1;
+  }
 }
