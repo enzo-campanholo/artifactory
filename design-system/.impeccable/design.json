@@ -611,6 +611,11 @@
         "section": "colors"
       },
       {
+        "name": "The Swatch Rule",
+        "body": "When colour is the subject (a graph or map colouring, an edge colouring, a red-black tree, tri-colour marking), each colour is a swatch: one of six hatchings in ink on the ground, in swatch order diagonal lines `/`, diagonal lines `\\`, cross-hatch (both diagonals), horizontal lines, vertical lines and dots, `fill-swatch-1` to `fill-swatch-6` (ADR 0009). The One Ink and Shape, Not Hue Rules stand: a swatch is a shape in the one ink, never a hue. Ground means uncoloured, so no swatch is ink, wiped grey, grey or figure grey, which are `reversed`, hover, `muted` and too faint. The label is the colour: every coloured part names its colour in one or two characters on a square ground plate, and the hatching repeats it so the eye groups parts at a glance. An area (a vertex, a region) takes its swatch and its label; an edge takes the label only, at its midpoint, because no line form ever stands for a colour: solid, dashed, 4px and grey stay the marks'. At most six to a drawing; a seventh joins by proposal. Swatches live in Figures and Stage drawings, never a Stepper or D2. Each hatching is drawn in the drawing's units on a 6-unit tile: lines 1.5 wide and 6 apart in every direction, the cross-hatch both diagonals at that spacing, dots 2.8 across on a 6-unit lattice turned 45°, so all six tell apart on a 2.75rem vertex at a figure's smallest scale (two thirds), around a plate for two characters. A hatching is a fill, not a rule, so the Three Weights Rule doesn't govern its lines (as with the proof's end square). It follows the theme through the tokens, prints as written in light, and paints CanvasText on Canvas in forced colours.",
+        "section": "colors"
+      },
+      {
         "name": "The Frame and Copy Rule",
         "body": "Archivo sets only the frame, at 500, 600, 700 or 800, never 400, always condensed (88% by default, 80% for titles, 72% for the subject). It never sets prose, prompts, options or what the owner types; those are STIX Two Text, with math in STIX Two Math.",
         "section": "typography"

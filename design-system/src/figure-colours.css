@@ -64,6 +64,15 @@
     fill: var(--swatch-6);
   }
 
+  /* Forced colours leave SVG paint as the tokens give it, so the hatchings take the system's own
+     ink and ground themselves, from the pattern their content inherits from. */
+  @media (forced-colors: active) {
+    .figure pattern {
+      --color-text: CanvasText;
+      --color-surface: Canvas;
+    }
+  }
+
   .figure .stroke-text {
     stroke: var(--color-text);
   }

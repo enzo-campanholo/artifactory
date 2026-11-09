@@ -18,3 +18,14 @@ Design-system work: run it in a local session with impeccable.
 - [ ] The `artifact` skill, in the same commit as the check change: `figures.md` says that when colour is the subject the drawing uses swatches and labels, never line styles or fills of its own (and "Black on white" points there); `rules.md` › Build failures lists `Figure: …` among the components' own rules.
 - [ ] The catalog's swatch Figure from 01 becomes the spec's Figure page: all six swatches on labelled vertices and labelled edges, in both themes, print and forced colours.
 - [ ] Shared parts: if the plate or label styling goes into `figure-colours.css`, it reaches every Stage drawing and figure Stepper too: check the Prim and mdc Stages and the orbit Stepper as 01 did, and name them in the closing comment; if it stays inside `Figure`, say so.
+
+## Comments
+
+### 2026-11-09: notes from swatches 01
+
+- **How the hatchings are built** (01's closing comment has the whole of it): `Figure` (through `SvgImage`) and `Stage` pass `swatches` to `InlineSvg`; a drawing whose source contains `fill-swatch-` gets one `<defs>` with six patterns at its top (`design-system/src/swatches.ts`), IDs `swatch-<drawing>-<N>` from a per-build counter, and `--swatch-N: url(#…)` on `InlineSvg`'s `<g aria-hidden>`; `figure-colours.css` has `.figure .fill-swatch-N { fill: var(--swatch-N); }`. Drawings without swatches are byte-identical to before.
+- **Room for the plate:** the hatchings were chosen around an 18 × 18 plate in the middle of a 44-unit vertex (font-size 15). The catalog's `catalog/swatches.svg` stands in a plain `fill-surface` rect plate under each label for now; replace it with your plate and add the labelled edges.
+- **Labels already written:** the `coloracao` fixture in `tests/check/valid-artifacts.test.ts` and `catalog/swatches.svg` already carry `<text data-swatch="N">N</text>` in each coloured part's `<g>`, so your checks should pass them as they stand.
+- **Forced colours:** Chrome leaves SVG `fill`/`stroke` as the tokens give them in forced colours, so a Figure's ink stays `#111`/`#ededed`. 01 remaps `--color-text`/`--color-surface` to CanvasText/Canvas on `.figure pattern` only. If the plate and label must be CanvasText on Canvas too, scope the same remap to them; the vertex outline isn't remapped (no Figure's is).
+- **Stepper:** `Stepper` doesn't pass `swatches`, so a `fill-swatch-N` in a Stepper figure gets no pattern and its unset `--swatch-N` leaves the shape painting inherited ink, which reads like `reversed`. Your check is the natural place to refuse `fill-swatch-` in a Stepper (swatches aren't offered there, per the spec's ticketing comment).
+- **Docs:** "Colours in figures" now ends with a `### Swatches` list generated from `swatches` (`draws`) in `swatches.ts` by `figureColours` in `scripts/component-reference.ts`; extend its paragraph with the labels and names there.
