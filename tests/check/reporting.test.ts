@@ -131,11 +131,15 @@ describe("a repo with an artifact whose question breaks its component's rules, u
     expect(run.summary[0]).toBe("pnpm check: 6 failures");
     const beforeSummary = run.output.slice(0, run.output.lastIndexOf("pnpm check: 6 failures"));
     for (const failure of expectedFailures) expect(beforeSummary).toContain(failure);
-    for (const step of ["astro build", "astro check", "Vitest"]) {
+    for (const step of ["astro build", "astro check"]) {
       expect(beforeSummary).toMatch(
         new RegExp(`^pnpm check: ${step} (passed|failed) \\(\\d+\\.\\d{3}s\\)$`, "m"),
       );
     }
+    // Fixture repos share their passes, so an earlier run may have left this one nothing to run.
+    expect(beforeSummary).toMatch(
+      /^pnpm check: Vitest passed \((\d+\.\d{3}s|not run again: .+)\)$/m,
+    );
   });
 
   it("skips only the checks that need the built output when the build fails", () => {
