@@ -688,6 +688,9 @@ const steppedFigures = {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20">',
     '  <circle data-step="1" cx="10" cy="10" r="4" class="fill-text" />',
     '  <circle data-step="2" cx="20" cy="10" r="4" class="fill-text" />',
+    '  <text x="2" y="4">pilha</text>',
+    '  <text data-step="1" x="10" y="18" class="font-code">push</text>',
+    '  <text data-step="2" x="20" y="18" class="font-code">pop</text>',
     "</svg>",
     "",
   ].join("\n"),
@@ -1871,6 +1874,21 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
         for (const stepper of [orbita, troca]) {
           expect(stepper?.querySelector(".stepper-steps")).toBeNull();
         }
+      });
+
+      it("sets a figure's code-face labels in the code face in every printed step, beside its other labels in the frame face", async () => {
+        const [, , troca] = await steppers();
+        expect(
+          printedSteps(troca).map(({ svg }) => ({
+            wrapper: svg.parentElement?.classList.contains("figure"),
+            labels: [...svg.querySelectorAll("text")]
+              .filter((text) => text.closest("[data-off]") === null)
+              .map((text) => `${text.textContent} ${text.getAttribute("class") ?? "frame"}`),
+          })),
+        ).toEqual([
+          { wrapper: true, labels: ["pilha frame", "push font-code"] },
+          { wrapper: true, labels: ["pilha frame", "pop font-code"] },
+        ]);
       });
 
       it("gives every printed step ids of its own, which its markers and uses resolve to", async () => {
