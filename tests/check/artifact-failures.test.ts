@@ -943,13 +943,20 @@ describe.each([
     failure:
       "Stepper: swatches are only for a Figure or a Stage, so a figure Stepper draws none: draw the colouring as a Figure, or step through it in a Stage",
   },
+  {
+    drawing: "a Stage whose drawing as written breaks the label rules, beside a rule of its own",
+    tag: '<Stage build="cores" choose={{ label: "Começar em", options: ["1"] }} prompt="Escolha um vértice." figure={cores} alt="Um vértice da cor R." colours={["R", "B"]} />',
+    parts: [vertex(30, 1, "B"), vertex(80, 3, "3")],
+    failure:
+      'Stage: there is no `cores.build.ts` beside the entry; a label reads "B", but data-swatch="1" is colour 1, "R": write <text data-swatch="1">R</text>; swatch 3 is past the 2 colours `colours` names: add its name to `colours`, or use swatches 1 to 2',
+  },
 ])("$drawing", ({ tag, parts, failure }) => {
   let repo: FixtureRepo;
   let run: CheckRun;
 
   beforeAll(async () => {
-    const component = tag.startsWith("<Stepper") ? "stepper" : "figure";
-    const name = component === "stepper" ? "Stepper" : "Figure";
+    const name = /^<(\w+)/.exec(tag)?.[1] ?? "Figure";
+    const component = name.toLowerCase();
     repo = await createFixtureRepo({
       "artifacts/cores/index.mdx": artifact(fields("c0r3s001", "Cores", "Grafos"), [
         `import ${name} from "@artifactory/design-system/${component}";`,

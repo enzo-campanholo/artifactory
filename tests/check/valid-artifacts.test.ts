@@ -653,6 +653,7 @@ const colouring = {
     'import Stage from "@artifactory/design-system/stage";',
     'import hexagono from "./hexagono.svg?raw";',
     'import aresta from "./aresta.svg?raw";',
+    'import marcas from "./marcas.svg?raw";',
     "",
     '<Figure src={hexagono} alt="Seis vértices, um de cada cor, de 1 a 6." />',
     "",
@@ -676,7 +677,45 @@ const colouring = {
     "| 2       |   2 |",
     "",
     "</Stage>",
+    "",
+    "<Stage",
+    '  build="marcas"',
+    '  choose={{ label: "Começar em", options: ["a"] }}',
+    '  prompt="Escolha um vértice para começar."',
+    "  figure={marcas}",
+    '  alt="Um vértice Az, ligado por uma aresta Vm a uma região Vm."',
+    '  colours={["Az", "Vm"]}',
+    "/>",
   ]),
+  "artifacts/coloracao/marcas.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60">',
+    '  <g data-part="ab">',
+    '    <line x1="30" y1="30" x2="170" y2="30" class="stroke-text" stroke-width="2" />',
+    '    <text x="100" y="30" data-swatch="2">Vm</text>',
+    "  </g>",
+    '  <g data-part="a">',
+    '    <circle cx="30" cy="30" r="22" class="fill-swatch-1 stroke-text" stroke-width="2" />',
+    '    <text x="30" y="30" data-swatch="1">Az</text>',
+    "  </g>",
+    '  <g data-part="b">',
+    '    <rect x="170" y="8" width="44" height="44" class="fill-swatch-2" />',
+    '    <text x="192" y="30" data-swatch="2">Vm</text>',
+    "  </g>",
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/coloracao/marcas.build.ts": [
+    'import { defineBuild } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild({",
+    "  steps: () =>",
+    '    (["strong", "dashed", "muted", "reversed"] as const).map((mark) => ({',
+    "      say: `O vértice a, a aresta ab e a região b ficam ${mark}.`,",
+    "      parts: { a: mark, ab: mark, b: mark },",
+    "    })),",
+    "});",
+    "",
+  ].join("\n"),
   "artifacts/coloracao/hexagono.svg": [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 60">',
     ...[1, 2, 3, 4, 5, 6].map((swatch) => {
@@ -1600,7 +1639,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ]);
     });
 
-    it("gives each drawing that uses swatches six hatchings of its own, which its swatches reach and no other drawing on the page repeats", async () => {
+    it("gives each drawing that uses swatches its hatchings, a Stage's also muted, wiped and both for its marks and hover, which its swatches reach and no other drawing on the page repeats", async () => {
       const page = new new Window().DOMParser().parseFromString(
         await builtPage("coloracao"),
         "text/html",
@@ -1608,10 +1647,11 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       const ids = [...page.querySelectorAll("[id]")].map((element) => element.id);
       expect(new Set(ids).size).toBe(ids.length);
       const drawings = [...page.querySelectorAll('svg[role="img"]')];
-      expect(drawings).toHaveLength(4);
+      expect(drawings).toHaveLength(5);
       for (const drawing of drawings) {
         const hatchings = [...drawing.outerHTML.matchAll(/url\(#([^)]+)\)/g)].map(([, id]) => id);
-        expect(new Set(hatchings).size).toBe(6);
+        const states = drawing.closest(".stage-figure") === null ? 1 : 4;
+        expect(new Set(hatchings).size).toBe(6 * states);
         for (const id of hatchings) {
           expect(drawing.querySelector(`pattern[id="${id ?? ""}"]`)).not.toBeNull();
         }
@@ -1629,6 +1669,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
         ...["Vm", "Az"],
         ...["1", "2", "3", "4", "5", "6"],
         ...["1", "2", "3", "4", "5", "6"],
+        ...["Vm", "Az", "Vm"],
       ]);
       for (const label of labels) {
         const plate = label.previousElementSibling;

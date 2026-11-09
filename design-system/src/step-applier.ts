@@ -12,21 +12,28 @@ import {
 
 // What each mark changes in a drawn part, after the Stage's styles for the marks and the colour
 // classes in figure-colours.css: `muted` and `reversed` swap the colours `-text`, `-accent` and
-// `-surface` paint with, and a label with no fill of its own paints in its part's colour.
+// `-surface` paint with, and a label with no fill of its own paints in its part's colour. A
+// swatch takes every mark: an outline at 4 or dashed, drawn if it has none, a grey hatching, or
+// an ink fill.
 const unclassedLabel = 'text:not([fill]):not([class*="fill-"])';
+const swatch = '[class*="fill-swatch-"]';
 const changes: Record<Mark, { selector: string; actsOn: string }> = {
   strong: {
-    selector: '[class*="stroke-"], text',
-    actsOn: "shapes with a `stroke-` class and labels",
+    selector: `[class*="stroke-"], ${swatch}, text`,
+    actsOn: "shapes with a `stroke-` or `fill-swatch-` class and labels",
   },
-  dashed: { selector: '[class*="stroke-"]', actsOn: "shapes with a `stroke-` class" },
+  dashed: {
+    selector: `[class*="stroke-"], ${swatch}`,
+    actsOn: "shapes with a `stroke-` or `fill-swatch-` class",
+  },
   muted: {
-    selector: `[class*="-text"], [class*="-accent"], ${unclassedLabel}`,
-    actsOn: "`-text` and `-accent` colours and labels with no fill of their own",
+    selector: `[class*="-text"], [class*="-accent"], ${swatch}, ${unclassedLabel}`,
+    actsOn: "`-text` and `-accent` colours, swatches and labels with no fill of their own",
   },
   reversed: {
-    selector: `[class*="-text"], [class*="-accent"], [class*="-surface"], ${unclassedLabel}`,
-    actsOn: "`-surface`, `-text` and `-accent` colours and labels with no fill of their own",
+    selector: `[class*="-text"], [class*="-accent"], [class*="-surface"], ${swatch}, ${unclassedLabel}`,
+    actsOn:
+      "`-surface`, `-text` and `-accent` colours, swatches and labels with no fill of their own",
   },
 };
 const marks = new Set<unknown>(Object.keys(changes));

@@ -22,20 +22,38 @@ const swatches = [
 
 // html-validate counts IDs inside inline SVG, so each drawing on a page names its patterns apart,
 // and a pattern's content takes its colours from where it's defined, so each drawing holds its own.
+// For the same reason a Stage's marks and hover can't reach a part's hatching through the tokens:
+// a Stage drawing holds each swatch again in each state they paint it in, its pattern setting the
+// state's tokens itself, and a part takes one by remapping its `--swatch-N` (Stage.astro).
+const states = [
+  { suffix: "", tokens: "" },
+  { suffix: "-muted", tokens: "--color-text: var(--color-text-muted)" },
+  { suffix: "-wiped", tokens: "--color-surface: var(--color-surface-subtle)" },
+  {
+    suffix: "-muted-wiped",
+    tokens: "--color-text: var(--color-text-muted); --color-surface: var(--color-surface-subtle)",
+  },
+];
 let drawings = 0;
 
-export function swatchPatterns(): { defs: string; style: string } {
+export function swatchPatterns(marked: boolean): { defs: string; style: string } {
   drawings += 1;
-  const id = (swatch: number) => `swatch-${String(drawings)}-${String(swatch)}`;
-  const patterns = swatches.map(
-    ({ turn, tile }, index) =>
-      `<pattern id="${id(index + 1)}" width="${String(spacing)}" height="${String(spacing)}" patternUnits="userSpaceOnUse"${turn === 0 ? "" : ` patternTransform="rotate(${String(turn)})"`}>${ground}${tile}</pattern>`,
+  const patterns = (marked ? states : states.slice(0, 1)).flatMap(({ suffix, tokens }) =>
+    swatches.map(({ turn, tile }, index) => {
+      const name = `${String(index + 1)}${suffix}`;
+      const turned = turn === 0 ? "" : ` patternTransform="rotate(${String(turn)})"`;
+      const style = tokens === "" ? "" : ` style="${tokens}"`;
+      return {
+        property: `--swatch-${name}`,
+        id: `swatch-${String(drawings)}-${name}`,
+        attributes: `width="${String(spacing)}" height="${String(spacing)}" patternUnits="userSpaceOnUse"${turned}${style}`,
+        tile,
+      };
+    }),
   );
   return {
-    defs: `<defs>${patterns.join("")}</defs>`,
-    style: swatches
-      .map((_, index) => `--swatch-${String(index + 1)}: url(#${id(index + 1)})`)
-      .join("; "),
+    defs: `<defs>${patterns.map(({ id, attributes, tile }) => `<pattern id="${id}" ${attributes}>${ground}${tile}</pattern>`).join("")}</defs>`,
+    style: patterns.map(({ property, id }) => `${property}: url(#${id})`).join("; "),
   };
 }
 
