@@ -1,6 +1,6 @@
 # 03: Reveal a model answer to shoot what it holds
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02 (Shoot one-block code Steppers at every step)
 
 Spec: [What `pnpm look` captures](../spec.md) › Content behind a hidden part
