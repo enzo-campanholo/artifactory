@@ -1,6 +1,6 @@
 # 02: Shoot one-block code Steppers at every step
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01 (Shoot every look item through one path)
 
 Spec: [What `pnpm look` captures](../spec.md) › What look shoots
