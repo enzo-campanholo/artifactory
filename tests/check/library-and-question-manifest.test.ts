@@ -826,6 +826,39 @@ describe("a repo with published artifacts and drafts, some with questions", () =
     });
   });
 
+  describe("the fonts of a page's first screen", () => {
+    const pages = ["index.html", "drafts/index.html", "derivadas/index.html", "404.html"];
+
+    it("are preloaded in the head of the Library, the drafts page, an artifact and the 404, as the files its stylesheets name", async () => {
+      for (const page of pages) {
+        const html = await readFile(join(repo.root, "dist", page), "utf8");
+        const { head } = new new Window().DOMParser().parseFromString(
+          html,
+          "text/html",
+        ) as unknown as Document;
+        const preloads = [...head.querySelectorAll('link[rel="preload"]')];
+        const hrefs = preloads.map((link) => link.getAttribute("href") ?? "");
+        expect(
+          hrefs.map((href) => href.replace(/\.[\w-]+\.woff2$/, "")),
+          page,
+        ).toEqual(["/_astro/archivo-latin-wdth-normal", "/_astro/stix-two-text-latin-wght-normal"]);
+        for (const link of preloads) {
+          expect(link.getAttribute("as"), page).toBe("font");
+          expect(link.getAttribute("type"), page).toBe("font/woff2");
+          expect(link.hasAttribute("crossorigin"), page).toBe(true);
+        }
+        const stylesheets = await Promise.all(
+          [...head.querySelectorAll('link[rel="stylesheet"]')].map((link) =>
+            readFile(join(repo.root, "dist", link.getAttribute("href") ?? ""), "utf8"),
+          ),
+        );
+        for (const href of hrefs) {
+          expect(stylesheets.join("\n"), `${page} ${href}`).toContain(`url(${href})`);
+        }
+      }
+    });
+  });
+
   describe("the question manifest", () => {
     it("writes every artifact's questions, with drafts included, into the question manifest", () => {
       const questionsByArtifact = Object.fromEntries(
