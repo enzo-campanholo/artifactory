@@ -528,7 +528,7 @@ describe("a repo whose artifacts break math, code, diagram, link, question ID, s
   });
 
   it("reports every failure in one run, and nothing else", () => {
-    expect(run.summary[0]).toBe("pnpm check: 57 failures");
+    expect(run.summary[0]).toBe("pnpm check: 60 failures");
   });
 });
 
