@@ -1,6 +1,6 @@
 # 01: A Stepper's rules are reported at its tag
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Component rules](../spec.md). This ticket builds the whole path for one component, so [02](02-every-component-reports-its-rules.md) only repeats it.
