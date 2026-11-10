@@ -9,8 +9,9 @@ const accessTeamDomain = "https://artifactory-test.cloudflareaccess.com";
 export default defineConfig({
   test: {
     passWithNoTests: true,
-    // Each test file runs whole `pnpm check` fixtures; one at a time keeps the gate within 7 GB.
-    maxWorkers: 1,
+    // Each test file runs whole `pnpm check` fixtures. Two at a time, with the full-scope ones taking
+    // turns (tests/check/fixture-repo.ts), peak at 3.2 GB of the 4 GB a heavy command gets.
+    maxWorkers: 2,
     projects: [
       {
         test: {

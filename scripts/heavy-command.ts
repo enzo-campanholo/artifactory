@@ -228,7 +228,7 @@ const env = {
   ARTIFACTORY_HEAVY_JOB_ID: id,
 };
 const child = userScopes()
-  ? spawn("systemd-run", [...heavySlice, "-p", "MemoryMax=3G", "--", command, ...args], {
+  ? spawn("systemd-run", [...heavySlice, "-p", "MemoryMax=4G", "--", command, ...args], {
       stdio: "inherit",
       env,
     })

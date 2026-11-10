@@ -138,11 +138,15 @@ describe("a repo with an artifact whose question breaks its component's rules, u
     expect(run.summary[0]).toBe("pnpm check: 6 failures");
     const beforeSummary = run.output.slice(0, run.output.lastIndexOf("pnpm check: 6 failures"));
     for (const failure of expectedFailures) expect(beforeSummary).toContain(failure);
-    for (const step of ["astro build", "astro check", "Vitest"]) {
+    for (const step of ["astro build", "astro check"]) {
       expect(beforeSummary).toMatch(
         new RegExp(`^pnpm check: ${step} (passed|failed) \\(\\d+\\.\\d{3}s\\)$`, "m"),
       );
     }
+    // Fixture repos share their passes, so an earlier run may have left this one nothing to run.
+    expect(beforeSummary).toMatch(
+      /^pnpm check: Vitest passed \((\d+\.\d{3}s|not run again: .+)\)$/m,
+    );
   });
 
   it("skips only the checks that need the built output when the build fails", () => {
@@ -593,9 +597,9 @@ describe("check evidence for a working tree", () => {
     checkTimeout,
   );
 
-  it.each(["checks", "jobs"])(
-    "keeps artifact-only success qualified and the combined gate footer final when %s evidence fails",
-    async (directory) => {
+  it(
+    "keeps artifact-only success qualified",
+    async () => {
       const scoped = await repo.check(["--artifacts-only"]);
       expect(scoped.exitCode).toBe(0);
       expect(scoped.output).toContain("Full-scope checking is required before publication.");
@@ -608,7 +612,13 @@ describe("check evidence for a working tree", () => {
       });
       expect(observed.report.source.drifted).toBe(false);
       expect(observed.status.check.applicability).toBe("unknown");
+    },
+    checkTimeout,
+  );
 
+  it.each(["checks", "jobs"])(
+    "keeps the combined gate footer final when %s evidence fails",
+    async (directory) => {
       const checks = join(admin, "artifactory-heavy/checks");
       const target = join(admin, "artifactory-heavy", directory);
       const backup = `${target}-saved`;
@@ -743,6 +753,27 @@ describe("check evidence for a working tree", () => {
       await rm(latest);
       expect((await statusOf(repo)).check.applicability).toBe("unknown");
       await succeeds(repo.run("git", ["diff", "--exit-code", "--cached"]));
+    },
+    checkTimeout,
+  );
+
+  it(
+    "runs a step again only once a file it reads has changed since it passed, and never takes a failure for a pass",
+    async () => {
+      const stylesheet = join(repo.root, "design-system/src/page.css");
+      await writeFile(stylesheet, `${await readFile(stylesheet, "utf8")}\nbody{margin:0}\n`);
+      for (const run of [await repo.check(), await repo.check()]) {
+        expect(run.summary).toEqual([
+          "pnpm check: 1 failure",
+          "design-system/src/page.css:1:1 error prettier: is not formatted; run `pnpm format` (artifact skill: Platform changes)",
+        ]);
+        for (const typeCheck of ["astro check", "tsc", "ESLint"]) {
+          expect(run.output).toContain(
+            `pnpm check: ${typeCheck} passed (not run again: nothing it reads changed since it last passed)`,
+          );
+        }
+        expect(run.output).toMatch(/^pnpm check: Prettier failed \(\d+\.\d+s\)$/m);
+      }
     },
     checkTimeout,
   );

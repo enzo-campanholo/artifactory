@@ -928,17 +928,12 @@ describe.each([
     ],
   },
   {
-    stage: "a Stage whose `input` has no examples",
+    stage: "a Stage whose `input` has no examples, with `beside` and no drawing",
     props: [
       '  input={{ label: "Calcular", fields: [{ name: "a", min: 0, max: 9 }], examples: [] }}',
+      "  beside",
     ],
-    rule: "give `input` at least one example",
-    typeErrors: [],
-  },
-  {
-    stage: "a Stage with `beside` and no drawing",
-    props: ['  choose={{ label: "Começar em", options: ["A"] }}', "  beside"],
-    rule: "set `beside` only with `figure`",
+    rule: "give `input` at least one example; set `beside` only with `figure`",
     typeErrors: [],
   },
   {
@@ -999,7 +994,7 @@ describe.each([
 
   afterAll(() => repo.remove());
 
-  it("fails the build at the Stage, naming the rule", () => {
+  it("fails the build at the Stage, naming each rule it breaks", () => {
     expect(run.exitCode).toBe(1);
     expect(run.summary.slice(1)).toEqual([
       `artifacts/grafos/index.mdx:13:1 error build: Stage: ${rule} (artifact skill: Build failures)`,

@@ -3,6 +3,7 @@ import { platformFailure, unexplainedExit, type Step } from "../step.ts";
 
 export const prettier: Step = {
   name: "Prettier",
+  reads: () => true,
   async run(root) {
     const prettierRun = await runTool(root, "prettier", ["--list-different", "."]);
     if (prettierRun.exitCode > 1) {
