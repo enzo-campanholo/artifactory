@@ -1,6 +1,6 @@
 # 01: One source for a Library row's status
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Library row statuses](../spec.md). No behaviour changes: every row reads and paints as it does today.
