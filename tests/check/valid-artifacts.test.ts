@@ -2606,7 +2606,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
     expect(page).toContain("<p>O ciclo começa com o acetil-CoA.</p>");
   });
 
-  it("holds an artifact page's first paint until its scripts have run, and not the Library's", async () => {
+  it("holds an artifact page's first paint until its scripts have run, and the Library's only until its list is parsed", async () => {
     function parsed(html: string): Document {
       return new new Window().DOMParser().parseFromString(html, "text/html") as unknown as Document;
     }
@@ -2625,5 +2625,9 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
     const library = parsed(await readFile(join(repo.root, "dist/index.html"), "utf8"));
     expect(library.body.querySelectorAll('script[type="module"]')).not.toHaveLength(0);
     expect(library.querySelectorAll("script[blocking]")).toHaveLength(0);
+    // The paint waits for an element only until it starts, so the one it waits for ends `main`.
+    const hold = library.head.querySelector('link[rel="expect"][blocking="render"]');
+    expect(hold?.getAttribute("href")).toBe("#library-end");
+    expect(library.querySelector("main")?.lastElementChild?.id).toBe("library-end");
   });
 });

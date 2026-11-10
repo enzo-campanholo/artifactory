@@ -77,6 +77,16 @@ const publishedOn = (date: Date) => shortDate(date, "en", { timeZone: "UTC" });
     <FontPreloads />
     <StartFailed />
     <LayerOrder />
+    {/*
+     * A browser paints whatever it has parsed once the stylesheets are in, and it can stop parsing
+     * anywhere: between two pieces of the page off the network, or between two inline scripts. A
+     * reload keeps the page it replaces on screen until that paint, so the list would go and come
+     * back, or come back without its statuses. This holds the first paint until the parser reaches
+     * the element that ends `main`, after every inline script in it has run, and no longer: not for
+     * the page's modules. Chrome stops waiting when the element starts, not when it closes, so
+     * `main` itself would hold nothing.
+     */}
+    <link rel="expect" href="#library-end" blocking="render" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <link rel="icon" href="/favicon.svg" />
     <title>{heading}</title>
@@ -204,6 +214,7 @@ const publishedOn = (date: Date) => shortDate(date, "en", { timeZone: "UTC" });
           />
         </>
       )}
+      <span id="library-end" hidden></span>
     </main>
   </body>
 </html>
