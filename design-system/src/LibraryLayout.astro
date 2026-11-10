@@ -2,6 +2,7 @@
 import "./tokens.css";
 import "./page.css";
 import "./math.css";
+import FontPreloads from "./FontPreloads.astro";
 import LayerOrder from "./LayerOrder.astro";
 import StartFailed from "./StartFailed.astro";
 import StateNotices from "./StateNotices.astro";
@@ -73,6 +74,7 @@ const publishedOn = (date: Date) => shortDate(date, "en", { timeZone: "UTC" });
   <head>
     <meta charset="utf-8" />
     <ThemeHead />
+    <FontPreloads />
     <StartFailed />
     <LayerOrder />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

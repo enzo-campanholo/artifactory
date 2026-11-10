@@ -3,6 +3,7 @@ import "../src/tokens.css";
 import "../src/page.css";
 import "../src/rich-content.css";
 import ArtifactFrame from "../src/ArtifactFrame.astro";
+import FontPreloads from "../src/FontPreloads.astro";
 import LayerOrder from "../src/LayerOrder.astro";
 import StateNotices from "../src/StateNotices.astro";
 import ThemeHead from "../src/ThemeHead.astro";
@@ -45,6 +46,7 @@ const machinePages = [{ href: "/catalog/mepa/", label: "MEPA" }];
   <head>
     <meta charset="utf-8" />
     <ThemeHead />
+    <FontPreloads />
     <LayerOrder />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <link rel="icon" href="/favicon.svg" />

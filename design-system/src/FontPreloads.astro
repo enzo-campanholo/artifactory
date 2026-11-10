@@ -1,0 +1,14 @@
+---
+import frame from "@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2?url";
+import body from "@fontsource-variable/stix-two-text/files/stix-two-text-latin-wght-normal.woff2?url";
+---
+
+{/*
+ * A browser asks for a stylesheet's font only once it has laid out text that needs it, which is
+ * after the first paint, so the page would paint in its fallback fonts and be set again, narrower,
+ * as each font arrived. These two set the frame and the body text on every page's first screen, so
+ * each layout asks for them in its head, beside its stylesheets. A font is fetched anonymously, and
+ * a preload without `crossorigin` isn't the fetch the stylesheet reuses.
+ */}
+<link rel="preload" as="font" type="font/woff2" href={frame} crossorigin />
+<link rel="preload" as="font" type="font/woff2" href={body} crossorigin />

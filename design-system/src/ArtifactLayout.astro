@@ -4,6 +4,7 @@ import "./tokens.css";
 import "./page.css";
 import "./rich-content.css";
 import ArtifactFrame from "./ArtifactFrame.astro";
+import FontPreloads from "./FontPreloads.astro";
 import LayerOrder from "./LayerOrder.astro";
 import StartFailed from "./StartFailed.astro";
 import StateNotices from "./StateNotices.astro";
@@ -56,6 +57,7 @@ const contentHash = createHash("sha256")
   <head>
     <meta charset="utf-8" />
     <ThemeHead public={isPublic} />
+    <FontPreloads />
     <StartFailed />
     <LayerOrder />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
