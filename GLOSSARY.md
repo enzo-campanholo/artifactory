@@ -52,6 +52,14 @@ _Avoid_: Widget, island, local component
 The design system's container for a custom build. It supplies the look, the controls, the caption and the quality floor, so the custom build only adds behaviour.
 _Avoid_: Frame, sandbox, canvas
 
+**Run**:
+One go of a stage's custom build on what the owner chose or typed. It gives the steps the stage shows, in order, or the page refuses it. It's never artifact state, so a reload forgets it.
+_Avoid_: Execution, simulation, attempt (an attempt is a pass through an artifact's questions)
+
+**Step**:
+One state of a run, or of a Stepper, shown one at a time with the line that says it. The owner moves between steps with the controls under it.
+_Avoid_: Frame, slide, state
+
 **Machine**:
 An abstract machine the design system can run in a stage: its state, how one step changes it, and how each step is said. Unlike a component, it is subject content.
 _Avoid_: Simulator, interpreter, emulator, VM
