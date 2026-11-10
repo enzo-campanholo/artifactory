@@ -16,6 +16,8 @@
     "./library-layout": "./src/LibraryLayout.astro",
     "./library-revisit": "./src/library-revisit.ts",
     "./library-revisit-paint": "./src/library-revisit-paint.js",
+    "./library-row-statuses": "./src/library-row-statuses.ts",
+    "./library-row-statuses-paint": "./src/library-row-statuses-paint.js",
     "./library-statuses": "./src/library-statuses.ts",
     "./machines/mepa": "./src/machines/mepa.ts",
     "./not-found-layout": "./src/NotFoundLayout.astro",
