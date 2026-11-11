@@ -1,11 +1,15 @@
-import type { BuiltSite } from "./built-output.ts";
+import type { BuiltArtifact, BuiltSite } from "./built-output.ts";
 import type { Failure } from "./check-failure.ts";
 import { decoded, locate } from "./source-locator.ts";
 
 const site = "https://artifactory.invalid";
 const linkAttributes = ["href", "src"];
 
-export function linkFailures({ pages, files, artifacts }: BuiltSite): Failure[] {
+// An artifact left unchecked is still a link's target, but its own links aren't checked.
+export function linkFailures(
+  { pages, files, artifacts }: BuiltSite,
+  checked: readonly BuiltArtifact[],
+): Failure[] {
   const ids = new Map(
     pages.map(({ file, tags }) => [file, new Set(tags.flatMap((tag) => tag.get("id") ?? []))]),
   );
@@ -41,6 +45,8 @@ export function linkFailures({ pages, files, artifacts }: BuiltSite): Failure[] 
   }
 
   return pages.flatMap((page) => {
+    const artifact = artifactOnPage.get(page.file);
+    if (artifact !== undefined && !checked.includes(artifact)) return [];
     const occurrences = new Map<string, number>();
     return page.tags.flatMap((tag) =>
       linkAttributes.flatMap((name): Failure[] => {
@@ -50,7 +56,6 @@ export function linkFailures({ pages, files, artifacts }: BuiltSite): Failure[] 
         occurrences.set(link, occurrence + 1);
         const message = problemWith(link, page.file);
         if (message === undefined) return [];
-        const artifact = artifactOnPage.get(page.file);
         if (artifact === undefined) {
           return [
             {

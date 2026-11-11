@@ -1,6 +1,6 @@
 # 01: The Worker's tests save and load through the store's transports
 
-Status: needs-info
+Status: ready-for-agent
 Blocked by: None (can start immediately)
 
 Spec: [The HTTP transport against the Worker](../spec.md). Tests only: no production code changes.
@@ -34,3 +34,9 @@ Implementer, branch `impl/http-transport-against-the-worker-01`. No test landed;
 1. **A DOM-free module for the HTTP transports** (recommended): move `loadOverHttp`, `httpTransport` and `httpLibraryTransport`, with the outcome types, into a design-system module that names no DOM global, which `state.ts` and `library-statuses.ts` import from. This is a production refactor with no behaviour change, against this ticket's "no production code changes" and its checklist item keeping `state.ts` and `library-statuses.ts` unchanged. It makes the spec's assumption true: the transports' module doesn't touch the DOM.
 2. **Ambient declarations in `tests/worker`** for `window`, `document`, `localStorage` and `HTMLElement`. No production change, but these declarations join the Worker's whole TypeScript program, so Worker code naming a browser global would type-check and fail only when it runs.
 3. **A separate TypeScript program for the transport test**: exclude it from `worker/tsconfig.json` and add a project to `scripts/check/steps/tsc.ts`. That touches `worker/` and `scripts/check`, and the DOM and Workers types clash in a single program (the reason `tsc.ts` gives for the split), so that program would still need one of the other two answers.
+
+### 2026-11-10: owner decision on the type program
+
+Owner, implement-spec orchestration session, 2026-11-10, answering the comment above.
+
+- **Approved:** option 1, a DOM-free module for the HTTP transports. Move `loadOverHttp`, `httpTransport` and `httpLibraryTransport`, with their outcome types, into a design-system module that names no DOM global, and have `state.ts` and `library-statuses.ts` import from it. This supersedes the ticket's "no production code changes" and its item keeping `state.ts` and `library-statuses.ts` unchanged, for this move only: no behaviour changes, and `worker/` stays unchanged.

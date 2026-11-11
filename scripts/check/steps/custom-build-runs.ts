@@ -18,6 +18,7 @@ import {
   type Written,
 } from "@artifactory/design-system/step-applier";
 import type { Failure } from "../../../src/check-failure.ts";
+import { hasBrokenComponent } from "../../../src/component-rule-failures.ts";
 import { artifactsFolderItems } from "../../../src/artifacts.ts";
 import { buildInputFailures } from "../build-input.ts";
 import type { Job, Result, Thrown } from "../build-runner.ts";
@@ -56,7 +57,7 @@ async function stagesOnPages(root: string): Promise<StageOnPage[]> {
     const page = join(root, "dist", slug, "index.html");
     if (!existsSync(page)) continue;
     const html = await readFile(page, "utf8");
-    if (!html.includes("<artifact-stage")) continue;
+    if (!html.includes("<artifact-stage") || hasBrokenComponent(html)) continue;
     const document = new new Window().DOMParser().parseFromString(html, "text/html");
     for (const element of document.querySelectorAll("artifact-stage")) {
       const file = (element.getAttribute("data-build") ?? "").replace(/^\//, "");

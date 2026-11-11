@@ -1,4 +1,4 @@
-import { componentError } from "./component-errors.ts";
+import { brokenRule } from "./component-rules.ts";
 import { numberList } from "./number-lists.ts";
 
 // Every stepped part of a stepper names the steps it belongs to in `data-in-steps`, and starts on
@@ -16,8 +16,7 @@ function inStepsText(steps: number[]): string {
 
 function listed(list: string, first: number, last: number, context: string): number[] {
   const parsed = numberList(list, first, last);
-  if ("refused" in parsed)
-    throw componentError("Stepper", `${context} "${list}" ${parsed.refused}`);
+  if ("refused" in parsed) throw brokenRule("Stepper", `${context} "${list}" ${parsed.refused}`);
   return parsed.numbers;
 }
 
@@ -81,7 +80,7 @@ const codeLine = /<span class="line(?: [^"]*)?" data-line="(\d+)"/g;
 export function steppedBlocks(html: string): string[] {
   const blocks = html.match(wholeCodeBlock) ?? [];
   if (blocks.length < 2)
-    throw componentError(
+    throw brokenRule(
       "Stepper",
       `it has ${String(blocks.length)} code block${blocks.length === 1 ? "" : "s"} and none of \`diagram\`, \`figure\` or \`lines\`: give it one fenced code block per step, at least two, or \`lines\` to step through one block`,
     );
@@ -95,14 +94,14 @@ export function steppedCode(
 ): { html: string; linesOfStep: number[][] } {
   const blocks = html.match(codeBlock)?.length ?? 0;
   if (blocks > 1)
-    throw componentError(
+    throw brokenRule(
       "Stepper",
       `\`lines\` steps through one code block, but it has ${String(blocks)}: keep one block, or take \`lines\` off to show one code block per step`,
     );
   if (blocks === 0)
-    throw componentError("Stepper", "put exactly one fenced code block inside `<Stepper lines>`");
+    throw brokenRule("Stepper", "put exactly one fenced code block inside `<Stepper lines>`");
   if (markedBlock.test(html))
-    throw componentError(
+    throw brokenRule(
       "Stepper",
       "its code block marks lines with `{…}`, but a one-block Stepper marks them itself, step by step, with `lines`: take `{…}` off the fence",
     );
