@@ -657,168 +657,47 @@ describe("a repo whose only failure is an artifact's math", () => {
   });
 });
 
-describe("a one-block Stepper whose `lines` name a line its `start=0` block doesn't have", () => {
+describe("a Stage whose code block marks lines with `{…}`", () => {
   let repo: FixtureRepo;
   let run: CheckRun;
 
   beforeAll(async () => {
     repo = await createFixtureRepo({
       "artifacts/pilha/index.mdx": artifact(fields("p1lha001", "Pilha", "Computação"), [
-        'import Stepper from "@artifactory/design-system/stepper";',
-        "",
-        '<Stepper lines={["0", "4"]}>',
-        "",
-        "```text start=0",
-        "push 2",
-        "push 3",
-        "add",
-        "print",
-        "```",
-        "",
-        "</Stepper>",
-      ]),
-    });
-    run = await repo.check(["--artifacts-only"]);
-  }, checkTimeout);
-
-  afterAll(() => repo.remove());
-
-  it("fails the build at the Stepper, naming the block's lines by the numbers the page shows", () => {
-    expect(run.exitCode).toBe(1);
-    expect(run.summary).toEqual([
-      "pnpm check: 1 failure",
-      'artifacts/pilha/index.mdx:11:1 error build: Stepper: lines "4" must list numbers from 0 to 3, such as "1", "1-3", "1-" or "0-1, 4" (artifact skill: Build failures)',
-    ]);
-  });
-});
-
-describe.each([
-  {
-    stepper: "`lines` and several code blocks",
-    tag: '<Stepper lines={["1", "1"]}>',
-    blocks: 2,
-    failure:
-      "Stepper: `lines` steps through one code block, but it has 2: keep one block, or take `lines` off to show one code block per step",
-  },
-  {
-    stepper: "one code block and no `lines`",
-    tag: "<Stepper>",
-    blocks: 1,
-    failure:
-      "Stepper: it has 1 code block and none of `diagram`, `figure` or `lines`: give it one fenced code block per step, at least two, or `lines` to step through one block",
-  },
-  {
-    stepper: "a `diagram` and code blocks",
-    tag: '<Stepper diagram={passos} alt="Os passos.">',
-    blocks: 2,
-    failure:
-      "Stepper: a `diagram` Stepper holds nothing inside it: give it the `diagram` alone, or none of `diagram`, `figure` or `lines` and one fenced code block per step",
-  },
-  {
-    stepper: "a `figure` and code blocks",
-    tag: '<Stepper figure={figura} alt="Os passos.">',
-    blocks: 2,
-    failure:
-      "Stepper: a `figure` Stepper holds nothing inside it: give it the `figure` alone, or none of `diagram`, `figure` or `lines` and one fenced code block per step",
-  },
-])("a Stepper with $stepper", ({ tag, blocks, failure }) => {
-  let repo: FixtureRepo;
-  let run: CheckRun;
-
-  beforeAll(async () => {
-    repo = await createFixtureRepo({
-      "artifacts/pilha/index.mdx": artifact(fields("p1lha001", "Pilha", "Computação"), [
-        'import Stepper from "@artifactory/design-system/stepper";',
-        'import passos from "./passos.d2?steps";',
-        'import figura from "./passos.svg?raw";',
-        "",
-        tag,
-        "",
-        ...Array.from({ length: blocks }, (_, index) => [
-          "```text",
-          `push ${String(index + 2)}`,
-          "```",
-          "",
-        ]).flat(),
-        "</Stepper>",
-      ]),
-      "artifacts/pilha/passos.d2": "a\nsteps: {\n  b: {\n    b\n  }\n}\n",
-      "artifacts/pilha/passos.svg":
-        '<svg viewBox="0 0 10 10"><circle r="4" data-step="1" /><rect width="4" height="4" data-step="2" /></svg>\n',
-    });
-    run = await repo.check(["--artifacts-only"]);
-  }, checkTimeout);
-
-  afterAll(() => repo.remove());
-
-  it("fails the build at the Stepper, saying how to write the form it meant", () => {
-    expect(run.exitCode).toBe(1);
-    expect(run.summary).toEqual([
-      "pnpm check: 1 failure",
-      `artifacts/pilha/index.mdx:13:1 error build: ${failure} (artifact skill: Build failures)`,
-    ]);
-  });
-});
-
-describe.each([
-  {
-    component: "a one-block Stepper",
-    tag: ['<Stepper lines={["1", "2"]}>'],
-    failure:
-      "Stepper: its code block marks lines with `{…}`, but a one-block Stepper marks them itself, step by step, with `lines`: take `{…}` off the fence",
-  },
-  {
-    component: "a Stage",
-    tag: [
-      "<Stage",
-      '  build="conta"',
-      '  choose={{ label: "Começar em", options: ["A"] }}',
-      '  prompt="Escolha onde começar."',
-      ">",
-    ],
-    failure:
-      "Stage: its code block marks lines with `{…}`, but a Stage marks them itself, step by step, with `lines`: take `{…}` off the fence",
-  },
-])("$component whose code block marks lines with `{…}`", ({ tag, failure }) => {
-  let repo: FixtureRepo;
-  let run: CheckRun;
-
-  beforeAll(async () => {
-    const component = tag[0]?.slice(1).split(/[ >]/, 1)[0] ?? "";
-    repo = await createFixtureRepo({
-      "artifacts/pilha/index.mdx": artifact(fields("p1lha001", "Pilha", "Computação"), [
-        `import ${component} from "@artifactory/design-system/${component.toLowerCase()}";`,
+        'import Stage from "@artifactory/design-system/stage";',
         "",
         "Uma pilha soma dois números.",
         "",
-        ...tag,
+        "<Stage",
+        '  build="conta"',
+        '  choose={{ label: "Começar em", options: ["A"] }}',
+        '  prompt="Escolha onde começar."',
+        ">",
         "",
         "```text {1}",
         "push 2",
         "print",
         "```",
         "",
-        `</${component}>`,
+        "</Stage>",
       ]),
-      ...(component === "Stage" && {
-        "artifacts/pilha/conta.build.ts": [
-          'import { defineBuild } from "@artifactory/design-system/stage-build";',
-          "",
-          'export default defineBuild({ steps: () => [{ say: "Conta." }] });',
-          "",
-        ].join("\n"),
-      }),
+      "artifacts/pilha/conta.build.ts": [
+        'import { defineBuild } from "@artifactory/design-system/stage-build";',
+        "",
+        'export default defineBuild({ steps: () => [{ say: "Conta." }] });',
+        "",
+      ].join("\n"),
     });
     run = await repo.check(["--artifacts-only"]);
   }, checkTimeout);
 
   afterAll(() => repo.remove());
 
-  it("fails the build at the component, which marks its lines itself", () => {
+  it("fails the build at the Stage, which marks its lines itself", () => {
     expect(run.exitCode).toBe(1);
     expect(run.summary).toEqual([
       "pnpm check: 1 failure",
-      `artifacts/pilha/index.mdx:13:1 error build: ${failure} (artifact skill: Build failures)`,
+      "artifacts/pilha/index.mdx:13:1 error build: Stage: its code block marks lines with `{…}`, but a Stage marks them itself, step by step, with `lines`: take `{…}` off the fence (artifact skill: Build failures)",
     ]);
   });
 });
@@ -1050,16 +929,6 @@ describe.each([
     parts: [vertex(30, 1, "R"), vertex(80, 7, "7")],
     failure:
       'Figure: a label reads "R", but data-swatch="1" is colour 1, "1": write <text data-swatch="1">1</text>; swatch 7 is past the six swatches: use swatches 1 to 6',
-  },
-  {
-    drawing: "a figure Stepper that fills with a swatch",
-    tag: '<Stepper figure={cores} alt="Um vértice da cor 1." />',
-    parts: [
-      vertex(30, 1, "1"),
-      '  <circle cx="80" cy="30" r="22" class="stroke-text" fill="none" data-step="2" />',
-    ],
-    failure:
-      "Stepper: swatches are only for a Figure or a Stage, so a figure Stepper draws none: draw the colouring as a Figure, or step through it in a Stage",
   },
   {
     drawing: "a Stage whose drawing as written breaks the label rules, beside a rule of its own",

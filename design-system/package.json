@@ -10,6 +10,7 @@
     "./attempts-panel": "./src/attempts-panel.ts",
     "./catalog": "./catalog/integration.ts",
     "./component-errors": "./src/component-errors.ts",
+    "./component-rules": "./src/component-rules.ts",
     "./diagram": "./src/Diagram.astro",
     "./diagram-fonts": "./src/diagram-fonts.ts",
     "./figure": "./src/Figure.astro",

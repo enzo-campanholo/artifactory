@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { HtmlValidate, Parser, type Message } from "html-validate";
 import { readEntry } from "../../../src/artifacts.ts";
 import type { Failure } from "../../../src/check-failure.ts";
+import { hasBrokenComponent } from "../../../src/component-rule-failures.ts";
 import { locate } from "../../../src/source-locator.ts";
 import type { Step } from "../step.ts";
 
@@ -32,6 +33,7 @@ export const htmlValidation: Step = {
     const failures: Failure[] = [];
     for (const page of pages) {
       const html = await readFile(join(dist, page), "utf8");
+      if (hasBrokenComponent(html)) continue;
       const { results } = await htmlValidate.validateString(html, page);
       const messages = results.flatMap((result) => result.messages);
       if (messages.length === 0) continue;
