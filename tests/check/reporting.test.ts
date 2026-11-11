@@ -491,6 +491,16 @@ async function statusOf(repo: FixtureRepo): Promise<LocalStatus> {
   return JSON.parse(result.stdout) as LocalStatus;
 }
 
+// A check writes its report as it starts, and under the other Vitest worker's checks that can
+// take far longer than a fixed wait allows, so this waits for as long as the test may run.
+async function reportOnceStarted(checks: string, isNew: (name: string) => boolean) {
+  for (;;) {
+    const report = (await readdir(checks)).find((name) => isNew(name) && name.endsWith(".json"));
+    if (report !== undefined) return report;
+    await sleep(50);
+  }
+}
+
 async function evidence(repo: FixtureRepo) {
   const status = await statusOf(repo);
   expect(status.check.reportPath).not.toBeNull();
@@ -569,14 +579,7 @@ describe("check evidence for a working tree", () => {
       const lastPassed = await headCommit(repo);
       const run = repo.check(["--last-passed", lastPassed]);
       const checks = join(admin, "artifactory-heavy/checks");
-      let newReport: string | undefined;
-      for (let attempt = 0; attempt < 200 && newReport === undefined; attempt++) {
-        newReport = (await readdir(checks)).find(
-          (name) => join(checks, name) !== reportPath && name.endsWith(".json"),
-        );
-        if (newReport === undefined) await sleep(50);
-      }
-      expect(newReport).toBeDefined();
+      await reportOnceStarted(checks, (name) => join(checks, name) !== reportPath);
       await writeFile(join(repo.root, ".scratch/input.txt"), "changed during verification\n");
       const scoped = await run;
       expect(scoped.exitCode).toBe(0);
@@ -629,16 +632,9 @@ describe("check evidence for a working tree", () => {
       ]);
       let replaced = false;
       try {
-        let runningReport: string | undefined;
-        for (let attempt = 0; attempt < 200 && runningReport === undefined; attempt++) {
-          runningReport = (await readdir(checks)).find(
-            (name) => !previous.has(name) && name.endsWith(".json"),
-          );
-          if (runningReport === undefined) await sleep(50);
-        }
-        expect(runningReport).toBeDefined();
+        const runningReport = await reportOnceStarted(checks, (name) => !previous.has(name));
         const initial = JSON.parse(
-          await readFile(join(checks, runningReport ?? ""), "utf8"),
+          await readFile(join(checks, runningReport), "utf8"),
         ) as CheckEvidence;
         expect(initial.exitCode).toBeNull();
         await rename(target, backup);
@@ -650,7 +646,7 @@ describe("check evidence for a working tree", () => {
           expect(withoutSidecar.output).toContain("pnpm check: provenance unavailable:");
         } else {
           const report = JSON.parse(
-            await readFile(join(checks, runningReport ?? ""), "utf8"),
+            await readFile(join(checks, runningReport), "utf8"),
           ) as CheckEvidence;
           expect(report).toMatchObject({ scope: "full", exitCode: 0, failureCount: 0 });
           expect(report.steps.every((step) => step.state === "passed")).toBe(true);
