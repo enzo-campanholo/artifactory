@@ -1,6 +1,6 @@
 # 02: Every component reports its rules
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01
 
 Spec: [Component rules](../spec.md).
