@@ -1,3 +1,4 @@
+import { mainLanguage } from "./page-language.ts";
 import {
   MachineFault,
   MachineProblems,
@@ -43,7 +44,7 @@ const marks = new Set<unknown>(Object.keys(changes));
 
 // The elements a step can change, in the order the content as written lists them: the drawing's
 // parts, each table's body cells by row, and each code block's lines.
-export interface StageNodes {
+interface StageNodes {
   parts: Element[];
   tables: { header: Element[]; rows: Element[][] }[];
   code: Element[][];
@@ -51,7 +52,7 @@ export interface StageNodes {
 }
 
 // The Stage carries its colours' names on its drawing, numerals included when it names none.
-export function stageNodes(stage: ParentNode): StageNodes {
+function stageNodes(stage: ParentNode): StageNodes {
   return {
     colours: JSON.parse(
       stage.querySelector(".stage-figure")?.getAttribute("data-colours") ?? "[]",
@@ -75,7 +76,7 @@ export interface Written {
 }
 
 // A step colours a part through the label it holds, so only a part holding one takes a colour.
-export const colourLabel = "text[data-swatch]";
+const colourLabel = "text[data-swatch]";
 
 const textOf = (element: Element) => element.textContent.trim();
 
@@ -85,7 +86,7 @@ const marksTaken = (part: Element): Mark[] =>
       part.matches(changes[mark].selector) || part.querySelector(changes[mark].selector) !== null,
   );
 
-export function writtenContent({ parts, tables, code, colours }: StageNodes): Written {
+function writtenContent({ parts, tables, code, colours }: StageNodes): Written {
   return {
     colours,
     parts: parts.map((part) => ({
@@ -121,7 +122,7 @@ export interface Shown {
   running: number | undefined;
 }
 
-export interface StepProblem {
+interface StepProblem {
   step: number;
   problem: string;
 }
@@ -149,7 +150,7 @@ export interface NamedValue {
   kind: Field["kind"];
 }
 
-export function stageControl(stage: Element): { control: Control; takes: Takes } {
+function stageControl(stage: Element): { control: Control; takes: Takes } {
   const control = stage.getAttribute("data-control") as Control;
   if (control === "choose") {
     const groups = stageGroups(stage);
@@ -166,16 +167,28 @@ export function stageControl(stage: Element): { control: Control; takes: Takes }
 
 // A Stage with several choice groups names each group on its row; one group goes unnamed, and its
 // option reaches the build as text.
-export interface ChoiceGroup {
+interface ChoiceGroup {
   name: string;
   options: HTMLInputElement[];
 }
 
-export function stageGroups(stage: Element): ChoiceGroup[] {
+function stageGroups(stage: Element): ChoiceGroup[] {
   return [...stage.querySelectorAll(".stage-choice[data-group]")].map((group) => ({
     name: group.getAttribute("data-group") ?? "",
     options: [...group.querySelectorAll<HTMLInputElement>(".stage-option input")],
   }));
+}
+
+// Every combination, one option from each group, in the groups' order and each group's options'
+// order, so the first is what the page shows on choosing each group's first option.
+function combinations(groups: ChoiceGroup[]): Typed[] {
+  return groups.reduce<Typed[]>(
+    (chosen, { name, options }) =>
+      chosen.flatMap((before) =>
+        options.map((option) => ({ ...before, [name]: option.getAttribute("value") ?? "" })),
+      ),
+    [{}],
+  );
 }
 
 // A typed field as the Stage defines it on its page, once: the page reads what the owner types by
@@ -199,22 +212,306 @@ interface TextField {
   maxLength: number;
 }
 
-export function stageFields(stage: Element): Field[] {
+function stageFields(stage: Element): Field[] {
   return JSON.parse(
     stage.querySelector(".stage-input")?.getAttribute("data-fields") ?? "[]",
   ) as Field[];
 }
 
 // A whole number as the owner types it: digits, with a hyphen or a minus sign before them.
-export function typedNumber(text: string): number {
+function typedNumber(text: string): number {
   const digits = text.trim().replace(/^−/, "-");
   return /^-?\d+$/.test(digits) ? Number(digits) : Number.NaN;
 }
 
 // Text as the owner types it, in NFC, so a symbol is one code point however it was typed. It isn't
 // trimmed: a trailing space is part of a hashing build's input.
-export function typedText(text: string): string {
+function typedText(text: string): string {
   return text.normalize("NFC");
+}
+
+// A run's name, as the check's failures and `pnpm look` print it: the option, `B`, or the values in
+// the order given, `a = 48, b = 18`.
+export function runName(input: string | Typed): string {
+  return typeof input === "string"
+    ? input
+    : Object.entries(input)
+        .map(([name, value]) => `${name} = ${String(value)}`)
+        .join(", ");
+}
+
+// Each Stage's step line gets its own ID once a refused field needs to name it.
+let refusals = 0;
+
+// A Stage as its page holds it: its control and inputs, the content as written, and the nodes a
+// shown step paints. A step's colour reaches a part through `recolour`, so the element can fade it.
+export class StageOnPage {
+  readonly control: Control;
+  readonly takes: Takes;
+  readonly written: Written;
+  readonly #stage: Element;
+  readonly #nodes: StageNodes;
+  readonly #recolour: (part: Element, recolour: () => void) => void;
+  readonly #asWritten = new Map<Element, Node[]>();
+  readonly #rowToCopy: Element | undefined;
+  #stepRows: Element[] = [];
+
+  constructor(
+    stage: Element,
+    recolour: (part: Element, recolour: () => void) => void = (_, change) => {
+      change();
+    },
+  ) {
+    this.#stage = stage;
+    this.#recolour = recolour;
+    this.#nodes = stageNodes(stage);
+    this.written = writtenContent(this.#nodes);
+    const { control, takes } = stageControl(stage);
+    this.control = control;
+    this.takes = takes;
+    this.#rowToCopy = this.#oneTableRowsAsWritten.at(-1)?.cloneNode(true) as Element | undefined;
+    const labels = this.#nodes.parts.flatMap((part) => [...part.querySelectorAll(colourLabel)]);
+    const cells = this.#nodes.tables.flatMap(({ rows }) => rows.flat());
+    for (const element of [...cells, ...labels]) {
+      this.#asWritten.set(
+        element,
+        [...element.childNodes].map((node) => node.cloneNode(true)),
+      );
+    }
+  }
+
+  // The build's file, from the repo's root.
+  get build(): string {
+    return (this.#stage.getAttribute("data-build") ?? "").replace(/^\//, "");
+  }
+
+  get lang(): Content["lang"] {
+    return mainLanguage(this.#stage);
+  }
+
+  // What the page offers to run: every option, every combination of one option per group, or
+  // every example.
+  get inputs(): (string | Typed)[] {
+    if (this.takes.shape === "fields") {
+      return JSON.parse(
+        this.#stage.querySelector(".stage-input")?.getAttribute("data-examples") ?? "[]",
+      ) as Typed[];
+    }
+    if (this.takes.shape === "groups") return combinations(stageGroups(this.#stage));
+    return this.options.map((input) => input.getAttribute("value") ?? "");
+  }
+
+  get options(): HTMLInputElement[] {
+    return [...this.#stage.querySelectorAll<HTMLInputElement>(".stage-option input")];
+  }
+
+  get fields(): HTMLInputElement[] {
+    return [...this.#stage.querySelectorAll<HTMLInputElement>(".stage-field input")];
+  }
+
+  get drawing(): SVGSVGElement | null {
+    return this.#stage.querySelector<SVGSVGElement>(".stage-figure svg");
+  }
+
+  partsNamed(name: string): SVGGraphicsElement[] {
+    return [
+      ...(this.drawing?.querySelectorAll<SVGGraphicsElement>(`[data-part="${CSS.escape(name)}"]`) ??
+        []),
+    ];
+  }
+
+  // An example reads as its values in the fields' order, as a choice does in the groups' order.
+  name(input: string | Typed): string {
+    return runName(
+      typeof input === "string" || this.takes.shape === "option"
+        ? input
+        : (Object.fromEntries(this.takes.values.map(({ name }) => [name, input[name]])) as Typed),
+    );
+  }
+
+  run(build: Build<string | Typed>, input: string | Typed): Run {
+    return runBuild(build, this.control, input, this.written, this.lang);
+  }
+
+  // The page renders its controls hidden, so they never show before the element can run a build.
+  // Firefox restores a checked option after a reload, but not the run it chose, and `autocomplete`
+  // isn't valid on a radio.
+  open() {
+    for (const option of this.options) option.checked = false;
+    for (const field of this.fields) {
+      field.value = field.defaultValue;
+      field.removeAttribute("aria-invalid");
+    }
+    this.#part(".stage-controls").hidden = false;
+  }
+
+  // With several groups the run waits for every group's choice.
+  chosen(): string | Typed | undefined {
+    const groups = stageGroups(this.#stage);
+    if (groups.length === 0) return this.options.find(({ checked }) => checked)?.value;
+    const chosen: Typed = {};
+    for (const { name, options } of groups) {
+      const option = options.find(({ checked }) => checked);
+      if (option === undefined) return undefined;
+      chosen[name] = option.value;
+    }
+    return chosen;
+  }
+
+  // What the owner typed, by each field's definition, or the first field whose rule it breaks.
+  typed(): { input: Typed } | { refused: HTMLInputElement; field: Field } {
+    for (const field of this.fields) {
+      field.removeAttribute("aria-invalid");
+      field.removeAttribute("aria-describedby");
+    }
+    const input: Typed = {};
+    for (const field of stageFields(this.#stage)) {
+      const typed = this.#part(
+        `.stage-field input[name="${CSS.escape(field.name)}"]`,
+      ) as HTMLInputElement;
+      const value = field.kind === "text" ? typedText(typed.value) : typedNumber(typed.value);
+      if (fieldProblem(field, value) !== undefined) return { refused: typed, field };
+      input[field.name] = value;
+    }
+    return { input };
+  }
+
+  show(shown: Shown, step: number, count: number, announcement: string) {
+    this.#paint(shown);
+    this.#part(".stage-counter").hidden = false;
+    this.#part(".stage-current").textContent = String(step);
+    this.#part(".stage-count").textContent = String(count);
+    this.#part(".stage-say").textContent = shown.say;
+    this.#part(".stage-announcement").textContent = announcement;
+  }
+
+  // A refused field is drawn dashed, and named by the step's line that gives the reason.
+  refuse(why: string, field?: HTMLInputElement) {
+    this.#paint(undefined);
+    this.#part(".stage-counter").hidden = true;
+    const say = this.#part(".stage-say");
+    say.textContent = why;
+    this.#part(".stage-announcement").textContent = why;
+    if (field === undefined) return;
+    field.setAttribute("aria-invalid", "true");
+    say.id ||= `stage-say-${String(++refusals)}`;
+    field.setAttribute("aria-describedby", say.id);
+  }
+
+  #part(selector: string): HTMLElement {
+    const part = this.#stage.querySelector<HTMLElement>(selector);
+    if (part === null) throw new Error(`artifact-stage has no ${selector}`);
+    return part;
+  }
+
+  get #oneTableRowsAsWritten(): Element[] {
+    return (this.#nodes.tables[0]?.rows ?? []).flatMap(([cell]) => cell?.parentElement ?? []);
+  }
+
+  // A cell whose text the step changes keeps its written nodes beside the step's text, so print
+  // can show the content as written from CSS alone, even when `beforeprint` never fires.
+  #paint(shown: Shown | undefined) {
+    this.#nodes.parts.forEach((part, index) => {
+      const { name = "", labelled = false } = this.written.parts[index] ?? {};
+      const mark = shown?.parts.get(name);
+      if (mark === undefined) part.removeAttribute("data-mark");
+      else part.setAttribute("data-mark", mark);
+      if (labelled) this.#colour(part, shown?.colours.get(name));
+    });
+    const lineNumbers = this.written.code.flat().map(({ line }) => line);
+    this.#nodes.code.flat().forEach((line, index) => {
+      const mark = shown?.lines.get(lineNumbers[index] ?? 0);
+      if (mark === undefined) line.removeAttribute("data-mark");
+      else line.setAttribute("data-mark", mark);
+    });
+    const rowsFromBody = shown?.rowsFromBody === true;
+    this.#nodes.tables.forEach(({ rows }, table) => {
+      rows.forEach((cells, row) => {
+        cells.forEach((cell, column) => {
+          const written = this.written.tables[table]?.rows[row]?.[column] ?? "";
+          const { text, mark } = (rowsFromBody
+            ? undefined
+            : shown?.tables[table]?.[row]?.[column]) ?? {
+            text: written,
+            mark: undefined,
+          };
+          const stepText = cell.querySelector(":scope > .stage-step-text");
+          if (text !== written && stepText !== null) stepText.textContent = text;
+          else if (text !== written) {
+            const asWritten = document.createElement("span");
+            asWritten.className = "stage-as-written";
+            asWritten.append(...[...cell.childNodes]);
+            const replaced = document.createElement("span");
+            replaced.className = "stage-step-text";
+            replaced.textContent = text;
+            cell.replaceChildren(asWritten, replaced);
+          } else if (stepText !== null) {
+            cell.replaceChildren(
+              ...(this.#asWritten.get(cell) ?? []).map((node) => node.cloneNode(true)),
+            );
+          }
+          if (mark === undefined) cell.removeAttribute("data-mark");
+          else cell.setAttribute("data-mark", mark);
+        });
+      });
+    });
+    this.#rewrite(rowsFromBody ? shown.tables[0] : undefined);
+  }
+
+  // The part's colour as written stays in its classes and its label's written text for print, so a
+  // step's colour is an attribute the screen's styles paint from, and its name a second text.
+  #colour(part: Element, colour: number | null | undefined) {
+    const before = part.getAttribute("data-colour");
+    const after = colour === undefined ? null : colour === null ? "none" : String(colour);
+    if (before === after) return;
+    this.#recolour(part, () => {
+      if (after === null) part.removeAttribute("data-colour");
+      else part.setAttribute("data-colour", after);
+    });
+    const name =
+      colour === undefined || colour === null ? undefined : this.written.colours[colour - 1];
+    for (const label of part.querySelectorAll(colourLabel)) {
+      const asWritten = (this.#asWritten.get(label) ?? []).map((node) => node.cloneNode(true));
+      const writtenName = asWritten
+        .map((node) => node.textContent)
+        .join("")
+        .trim();
+      if (name === undefined || name === writtenName) {
+        label.replaceChildren(...asWritten);
+        continue;
+      }
+      const ns = "http://www.w3.org/2000/svg";
+      const written = document.createElementNS(ns, "tspan");
+      written.classList.add("stage-as-written");
+      written.append(...asWritten);
+      const stepText = document.createElementNS(ns, "tspan");
+      stepText.classList.add("stage-step-text");
+      stepText.textContent = name;
+      label.replaceChildren(written, stepText);
+    }
+  }
+
+  // The rows as written stay in the table for print, hidden on screen, and each of the step's rows
+  // copies the last of them, so it keeps the table's alignment and look.
+  #rewrite(rows: Shown["tables"][number] | undefined) {
+    for (const row of this.#stepRows) row.remove();
+    this.#stepRows = [];
+    const written = this.#oneTableRowsAsWritten;
+    for (const row of written) row.classList.toggle("stage-as-written", rows !== undefined);
+    const rowToCopy = this.#rowToCopy;
+    if (rows === undefined || rowToCopy === undefined) return;
+    this.#stepRows = rows.map((cells) => {
+      const row = rowToCopy.cloneNode(true) as Element;
+      row.classList.add("stage-step-row");
+      [...row.children].forEach((cell, column) => {
+        const mark = cells[column]?.mark;
+        cell.textContent = cells[column]?.text ?? "";
+        if (mark !== undefined) cell.setAttribute("data-mark", mark);
+      });
+      return row;
+    });
+    written.at(-1)?.after(...this.#stepRows);
+  }
 }
 
 type FieldProblem =

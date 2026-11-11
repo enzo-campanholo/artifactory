@@ -6,7 +6,7 @@ import {
   type Control,
   type Run,
   type Written,
-} from "@artifactory/design-system/step-applier";
+} from "@artifactory/design-system/stage-on-page";
 
 export interface Job {
   file: string;

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import typescript from "typescript";
-import type { NamedValue, Takes } from "@artifactory/design-system/step-applier";
+import type { NamedValue, Takes } from "@artifactory/design-system/stage-on-page";
 import type { Failure } from "../../src/check-failure.ts";
 
 interface StagedBuild {
