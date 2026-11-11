@@ -1,6 +1,6 @@
 # Test seams
 
-What each of the four seams in `CODING_STANDARDS.md` owns, and what none tests.
+What each of the five seams in `CODING_STANDARDS.md` owns, and what none tests.
 
 ## 1. `tests/check`
 
@@ -51,6 +51,27 @@ What each of the four seams in `CODING_STANDARDS.md` owns, and what none tests.
 
 It owns each question kind's `check`, the number syntax a numeric answer and its key are written in (refused and ambiguous input included), the numeric key's rules, and the revision rules of [ADR 0001](../adr/0001-artifact-state-stores-answers-only.md): a corrected key or tolerance rescores, self-checked marks stand, an added question reopens a finished attempt, a removed question is ignored until its ID returns, and progress and score arithmetic. Seams 2 and 3 trust it and don't repeat these cases.
 
+## 5. `tests/stepping`
+
+The Stage and the Stepper on a built page, under happy-dom. Each test file builds one small fixture repo with `tests/check/fixture-repo.ts`, opens one built page with its shipped scripts, and drives it as the owner would, finding each control by its role and accessible name, never by a class.
+
+- a Stage with one choice: the prompt and no step counted before a choice, then at each step the counter, the line that says it, the announcement, the marks on drawn parts, and the cells it rewrites and gives back; a drawn part named like an option choosing it
+- choice groups: the run waiting for a choice in every group, and running again from step 1 when either group changes
+- typed input: the first example run from the fields as they open, the line each step runs marked and announced, and a number or text that breaks its field's rule refused at that field (`aria-invalid`, the focus, and the rule in the step's line)
+- a refused run: the refusal said and announced, no step counted, and both buttons refused
+- steps that colour parts: each part's swatch and its colour's name at each step, going back included
+- the step row on a Stage, a code Stepper, a one-block Stepper and a figure Stepper: the buttons and the left and right arrow keys, both ends refusing to go further with `aria-disabled`, and the buttons usable once the element connects
+- a Stepper's announcement: its step, a code block's marked lines and its caption; a one-block Stepper's lit lines; a figure Stepper's parts at each step
+
+Seam 1 keeps every failure line for a build's steps, the printed steps in the built page, and `pnpm look`.
+
 ## Not tested automatically
 
 Whether `pnpm look`'s shots read well (agents judge each one against its `alt` or caption), the CI workflow, Access login and routing (what the public Access script, `scripts/public-access.ts`, actually opens on the live account, and what the live site answers `pnpm probe`; both are tested against the stand-ins above, and the probe, which CI runs after every deploy, is the check on the live site), browser accessibility (the design system checks it with impeccable), and external links.
+
+Under happy-dom, `tests/stepping` can't reach these, so `pnpm look` and the catalog are the check on them:
+
+- a D2 Stepper's stepping: happy-dom reads only the first of its boards. It shares its element with the code and figure Steppers, which are tested.
+- what the page's styles do to a Stage or a Stepper: happy-dom applies none of the page's stylesheets, which sit in cascade layers. So which of a rewritten cell's two texts shows on screen (the step's, with the content as written kept beside it for print), and how the marks and swatches look, aren't tested.
+- a colouring's cross-fade from one swatch to the next: the tests open the page with reduced motion, since happy-dom rejects every animation the fade cancels, and nothing handles the rejection.
+- the size and place of a drawn part's hit area: happy-dom lays nothing out, so a part's box is empty. Choosing by clicking the part is tested.
