@@ -25,3 +25,9 @@ This is design-system work: do it in a local session with impeccable (`design-sy
 - [ ] A valid component of every kind renders on its catalog page as before.
 
 ## Comments
+
+### 2026-11-10: owner decision on a marker outside an artifact
+
+Owner, implement-spec orchestration session, 2026-11-10, answering the open point in [01](01-a-stepper-s-rules-are-reported-at-its-tag.md)'s implementation comment.
+
+- **Approved:** a marker on a page that isn't an artifact's (the catalog's, for example), reported at `astro.config.ts:1:1` with the page's route in its message, goes under the `artifact` skill's **Platform changes** section, not **Components**. Every marker inside an artifact stays under **Components**. This ticket makes the change for every component, the Stepper included, and `rules.md` follows.
