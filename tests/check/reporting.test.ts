@@ -23,7 +23,7 @@ describe("a repo with an artifact whose math fails, unformatted platform code, a
     "design-system/COMPONENTS.md:1:1 error component-reference: is out of date with the design system's source; run `pnpm components` (artifact skill: Platform changes)",
     "src/pages/404.astro:2:7 error TS2322: Type 'string' is not assignable to type 'number'. (artifact skill: Platform changes)",
     "src/stray.spec.ts:1:1 error knip/files: `src/stray.spec.ts` is unused (artifact skill: Platform changes)",
-    "src/stray.spec.ts:1:1 error test-placement: Vitest runs only *.test.ts files in a seam folder: tests/check, tests/worker, tests/store, tests/scoring (artifact skill: Platform changes)",
+    "src/stray.spec.ts:1:1 error test-placement: Vitest runs only *.test.ts files in a seam folder: tests/check, tests/worker, tests/store, tests/scoring, tests/stepping (artifact skill: Platform changes)",
   ];
 
   beforeAll(async () => {

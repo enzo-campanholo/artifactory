@@ -1,4 +1,10 @@
-export const seamFolders = ["tests/check", "tests/worker", "tests/store", "tests/scoring"];
+export const seamFolders = [
+  "tests/check",
+  "tests/worker",
+  "tests/store",
+  "tests/scoring",
+  "tests/stepping",
+];
 
 // Fixture repos leave these out, and no test at the other seams reads them, so no Vitest result
 // depends on them.
