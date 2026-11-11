@@ -1,6 +1,6 @@
 # 02: Every question test mounts its component's markup
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01
 
 Spec: [Question markup in store tests](../spec.md). Tests only.
