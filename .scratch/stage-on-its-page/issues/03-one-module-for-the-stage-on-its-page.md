@@ -1,6 +1,6 @@
 # 03: One module for the Stage on its page
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 02
 
 Spec: [The Stage on its page](../spec.md). A refactor: no behaviour changes.
