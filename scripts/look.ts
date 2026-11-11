@@ -67,16 +67,9 @@ interface ShotProblem {
   problem: string;
 }
 
-interface Stepping {
-  forward: string;
-  current: string;
-}
-
-const stepperStepping: Stepping = {
-  forward: "button.stepper-forward",
-  current: ".stepper-current",
-};
-const stageStepping: Stepping = { forward: "button.stage-forward", current: ".stage-current" };
+// A Stepper and a Stage step through the same row, StepControls.astro's: its counter starts with
+// the step shown, and its last button goes forward.
+const stepRow = { forward: ".step-controls > button:last-of-type", counter: ".step-counter" };
 
 // An item takes the first kind whose `element` it is and whose `marks` it holds, so each form
 // comes before its family's unknown one. A form look doesn't know is never shot as one it does:
@@ -620,7 +613,7 @@ async function shootStepper(shooting: Shooting): Promise<Shots> {
       shooting,
       steps,
       (step) => `${item.name}${steps > 1 ? `-step-${String(step)}` : ""}-${String(width)}.png`,
-      stepperStepping,
+      true,
     ),
   };
 }
@@ -717,7 +710,7 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
     shooting,
     steps,
     (step) => `${name}-step-${String(step)}-${String(width)}.png`,
-    stageStepping,
+    true,
   );
   return {
     files: [asWritten, ...files],
@@ -729,22 +722,24 @@ async function shootSteps(
   shooting: Shooting,
   steps: number,
   fileFor: (step: number) => string,
-  stepping?: Stepping,
+  stepped = false,
 ): Promise<string[]> {
   const { page, test, item } = shooting;
   const { element } = item;
   const files: string[] = [];
-  const currentStep = (current: string) =>
-    element.evaluate((node, current) => node.querySelector(current)?.textContent.trim(), current);
+  const currentStep = () =>
+    element.evaluate(
+      (node, counter) => node.querySelector(counter)?.textContent.trim().split(/\s/, 1)[0],
+      stepRow.counter,
+    );
   assertCase(test, `${fileFor(1)}: capture step count`, true, Number.isInteger(steps) && steps > 0);
   for (let step = 1; step <= steps; step += 1) {
     const file = fileFor(step);
-    if (stepping !== undefined)
-      assertCase(test, `${file}: current step`, String(step), await currentStep(stepping.current));
+    if (stepped) assertCase(test, `${file}: current step`, String(step), await currentStep());
     await shootAlone(shooting, file);
     files.push(file);
-    if (stepping !== undefined && step < steps) {
-      const button = required(test, `${file}: forward exists`, await element.$(stepping.forward));
+    if (stepped && step < steps) {
+      const button = required(test, `${file}: forward exists`, await element.$(stepRow.forward));
       assertCase(
         test,
         `${file}: forward available`,
@@ -759,19 +754,15 @@ async function shootSteps(
       await button.click();
       await page
         .waitForFunction(
-          (node, current, expected) => node.querySelector(current)?.textContent.trim() === expected,
+          (node, counter, expected) =>
+            node.querySelector(counter)?.textContent.trim().split(/\s/, 1)[0] === expected,
           {},
           element,
-          stepping.current,
+          stepRow.counter,
           String(step + 1),
         )
         .catch(() => undefined);
-      assertCase(
-        test,
-        `${file}: advancement`,
-        String(step + 1),
-        await currentStep(stepping.current),
-      );
+      assertCase(test, `${file}: advancement`, String(step + 1), await currentStep());
     }
   }
   return files;

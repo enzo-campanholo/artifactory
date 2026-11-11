@@ -1,5 +1,6 @@
 import { inPageLanguage, mainLanguage } from "./page-language.ts";
 import type { Build, Typed } from "./stage-build.ts";
+import { StepRow } from "./step-row.ts";
 import {
   colourLabel,
   fieldProblem,
@@ -189,8 +190,8 @@ class ArtifactStage extends HTMLElement {
   #fades = new Map<Element, Fade>();
   #rowToCopy: Element | undefined;
   #stepRows: Element[] = [];
+  #row: StepRow | undefined;
   #steps: Shown[] = [];
-  #step = 0;
   #running = 0;
 
   constructor() {
@@ -206,17 +207,8 @@ class ArtifactStage extends HTMLElement {
     });
     this.addEventListener("click", (event) => {
       if (!(event.target instanceof Element)) return;
-      const button = event.target.closest("button");
-      if (button === this.#part(".stage-back")) this.#go(-1);
-      if (button === this.#part(".stage-forward")) this.#go(1);
       const choice = event.target.closest<SVGElement>("[data-choice]")?.dataset.choice;
       if (choice !== undefined) this.#chooseInDrawing(choice);
-    });
-    this.addEventListener("keydown", (event) => {
-      if (!(event.target instanceof HTMLButtonElement)) return;
-      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-      event.preventDefault();
-      this.#go(event.key === "ArrowLeft" ? -1 : 1);
     });
   }
 
@@ -251,10 +243,9 @@ class ArtifactStage extends HTMLElement {
         [...element.childNodes].map((node) => node.cloneNode(true)),
       );
     }
-    for (const button of this.querySelectorAll(".step-controls button")) {
-      button.removeAttribute("disabled");
-      button.setAttribute("aria-disabled", "true");
-    }
+    this.#row = new StepRow(this, (step) => {
+      this.#show(step);
+    });
     // Firefox restores a checked option after a reload, but not the run it chose, and
     // `autocomplete` isn't valid on a radio.
     for (const option of this.#options) option.checked = false;
@@ -397,48 +388,36 @@ class ArtifactStage extends HTMLElement {
       return;
     }
     this.#steps = run.steps;
-    this.#step = 1;
     this.dataset.stepped = "";
-    this.#show();
+    this.#row?.setCount(run.steps.length);
   }
 
-  #go(by: number) {
-    const step = Math.min(Math.max(this.#step + by, 1), this.#steps.length);
-    if (this.#steps.length === 0 || step === this.#step) return;
-    this.#step = step;
-    this.#show();
-  }
-
-  #show() {
-    const shown = this.#steps[this.#step - 1];
+  #show(step: number) {
+    const shown = this.#steps[step - 1];
     if (shown === undefined) return;
     this.#paint(shown);
     const count = this.#steps.length;
     this.#part(".stage-counter").hidden = false;
-    this.#part(".stage-current").textContent = String(this.#step);
+    this.#part(".stage-current").textContent = String(step);
     this.#part(".stage-count").textContent = String(count);
     this.#part(".stage-say").textContent = shown.say;
     this.#part(".stage-announcement").textContent = [
-      this.#texts.step(this.#step, count),
+      this.#texts.step(step, count),
       shown.running === undefined ? "" : this.#texts.line(shown.running),
       shown.say,
     ]
       .filter(Boolean)
       .join(" ");
-    this.#part(".stage-back").setAttribute("aria-disabled", String(this.#step === 1));
-    this.#part(".stage-forward").setAttribute("aria-disabled", String(this.#step === count));
   }
 
   #refuse(why: string) {
     ++this.#running;
     this.#steps = [];
-    this.#step = 0;
+    this.#row?.setCount(0);
     this.#paint(undefined);
     this.#part(".stage-counter").hidden = true;
     this.#part(".stage-say").textContent = why;
     this.#part(".stage-announcement").textContent = why;
-    this.#part(".stage-back").setAttribute("aria-disabled", "true");
-    this.#part(".stage-forward").setAttribute("aria-disabled", "true");
   }
 
   // A cell whose text the step changes keeps its written nodes beside the step's text, so print
