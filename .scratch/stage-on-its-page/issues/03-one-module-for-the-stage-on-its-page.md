@@ -30,3 +30,14 @@ This is design-system work: do it in a local session with impeccable (`design-sy
 - [ ] It reaches no shared part `CODING_STANDARDS.md` lists; the closing comment says so, or names the ones it reached.
 
 ## Comments
+
+### 2026-11-10: what `tests/stepping` reaches
+
+From [01](01-a-fifth-seam-for-the-stage-and-the-stepper-on-a-page.md)'s implementation. The tests find no class, but they do rely on these, so keep them or change the tests' helpers (`tests/stepping/built-page.ts`) in the same commit:
+
+- **Hosts:** `artifact-stage`, found by an option group's or the input's legend, and `artifact-stepper`, found in page order.
+- **The step row's buttons:** found by their names, "Passo anterior" and "Próximo passo" in pt-BR, "Previous step" and "Next step" in English. The other language's words are skipped by `data-lang`.
+- **Text:** the said line is the one element that showed the prompt before any run. The counter is the innermost element whose text starts "N de M" or "N of M", and is hidden by `hidden`. The announcement is the host's only `aria-live` element.
+- **Inputs:** options and fields, found by their `<label>`.
+- **Attributes:** drawn parts by `data-part`, with `data-mark` and `data-colour`; code lines by their text, with `data-mark` in a Stage and `data-off` in a one-block Stepper; a figure Stepper's parts by `data-step`, with `data-off`.
+- **Loading:** the helper imports every `script[type="module"][src]` and maps `data-module` to `dist/`. A Stepper element moved into a module that `Stepper.astro`'s script imports loads the same way. A Stage that finds its build by any other means than `data-module` needs the helper changed.
