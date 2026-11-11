@@ -43,7 +43,7 @@ Names and structure explain the code. A comment holds only a reason they can't s
 
 - **Public API:** the `exports` in `design-system/package.json`. Every `.astro` export except a layout is a component artifacts can import.
 - **Catalog:** check a component change on its catalog page, and give a new component or state its place in the catalog.
-- **Shared parts:** `tokens.css`, `page.css`, `math.css`, `rich-content.css`, `SvgImage.astro`, `InlineSvg.astro`, `figure.css`, `figure-colours.css`, `StepControls.astro`, `statement-blocks.css` and `d2-board.ts` each reach more than one component. A fix that changes one names, in its ticket, the other components it reaches and checks at least one of them on its catalog page, with the same evidence it gives its own component; a fix that stays inside one component says so. A review checks that note. A `Figure` sizing fix once overflowed a `Diagram` this way.
+- **Shared parts:** `tokens.css`, `page.css`, `math.css`, `rich-content.css`, `SvgImage.astro`, `InlineSvg.astro`, `figure.css`, `figure-colours.css`, `StepControls.astro` with `step-row.ts`, `statement-blocks.css` and `d2-board.ts` each reach more than one component. A fix that changes one names, in its ticket, the other components it reaches and checks at least one of them on its catalog page, with the same evidence it gives its own component; a fix that stays inside one component says so. A review checks that note. A `Figure` sizing fix once overflowed a `Diagram` this way.
 
 ## Tests
 
