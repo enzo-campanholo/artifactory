@@ -5,6 +5,7 @@ dist-worker/
 .build/
 design-system/.impeccable/config.local.json
 design-system/.impeccable/hook.cache.json
+.impeccable/hook.cache.json
 .wrangler/
 .look/
 sources/
