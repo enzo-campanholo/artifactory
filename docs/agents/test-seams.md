@@ -40,6 +40,8 @@ What each of the five seams in `CODING_STANDARDS.md` owns, and what none tests.
 
 ## 3. `tests/store`
 
+A question test mounts its component's own markup: `rendered-question.ts` renders a small `.mdx` fixture with Astro's Container API, through the site's Markdown pipeline, and mounts it under happy-dom. A file that renders runs in node, since Astro won't render under a DOM environment, and gets its page from that module. `minimal-question.ts` is the one exception: it defines its own minimal element to test the store, and copies no component.
+
 - the device copy: starting from it, the first load's check, keeping it after loads and saves, and forgetting it on sign-out
 - the owner mark: left by an artifact's load and saves and the Library's load, never by a failed load or throwaway state, and kept on sign-out
 - loading, saving and the "saving" lifecycle, retries, sign-out, answers given on another device, refreshes, and content hash mismatches
