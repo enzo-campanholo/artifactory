@@ -66,3 +66,9 @@ Owner, architecture review session, 2026-11-10 (thread 8d57bee0-37b7-4277-bf58-c
 - **Approved, round 1 Q8:** a throwaway spike, nothing merged, to find where real component markup can come from.
 - **Approved, round 4 Q3:** this feature goes ahead, done last, as the two tickets in `issues/`, with ticket 01's guard on the integrations running as `dev`.
 - **Order of work, round 2 Q12 and round 4 Q3:** sixth and last, after [Page numbering](../page-numbering/spec.md). It depends on no other feature.
+
+### 2026-11-11: owner decision on the order of work
+
+Owner, implement-spec orchestration session, 2026-11-11.
+
+- **Approved:** ticket 01 starts while [The Stage on its page](../stage-on-its-page/spec.md) is still in progress, in a worker slot that order would leave idle. It touches only `tests/store` and the Vitest setup. [Page numbering](../page-numbering/spec.md) still waits for the Stage feature. This supersedes "sixth and last" for ticket 01 only.
