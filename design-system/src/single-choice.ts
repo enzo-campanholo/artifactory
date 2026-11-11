@@ -1,4 +1,4 @@
-import { componentError } from "./component-errors.ts";
+import { brokenRule } from "./component-rules.ts";
 import { inlineItems, optionsList } from "./list-items.ts";
 import { splitAtRule } from "./split-at-rule.ts";
 
@@ -15,29 +15,26 @@ export function singleChoiceParts(
     question.match(/<ol\b/g)?.length !== 1 ||
     /<(?:ul|ol)\b/.test(list[1] ?? "")
   ) {
-    throw componentError(
+    throw brokenRule(
       "SingleChoice",
       "write the question, then its options as one numbered list at the end, before any `---`, with no list inside an option",
     );
   }
   if (explanation === "") {
-    throw componentError(
-      "SingleChoice",
-      "write the explanation after `---`, or leave out the `---`",
-    );
+    throw brokenRule("SingleChoice", "write the explanation after `---`, or leave out the `---`");
   }
   const options = inlineItems(list[1] ?? "");
   if (options === undefined) {
-    throw componentError("SingleChoice", "keep each option to one paragraph");
+    throw brokenRule("SingleChoice", "keep each option to one paragraph");
   }
   if (options.length < 2) {
-    throw componentError(
+    throw brokenRule(
       "SingleChoice",
       `it has ${String(options.length)} option; give it at least two`,
     );
   }
   if (!Number.isInteger(answer) || answer < 1 || answer > options.length) {
-    throw componentError(
+    throw brokenRule(
       "SingleChoice",
       `\`answer\` is ${String(answer)}, but it must be the number of one of its ${String(options.length)} options`,
     );

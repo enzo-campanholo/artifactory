@@ -1,4 +1,4 @@
-import { componentError } from "./component-errors.ts";
+import { brokenRule } from "./component-rules.ts";
 import { inlineItems, optionsList } from "./list-items.ts";
 import { splitAtRule } from "./split-at-rule.ts";
 
@@ -60,16 +60,16 @@ export function matchingParts(
     question.match(/<(?:ul|ol)\b/g)?.length !== 1 ||
     /<(?:ul|ol)\b/.test(options[1] ?? "")
   ) {
-    throw componentError("Matching", shape);
+    throw brokenRule("Matching", shape);
   }
   if (itemsPart.slice(items[0].length).trim() !== "") {
-    throw componentError(
+    throw brokenRule(
       "Matching",
       "after the items' bulleted list, write only a blank line, `---`, another blank line and the explanation",
     );
   }
   if (explanation === "") {
-    throw componentError(
+    throw brokenRule(
       "Matching",
       "write the explanation after the second `---`, or leave out that `---`",
     );
@@ -77,11 +77,11 @@ export function matchingParts(
   const optionTexts = inlineItems(options[1] ?? "");
   const itemTexts = inlineItems(items[1] ?? "");
   if (optionTexts === undefined || itemTexts === undefined) {
-    throw componentError("Matching", "keep each option and each item to one paragraph");
+    throw brokenRule("Matching", "keep each option and each item to one paragraph");
   }
   const keys = Object.entries(answers);
   const problems = countProblems(optionTexts.length, itemTexts.length, keys);
-  if (problems.length > 0) throw componentError("Matching", problems.join("; "));
+  if (problems.length > 0) throw brokenRule("Matching", problems.join("; "));
   return {
     prompt: question.slice(0, options.index),
     options: optionTexts,
