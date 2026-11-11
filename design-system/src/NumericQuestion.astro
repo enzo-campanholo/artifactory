@@ -1,5 +1,5 @@
 ---
-import { componentError } from "./component-errors.ts";
+import { brokenRule, unlessRuleBroken } from "./component-rules.ts";
 import Question from "./Question.astro";
 import { questionAnchor } from "./question-markers.ts";
 import { numericKeyProblem, type NumericKey } from "./scoring.ts";
@@ -74,51 +74,64 @@ const { id, answer, tolerance, relativeTolerance, unit } = Astro.props;
 const key: NumericKey = { value: answer };
 if (tolerance !== undefined) key.tolerance = tolerance;
 if (relativeTolerance !== undefined) key.relativeTolerance = relativeTolerance;
-const problem = numericKeyProblem(key);
-if (problem !== undefined) throw componentError("NumericQuestion", problem);
-const content = (await Astro.slots.render("default")).trim();
-const parts = splitAtRule(content);
-const prompt = parts?.before ?? content;
-const explanation = parts?.after;
-if (prompt === "") throw componentError("NumericQuestion", "write the question inside it");
-if (explanation === "") {
-  throw componentError(
-    "NumericQuestion",
-    "write the explanation after `---`, or leave out the `---`",
-  );
-}
+const question = await unlessRuleBroken("NumericQuestion", async () => {
+  const problem = numericKeyProblem(key);
+  if (problem !== undefined) throw brokenRule("NumericQuestion", problem);
+  const content = (await Astro.slots.render("default")).trim();
+  const split = splitAtRule(content);
+  const prompt = split?.before ?? content;
+  const explanation = split?.after;
+  if (prompt === "") throw brokenRule("NumericQuestion", "write the question inside it");
+  if (explanation === "") {
+    throw brokenRule(
+      "NumericQuestion",
+      "write the explanation after `---`, or leave out the `---`",
+    );
+  }
+  return { prompt, explanation };
+});
+const parts = "marker" in question ? undefined : question;
 const anchor = questionAnchor(id);
 const fieldId = `${anchor}--field`;
 const unitId = `${anchor}--unit`;
 ---
 
-<Question id={id} kind="numeric" answerKey={key} prompt={prompt} explanation={explanation}>
-  <div class="numeric-question-answer">
-    <label class="numeric-question-label" for={fieldId}>
-      <span data-lang="en">Your answer</span>
-      <span data-lang="pt">Sua resposta</span>
-    </label>
-    <div class="numeric-question-field">
-      <input
-        id={fieldId}
-        type="text"
-        inputmode="text"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="off"
-        spellcheck="false"
-        maxlength="100"
-        required
-        aria-describedby={unit === undefined ? undefined : unitId}
-      />
-      {unit !== undefined && (
-        <span class="numeric-question-unit" id={unitId}>
-          {unit}
-        </span>
-      )}
+{"marker" in question && <Fragment set:html={question.marker} />}
+{parts && (
+  <Question
+    id={id}
+    kind="numeric"
+    answerKey={key}
+    prompt={parts.prompt}
+    explanation={parts.explanation}
+  >
+    <div class="numeric-question-answer">
+      <label class="numeric-question-label" for={fieldId}>
+        <span data-lang="en">Your answer</span>
+        <span data-lang="pt">Sua resposta</span>
+      </label>
+      <div class="numeric-question-field">
+        <input
+          id={fieldId}
+          type="text"
+          inputmode="text"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          maxlength="100"
+          required
+          aria-describedby={unit === undefined ? undefined : unitId}
+        />
+        {unit !== undefined && (
+          <span class="numeric-question-unit" id={unitId}>
+            {unit}
+          </span>
+        )}
+      </div>
     </div>
-  </div>
-</Question>
+  </Question>
+)}
 
 <script>
   import "./numeric-question-element.ts";

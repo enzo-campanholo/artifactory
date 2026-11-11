@@ -4,6 +4,7 @@ import InlineSvg from "./InlineSvg.astro";
 import StepControls from "./StepControls.astro";
 import { drawInStandard, inOneFrame, smallestLabelSize } from "./d2-board.ts";
 import { brokenRule, unlessRuleBroken } from "./component-rules.ts";
+import { drawingParts } from "./inline-svg.ts";
 import { inSteps, printedLines, steppedBlocks, steppedCode, steppedFigure } from "./stepper.ts";
 
 interface Captioned {
@@ -184,6 +185,7 @@ async function steps() {
       `it has ${String(count)} steps but ${String(captions.length)} captions; give one caption per step`,
     );
   }
+  if (figure !== undefined) drawingParts(figure);
 
   const boardMinScale =
     boards && boards.length > 0
@@ -223,7 +225,7 @@ async function steps() {
   };
 }
 
-const stepper = await unlessRuleBroken(steps);
+const stepper = await unlessRuleBroken("Stepper", steps);
 const marker = "marker" in stepper ? stepper.marker : undefined;
 const shown = "marker" in stepper || stepper.diagramFailed ? undefined : stepper;
 ---

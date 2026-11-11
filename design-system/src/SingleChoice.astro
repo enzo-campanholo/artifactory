@@ -1,6 +1,7 @@
 ---
 import Question from "./Question.astro";
 import { questionAnchor } from "./question-markers.ts";
+import { unlessRuleBroken } from "./component-rules.ts";
 import { singleChoiceParts } from "./single-choice.ts";
 
 /**
@@ -53,33 +54,42 @@ interface Props {
 }
 
 const { id, answer } = Astro.props;
-const { prompt, options, explanation } = singleChoiceParts(
-  await Astro.slots.render("default"),
-  answer,
+const question = await unlessRuleBroken("SingleChoice", async () =>
+  singleChoiceParts(await Astro.slots.render("default"), answer),
 );
+const parts = "marker" in question ? undefined : question;
 // Chromium drops MathML from a name taken from a <label>, but keeps it through aria-labelledby.
 const optionId = (index: number) => `${questionAnchor(id)}--option-${String(index + 1)}`;
 ---
 
-<Question id={id} kind="single-choice" answerKey={answer} prompt={prompt} explanation={explanation}>
-  <ol class="single-choice-options">
-    {options.map((option, index) => (
-      <li>
-        <label>
-          <span class="single-choice-letter" aria-hidden="true"></span>
-          <input
-            type="radio"
-            name={`q-${id}`}
-            value={index + 1}
-            aria-labelledby={optionId(index)}
-            required
-          />
-          <span id={optionId(index)} set:html={option} />
-        </label>
-      </li>
-    ))}
-  </ol>
-</Question>
+{"marker" in question && <Fragment set:html={question.marker} />}
+{parts && (
+  <Question
+    id={id}
+    kind="single-choice"
+    answerKey={answer}
+    prompt={parts.prompt}
+    explanation={parts.explanation}
+  >
+    <ol class="single-choice-options">
+      {parts.options.map((option, index) => (
+        <li>
+          <label>
+            <span class="single-choice-letter" aria-hidden="true"></span>
+            <input
+              type="radio"
+              name={`q-${id}`}
+              value={index + 1}
+              aria-labelledby={optionId(index)}
+              required
+            />
+            <span id={optionId(index)} set:html={option} />
+          </label>
+        </li>
+      ))}
+    </ol>
+  </Question>
+)}
 
 <script>
   import "./single-choice-element.ts";

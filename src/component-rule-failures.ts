@@ -3,8 +3,11 @@ import type { BuiltArtifact, BuiltPage, BuiltSite } from "./built-output.ts";
 import type { Failure } from "./check-failure.ts";
 import { locate } from "./source-locator.ts";
 
-function failure(place: Pick<Failure, "file" | "line" | "column">, message: string): Failure {
-  return { ...place, ruleId: "component-rule", message, skillSection: "Components" };
+function failure(
+  place: Pick<Failure, "file" | "line" | "column" | "skillSection">,
+  message: string,
+): Failure {
+  return { ...place, ruleId: "component-rule", message };
 }
 
 // A broken component renders only its marker, so the rest of its artifact's page is left unchecked:
@@ -35,11 +38,12 @@ function placedFailures({ entry, source, page }: BuiltArtifact): Failure[] {
     if (brokenRule === undefined) return [];
     const onPage = instances.filter((instance) => instance.module === module).length;
     const { position } = locate(source, { kind: "component-instance", module, occurrence, onPage });
-    return [failure({ file: entry, ...position }, brokenRule)];
+    return [failure({ file: entry, ...position, skillSection: "Components" }, brokenRule)];
   });
 }
 
-// A page that isn't an artifact's, such as the catalog's, has no entry to place a component at.
+// A page that isn't an artifact's, such as the catalog's, has no entry to place a component at,
+// and only a platform change puts a component there.
 function unplacedFailures({ file, html }: BuiltPage): Failure[] {
   const route = `/${file.replace(/(^|\/)index\.html$/, "$1")}`;
   return componentsOnPage(html).flatMap(({ brokenRule }) =>
@@ -47,7 +51,7 @@ function unplacedFailures({ file, html }: BuiltPage): Failure[] {
       ? []
       : [
           failure(
-            { file: "astro.config.ts", line: 1, column: 1 },
+            { file: "astro.config.ts", line: 1, column: 1, skillSection: "Platform changes" },
             `${brokenRule}; on ${route}, which isn't an artifact's page`,
           ),
         ],
