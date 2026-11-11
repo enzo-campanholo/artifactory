@@ -1,6 +1,6 @@
 # 01: A fifth seam for the Stage and the Stepper on a page
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [The Stage on its page](../spec.md). Tests of today's behaviour: no design-system or platform code changes beyond naming the seam.
