@@ -36,6 +36,7 @@ What each of the five seams in `CODING_STANDARDS.md` owns, and what none tests.
 - loading an artifact's state: every attempt with its answers, and the content hash
 - the Library API: the latest-attempt rule, drafts included, artifacts without questions left out, and the build ID
 - Access: a missing or invalid token, and a valid one let through
+- the store's HTTP transports, through global `fetch` routed to the Worker: a load `loaded` with the attempts and answers saved before it, `signed out` without a token and `failed` for an unknown artifact; a save `saved` with the answer, `already answered` with the first answer, `signed out` without a token and `failed` for a question the manifest doesn't have; and the Library's load `loaded` with the latest attempts' summaries and `signed out` without a token. The raw-request cases above own the status codes, and seam 3 trusts these outcomes.
 
 ## 3. `tests/store`
 

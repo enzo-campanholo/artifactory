@@ -55,7 +55,7 @@ Tests exist so agents can rewrite code freely while behaviour holds. A test that
 - The build's deployable output is `dist/` and `dist-worker/`, which `wrangler deploy` ships, so a test may assert what's in them. Anything else a build writes, such as `.astro/` or `.build/`, is an intermediate file.
 - Take expected values from an independent source: a literal, a worked example or the spec. Never recompute them the way the code does.
 - No smoke tests: "renders", "is defined", "exports X", or "doesn't throw" with nothing else asserted. The type checker and the build already catch those.
-- The only test doubles are the in-memory transport and fixtures: fixture repos, a fixture question manifest, a local D1, a local stand-in for Cloudflare's Access API, and a local stand-in for the deployed site as a visitor meets it.
+- The only test doubles are the in-memory transport and fixtures: fixture repos, a fixture question manifest, a local D1, a local stand-in for Cloudflare's Access API, and a local stand-in for the deployed site as a visitor meets it. Routing global `fetch` to the Worker under test, so the store's HTTP transports reach it, is plumbing, not a test double.
 - A bug fix adds a test only if no existing test could have caught it, and extending the nearest existing test comes first.
 - Name a test after the behaviour ("a retried answer that returns your own answer counts as saved"), never after the bug or the ticket.
 - When a behaviour is removed, delete its tests.
@@ -64,7 +64,7 @@ Tests exist so agents can rewrite code freely while behaviour holds. A test that
 ### The five seams
 
 1. **`pnpm check` and public repo CLIs against fixture repos** (`tests/check`). Tests run the check or relevant public CLI against fixture input and assert on exit codes, failure lines, returned reports or deployable output.
-2. **The Worker's HTTP API against a local D1** (`tests/worker`), with the real migrations and a fixture question manifest.
+2. **The Worker's HTTP API against a local D1** (`tests/worker`), with the real migrations and a fixture question manifest, and the store's HTTP transports against it: the outcome each returns for a load, a save and the Library's load (loaded, saved, already answered, signed out, failed).
 3. **The state store's public interface over the in-memory transport** (`tests/store`), with happy-dom, seeded state and forced outcomes.
 4. **The scoring module** (`tests/scoring`).
 5. **The Stage and the Stepper on a built page** (`tests/stepping`), under happy-dom. A test file builds one small fixture repo, opens its built page with the page's shipped scripts, and drives it as the owner would, finding each control by its role and accessible name. Agreed with the owner at the architecture review, 2026-11-10 ([The Stage on its page](.scratch/stage-on-its-page/spec.md#comments)).
