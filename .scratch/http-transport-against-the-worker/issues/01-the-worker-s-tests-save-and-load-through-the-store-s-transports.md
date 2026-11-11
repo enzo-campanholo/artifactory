@@ -9,14 +9,14 @@ Spec: [The HTTP transport against the Worker](../spec.md). Tests only: no produc
 
 **First step:** import `design-system/src/state.ts` in a `tests/worker` file and run it. If the Worker's test runtime can't import it, stop there: write what failed in a dated comment, set this ticket to `needs-info`, and leave the choice to the owner. Don't add a parameter to `httpTransport` to get around it.
 
-- [ ] A `tests/worker` file imports the store's transports and runs under the Worker's test project.
-- [ ] A load returns `loaded` with the attempts and answers saved before it, `signed out` without a token, and `failed` for an unknown artifact.
-- [ ] A save returns `saved` with the answer, `already answered` with the first answer when the question already has one in that attempt, `signed out` without a token, and `failed` for a question the manifest doesn't have.
-- [ ] The Library's load returns `loaded` with the latest attempts' summaries, and `signed out` without a token.
-- [ ] The existing `tests/worker` cases pass unchanged, and no `tests/store` file changes.
-- [ ] `design-system/src/state.ts`, `library-statuses.ts` and `worker/` are unchanged.
-- [ ] `CODING_STANDARDS.md` › Tests says routing `fetch` to the Worker under test is plumbing, not a test double, and seam 2's line names the transports' outcomes.
-- [ ] `docs/agents/test-seams.md` › `tests/worker` lists the outcomes this adds.
+- [x] A `tests/worker` file imports the store's transports and runs under the Worker's test project.
+- [x] A load returns `loaded` with the attempts and answers saved before it, `signed out` without a token, and `failed` for an unknown artifact.
+- [x] A save returns `saved` with the answer, `already answered` with the first answer when the question already has one in that attempt, `signed out` without a token, and `failed` for a question the manifest doesn't have.
+- [x] The Library's load returns `loaded` with the latest attempts' summaries, and `signed out` without a token.
+- [x] The existing `tests/worker` cases pass unchanged, and no `tests/store` file changes.
+- [x] `worker/` is unchanged, and `design-system/src/state.ts` and `library-statuses.ts` change only to take the HTTP transports from a DOM-free design-system module, with no behaviour change ([owner decision](#2026-11-10-owner-decision-on-the-type-program)).
+- [x] `CODING_STANDARDS.md` › Tests says routing `fetch` to the Worker under test is plumbing, not a test double, and seam 2's line names the transports' outcomes.
+- [x] `docs/agents/test-seams.md` › `tests/worker` lists the outcomes this adds.
 
 ## Comments
 
@@ -40,3 +40,25 @@ Implementer, branch `impl/http-transport-against-the-worker-01`. No test landed;
 Owner, implement-spec orchestration session, 2026-11-10, answering the comment above.
 
 - **Approved:** option 1, a DOM-free module for the HTTP transports. Move `loadOverHttp`, `httpTransport` and `httpLibraryTransport`, with their outcome types, into a design-system module that names no DOM global, and have `state.ts` and `library-statuses.ts` import from it. This supersedes the ticket's "no production code changes" and its item keeping `state.ts` and `library-statuses.ts` unchanged, for this move only: no behaviour changes, and `worker/` stays unchanged.
+
+### 2026-11-10: implementation
+
+Implementer, branch `impl/http-transport-against-the-worker-01b`, under the [owner decision](#2026-11-10-owner-decision-on-the-type-program) above. Every checklist item is met.
+
+**Result.**
+
+- **The move** (`0c64221`): `design-system/src/http-transports.ts` holds `loadOverHttp`, `httpTransport`, `httpLibraryTransport`, the `LoadOutcome` and save outcome types, and the `Transport` and `LibraryTransport` interfaces the two transports return. It names no DOM global, and it imports only types from `saved-state.ts` and `scoring.ts`, which the Worker's program already includes. Its code is the old code, moved unchanged. `state.ts` re-exports `httpTransport` and `Transport`, and `library-statuses.ts` re-exports `httpLibraryTransport`, so `ArtifactLayout.astro`, `LibraryLayout.astro`, the catalog and `tests/store` import as before, all unchanged. `loadOverHttp` is now private to the new module, the only place that calls it. `design-system/package.json` exports it as `./http-transports`, for the Worker's tests.
+- **The tests** (`1132e12`): `tests/worker/transports.test.ts` stubs global `fetch` so that a same-origin path goes to `exports.default.fetch` at `https://artifactory.test`, with a signed Access token unless the test is signed out. Any other request passes through to the real `fetch`. There are nine tests, one per outcome the ticket lists, each asserting the outcome the transport returns.
+- **Docs:** `CODING_STANDARDS.md` › Tests calls the `fetch` routing plumbing, not a test double, and seam 2's line names the transports' outcomes. `docs/agents/test-seams.md` › `tests/worker` lists them and says the raw-request cases own the status codes.
+- **Ticket:** the checklist item about unchanged files now matches the owner's decision.
+
+**Validation.**
+
+- `tsc -p worker/tsconfig.json` passes with the test file in that program.
+- `vitest run tests/worker`: 4 files and 36 tests pass, with the existing cases unchanged.
+- **A deliberate breakage, reverted afterwards:** the answer path changed to `/attempt/`, the Library path to `/api/libraries`, the save's 409 to 410 and the load's 401 to 403. Six of the nine tests failed: every `loaded`, `saved`, `already answered` and load `signed out` case. The three that passed are the `failed` outcomes, which any wrong path also produces, and the save's `signed out`, whose 401 check wasn't changed.
+- `git diff architecture-review-implementation` shows no change under `worker/` or `tests/store`. A full `pnpm check` runs on the final HEAD.
+
+**Shared parts reached:** none (no component, style or token).
+
+**Left undone:** nothing.
