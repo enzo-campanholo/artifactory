@@ -9,7 +9,6 @@
     "./artifact-layout": "./src/ArtifactLayout.astro",
     "./attempts-panel": "./src/attempts-panel.ts",
     "./catalog": "./catalog/integration.ts",
-    "./component-errors": "./src/component-errors.ts",
     "./component-rules": "./src/component-rules.ts",
     "./diagram": "./src/Diagram.astro",
     "./diagram-fonts": "./src/diagram-fonts.ts",
@@ -49,6 +48,7 @@
     "./statements": "./src/statements.ts",
     "./step-applier": "./src/step-applier.ts",
     "./stepper": "./src/Stepper.astro",
+    "./stepper-element": "./src/stepper-element.ts",
     "./theme-eye-element": "./src/theme-eye-element.ts"
   },
   "peerDependencies": {

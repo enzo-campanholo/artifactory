@@ -56,9 +56,17 @@ Implementer, branch `impl/http-transport-against-the-worker-01b`, under the [own
 
 - `tsc -p worker/tsconfig.json` passes with the test file in that program.
 - `vitest run tests/worker`: 4 files and 36 tests pass, with the existing cases unchanged.
-- **A deliberate breakage, reverted afterwards:** the answer path changed to `/attempt/`, the Library path to `/api/libraries`, the save's 409 to 410 and the load's 401 to 403. Six of the nine tests failed: every `loaded`, `saved`, `already answered` and load `signed out` case. The three that passed are the `failed` outcomes, which any wrong path also produces, and the save's `signed out`, whose 401 check wasn't changed.
+- **A deliberate breakage, reverted afterwards:** the answer path changed to `/attempt/`, the Library path to `/api/libraries`, the save's 409 to 410 and the load's 401 to 403. Six of the nine tests failed: every `loaded`, `saved`, `already answered` and load `signed out` case. The three that passed are the `failed` outcomes, which any wrong path also produces, and the save's `signed out`, whose 401 check wasn't changed. Changing that check to 403 alone fails the save's `signed out` test.
 - `git diff architecture-review-implementation` shows no change under `worker/` or `tests/store`. A full `pnpm check` runs on the final HEAD.
 
 **Shared parts reached:** none (no component, style or token).
 
 **Left undone:** nothing.
+
+### 2026-11-10: the owner's review of the PR
+
+Owner, in this implementation session, on PR #7 (`impl/http-transport-against-the-worker-01b` into `architecture-review-implementation`).
+
+- **Approved:** ignore the impeccable hook's cache at the repo root in `.gitignore`, since Prettier failed `pnpm check` on it (`de3b39e`).
+- **Approved:** fix the CI failure in `tests/check/reporting.test.ts`, outside this ticket's files. CI failed this branch and the integration branch, never `main`, on "records the comparison…": a fixture check's report must appear within 10 s. A `--last-passed` check first waits its turn behind other full-scope fixture checks, and the integration branch's added `tests/check` and `tests/stepping` work runs beside it. Both of that file's report polls now wait until the check starts, bounded by the test's own timeout. This overlaps component rules 02's files, so merging the two may need a hand-merge in that file.
+- **Asked for:** only tests that are needed and well designed. The nine stay, one per outcome as the spec requires, but each now asserts only what the transport adds. The load and the Library's load use one saved answer, not two answers or two artifacts, since ordering and the summary rules belong to the raw-request tests and seam 4. The save no longer re-checks the time format the raw tests own, and a `savedAnswer` helper replaces the precondition guards.

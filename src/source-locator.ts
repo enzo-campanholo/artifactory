@@ -11,7 +11,6 @@ type SourceTarget =
   | { kind: "statement-id"; id: string; occurrence: number }
   | { kind: "citation"; to: string; occurrence: number }
   | { kind: "proof"; of: string; occurrence: number }
-  | { kind: "component"; names: string[] }
   | { kind: "component-instance"; module: string; occurrence: number; onPage: number };
 
 interface ElementTarget {
@@ -54,8 +53,6 @@ function offsetOf(source: ArtifactSource, target: SourceTarget): number | undefi
       return componentPropOffsets(source.text, "ref", "to", target.to)[target.occurrence];
     case "proof":
       return componentPropOffsets(source.text, "proof", "of", target.of)[target.occurrence];
-    case "component":
-      return onlyTagOffset(source.text, target.names);
     case "component-instance":
       return instanceOffset(source.text, target);
   }
@@ -192,13 +189,6 @@ function instanceOffset(
 ): number | undefined {
   const tags = componentTags(text, module);
   return tags.length === onPage ? tags[occurrence]?.index : undefined;
-}
-
-// A component's own error has no location, so it is placed at the component only when the entry
-// has a single tag with one of its names.
-function onlyTagOffset(text: string, names: string[]): number | undefined {
-  const tags = [...text.matchAll(new RegExp(`<(?:${names.join("|")})(?=[\\s/>])`, "g"))];
-  return tags.length === 1 ? tags[0]?.index : undefined;
 }
 
 function escaped(text: string): string {

@@ -5,7 +5,8 @@ import "./figure.css";
 import "./figure-colours.css";
 import InlineSvg from "./InlineSvg.astro";
 import StepControls from "./StepControls.astro";
-import { componentError } from "./component-errors.ts";
+import { brokenRule, unlessRuleBroken } from "./component-rules.ts";
+import { drawingParts } from "./inline-svg.ts";
 import { buildModule } from "./stage-builds.ts";
 import { fieldProblem, type Control, type Field } from "./step-applier.ts";
 import { colourNames, swatchProblems } from "./swatches.ts";
@@ -657,7 +658,11 @@ const problems = [
       ]
     : []),
 ];
-if (problems.length > 0) throw componentError("Stage", problems.join("; "));
+const checked = await unlessRuleBroken("Stage", () => {
+  if (problems.length > 0) throw brokenRule("Stage", problems.join("; "));
+  return figure === undefined ? {} : drawingParts(figure);
+});
+const marker = "marker" in checked ? checked.marker : undefined;
 
 // A drawn part chooses the option it's named like, so an option's name must say which group's.
 function groupsProblems(given: { name: string; options: string[] }[]): string[] {
@@ -782,103 +787,110 @@ const width = (field: Field) =>
     : Math.max(String(field.min).length, String(field.max).length) + 1;
 ---
 
-<artifact-stage data-build={buildFile} data-module={buildModule(buildFile)} data-control={control}>
-  <figure class="figure stage" data-beside={beside === true ? "" : undefined}>
-    <div class="stage-controls" hidden>
-      {optionRows.map(({ name, label, options }) => (
-        <fieldset class="stage-choice" data-group={name}>
-          <legend>{label}</legend>
-          <div class="stage-options">
-            {options.map((option) => (
-              <label class="stage-option">
-                <input
-                  type="radio"
-                  name={name === undefined ? `stage-${build}` : `stage-${build}-${name}`}
-                  value={option}
-                />
-                <span>{option}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      ))}
-      {input && (
-        <form
-          class="stage-input"
-          data-fields={JSON.stringify(fields)}
-          data-examples={JSON.stringify(input.examples)}
-        >
-          <fieldset class="stage-choice">
-            <legend>{input.label}</legend>
-            <div class="stage-fields">
-              {fields.map((field) => (
-                <label class="stage-field" data-kind={field.kind}>
-                  <span>{field.label ?? field.name}</span>
+{marker !== undefined && <Fragment set:html={marker} />}
+{marker === undefined && (
+  <artifact-stage
+    data-build={buildFile}
+    data-module={buildModule(buildFile)}
+    data-control={control}
+  >
+    <figure class="figure stage" data-beside={beside === true ? "" : undefined}>
+      <div class="stage-controls" hidden>
+        {optionRows.map(({ name, label, options }) => (
+          <fieldset class="stage-choice" data-group={name}>
+            <legend>{label}</legend>
+            <div class="stage-options">
+              {options.map((option) => (
+                <label class="stage-option">
                   <input
-                    type="text"
-                    name={field.name}
-                    value={String(written?.[field.name] ?? "")}
-                    inputmode={
-                      field.kind === "text" ? undefined : field.min < 0 ? "text" : "numeric"
-                    }
-                    autocapitalize={field.kind === "text" ? "off" : undefined}
-                    autocomplete="off"
-                    autocorrect="off"
-                    spellcheck="false"
-                    style={`--stage-field-width: ${String(width(field))}`}
+                    type="radio"
+                    name={name === undefined ? `stage-${build}` : `stage-${build}-${name}`}
+                    value={option}
                   />
+                  <span>{option}</span>
                 </label>
               ))}
-              <button type="submit" class="control-button stage-start">
-                <span data-lang="en">Start</span>
-                <span data-lang="pt">Começar</span>
-              </button>
             </div>
           </fieldset>
-        </form>
-      )}
-      <StepControls kind="stage">
-        <p class="step-counter stage-counter" hidden>
-          <span class="stage-current"></span> <span data-lang="en">of</span>
-          <span data-lang="pt">de</span> <span class="stage-count"></span>
-        </p>
-        <p class="stage-say">{prompt}</p>
-      </StepControls>
-      <p class="stage-announcement step-unseen" aria-live="polite"></p>
-    </div>
-    {input && written && (
-      <p class="stage-example">
-        <span class="stage-example-label">{input.label}</span>&#32;
-        {fields.map((field, index) => (
-          <Fragment>
-            {index > 0 && ", "}
-            {`${field.name} = `}
-            {field.kind === "text" ? (
-              <code>{written[field.name] === "" ? "ε" : written[field.name]}</code>
-            ) : (
-              String(written[field.name])
-            )}
-          </Fragment>
         ))}
-      </p>
-    )}
-    {figure && alt && (
-      <div class="figure-stage stage-figure" data-colours={JSON.stringify(colourNames(colours))}>
-        <InlineSvg svg={figure} alt={alt} swatches="marked" colours={colours} />
+        {input && (
+          <form
+            class="stage-input"
+            data-fields={JSON.stringify(fields)}
+            data-examples={JSON.stringify(input.examples)}
+          >
+            <fieldset class="stage-choice">
+              <legend>{input.label}</legend>
+              <div class="stage-fields">
+                {fields.map((field) => (
+                  <label class="stage-field" data-kind={field.kind}>
+                    <span>{field.label ?? field.name}</span>
+                    <input
+                      type="text"
+                      name={field.name}
+                      value={String(written?.[field.name] ?? "")}
+                      inputmode={
+                        field.kind === "text" ? undefined : field.min < 0 ? "text" : "numeric"
+                      }
+                      autocapitalize={field.kind === "text" ? "off" : undefined}
+                      autocomplete="off"
+                      autocorrect="off"
+                      spellcheck="false"
+                      style={`--stage-field-width: ${String(width(field))}`}
+                    />
+                  </label>
+                ))}
+                <button type="submit" class="control-button stage-start">
+                  <span data-lang="en">Start</span>
+                  <span data-lang="pt">Começar</span>
+                </button>
+              </div>
+            </fieldset>
+          </form>
+        )}
+        <StepControls kind="stage">
+          <p class="step-counter stage-counter" hidden>
+            <span class="stage-current"></span> <span data-lang="en">of</span>
+            <span data-lang="pt">de</span> <span class="stage-count"></span>
+          </p>
+          <p class="stage-say">{prompt}</p>
+        </StepControls>
+        <p class="stage-announcement step-unseen" aria-live="polite"></p>
       </div>
-    )}
-    <div class="stage-content">
-      <Fragment set:html={content} />
-    </div>
-    <figcaption data-uncaptioned={caption === undefined ? "" : undefined}>
-      <span class="figure-number">
-        <span data-lang="en">Figure</span>
-        <span data-lang="pt">Figura</span>&#32;
-      </span>
-      {caption}
-    </figcaption>
-  </figure>
-</artifact-stage>
+      {input && written && (
+        <p class="stage-example">
+          <span class="stage-example-label">{input.label}</span>&#32;
+          {fields.map((field, index) => (
+            <Fragment>
+              {index > 0 && ", "}
+              {`${field.name} = `}
+              {field.kind === "text" ? (
+                <code>{written[field.name] === "" ? "ε" : written[field.name]}</code>
+              ) : (
+                String(written[field.name])
+              )}
+            </Fragment>
+          ))}
+        </p>
+      )}
+      {figure && alt && (
+        <div class="figure-stage stage-figure" data-colours={JSON.stringify(colourNames(colours))}>
+          <InlineSvg svg={figure} alt={alt} swatches="marked" colours={colours} />
+        </div>
+      )}
+      <div class="stage-content">
+        <Fragment set:html={content} />
+      </div>
+      <figcaption data-uncaptioned={caption === undefined ? "" : undefined}>
+        <span class="figure-number">
+          <span data-lang="en">Figure</span>
+          <span data-lang="pt">Figura</span>&#32;
+        </span>
+        {caption}
+      </figcaption>
+    </figure>
+  </artifact-stage>
+)}
 
 <script>
   import "./stage-element.ts";

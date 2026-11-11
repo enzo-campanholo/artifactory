@@ -12,13 +12,13 @@ import {
   type FixtureRepo,
 } from "./fixture-repo.ts";
 
-describe("a repo with an artifact whose question breaks its component's rules, unformatted platform code, a misplaced test and a stale component reference", () => {
+describe("a repo with an artifact whose math fails, unformatted platform code, a misplaced test and a stale component reference", () => {
   let repo: FixtureRepo;
   let run: CheckRun;
   let lastPassed: string;
 
   const expectedFailures = [
-    "artifacts/one-option/index.mdx:22:1 error build: SingleChoice: it has 1 option; give it at least two (artifact skill: Build failures)",
+    "artifacts/quimica/index.mdx:9:12 error math: Temml can't render this math: Expected '}', got 'EOF' (artifact skill: Math)",
     "astro.config.ts:1:1 error prettier: is not formatted; run `pnpm format` (artifact skill: Platform changes)",
     "design-system/COMPONENTS.md:1:1 error component-reference: is out of date with the design system's source; run `pnpm components` (artifact skill: Platform changes)",
     "src/pages/404.astro:2:7 error TS2322: Type 'string' is not assignable to type 'number'. (artifact skill: Platform changes)",
@@ -28,42 +28,16 @@ describe("a repo with an artifact whose question breaks its component's rules, u
 
   beforeAll(async () => {
     repo = await createFixtureRepo({
-      "artifacts/one-option/index.mdx": [
+      "artifacts/quimica/index.mdx": [
         "---",
-        "id: 0n3opt10",
-        "title: One option",
-        "subject: Biology",
+        "id: qu1m1ca1",
+        "title: Química",
+        "subject: Física",
         "lang: pt-BR",
         "published: 2026-10-15",
         "---",
         "",
-        'import OpenQuestion from "@artifactory/design-system/open-question";',
-        'import SingleChoice from "@artifactory/design-system/single-choice";',
-        "",
-        '<OpenQuestion id="por-que">',
-        "",
-        "Por quê?",
-        "",
-        "---",
-        "",
-        "Porque sim.",
-        "",
-        "</OpenQuestion>",
-        "",
-        '<SingleChoice id="uma-opcao" answer={1}>',
-        "",
-        "Qual?",
-        "",
-        "1. Só esta",
-        "",
-        "---",
-        "",
-        "Uma explicação numerada não dá opções:",
-        "",
-        "1. esta",
-        "2. nem esta",
-        "",
-        "</SingleChoice>",
+        "Texto $x^{2$.",
         "",
       ].join("\n"),
       "astro.config.ts": [
@@ -161,7 +135,7 @@ describe("a repo with an artifact whose question breaks its component's rules, u
     expect(run.output).toContain("pnpm check: ESLint passed");
   });
 
-  it("checks Astro pages against integration-provided types after a component fails to build", () => {
+  it("checks Astro pages against integration-provided types after the build fails", () => {
     expect(run.summary).toContain(
       "src/pages/404.astro:2:7 error TS2322: Type 'string' is not assignable to type 'number'. (artifact skill: Platform changes)",
     );
@@ -173,260 +147,6 @@ describe("a repo with an artifact whose question breaks its component's rules, u
     );
     expect(run.output).toContain("pnpm check: Vitest passed");
     expect(run.output).not.toContain("skipped Vitest");
-  });
-});
-
-describe("an artifact whose numeric question's key can't work", () => {
-  let repo: FixtureRepo;
-  let run: CheckRun;
-
-  beforeAll(async () => {
-    repo = await createFixtureRepo({
-      "artifacts/queda-livre/index.mdx": [
-        "---",
-        "id: qu3d4l1v",
-        "title: Queda livre",
-        "subject: Física",
-        "lang: pt-BR",
-        "published: 2026-10-15",
-        "---",
-        "",
-        'import NumericQuestion from "@artifactory/design-system/numeric-question";',
-        "",
-        "Uma pedra cai a partir do repouso.",
-        "",
-        '<NumericQuestion id="gravidade" answer="9,81" unit="m/s²">',
-        "",
-        "Qual é a aceleração da pedra?",
-        "",
-        "</NumericQuestion>",
-        "",
-      ].join("\n"),
-    });
-    run = await repo.check(["--artifacts-only"]);
-  }, checkTimeout);
-
-  afterAll(() => repo.remove());
-
-  it("fails the build at the question with the key's problem", () => {
-    expect(run.exitCode).toBe(1);
-    expect(run.summary).toEqual([
-      "pnpm check: 1 failure",
-      'artifacts/queda-livre/index.mdx:13:1 error build: NumericQuestion: `answer` is "9,81"; write its decimals after `.`, not `,` (artifact skill: Build failures)',
-    ]);
-  });
-});
-
-describe("an artifact whose single choice has `---` with no explanation after it", () => {
-  let repo: FixtureRepo;
-  let run: CheckRun;
-
-  beforeAll(async () => {
-    repo = await createFixtureRepo({
-      "artifacts/potencias/index.mdx": [
-        "---",
-        "id: p0t3nc14",
-        "title: Potências",
-        "subject: Cálculo",
-        "lang: pt-BR",
-        "published: 2026-10-15",
-        "---",
-        "",
-        'import SingleChoice from "@artifactory/design-system/single-choice";',
-        "",
-        '<SingleChoice id="regra-da-potencia" answer={2}>',
-        "",
-        "Qual é a derivada de $x^2$?",
-        "",
-        "1. $x$",
-        "2. $2x$",
-        "",
-        "---",
-        "",
-        "</SingleChoice>",
-        "",
-      ].join("\n"),
-    });
-    run = await repo.check(["--artifacts-only"]);
-  }, checkTimeout);
-
-  afterAll(() => repo.remove());
-
-  it("fails the build at the question, saying to write the explanation or leave out the `---`", () => {
-    expect(run.exitCode).toBe(1);
-    expect(run.summary).toEqual([
-      "pnpm check: 1 failure",
-      "artifacts/potencias/index.mdx:11:1 error build: SingleChoice: write the explanation after `---`, or leave out the `---` (artifact skill: Build failures)",
-    ]);
-  });
-});
-
-describe.each([
-  {
-    numericQuestion: "has `---` with no explanation after it",
-    content: ["Qual é a aceleração da pedra?", "", "---"],
-    message: "NumericQuestion: write the explanation after `---`, or leave out the `---`",
-  },
-  {
-    numericQuestion: "has only an explanation, with no question before its `---`",
-    content: ["---", "", "Pela queda livre, $g = 2d/t^2$."],
-    message: "NumericQuestion: write the question inside it",
-  },
-])("an artifact whose numeric question $numericQuestion", ({ content, message }) => {
-  let repo: FixtureRepo;
-  let run: CheckRun;
-
-  beforeAll(async () => {
-    repo = await createFixtureRepo({
-      "artifacts/queda-livre/index.mdx": [
-        "---",
-        "id: qu3d4l1v",
-        "title: Queda livre",
-        "subject: Física",
-        "lang: pt-BR",
-        "published: 2026-10-15",
-        "---",
-        "",
-        'import NumericQuestion from "@artifactory/design-system/numeric-question";',
-        "",
-        '<NumericQuestion id="gravidade" answer="9.81" tolerance={0.01} unit="m/s²">',
-        "",
-        ...content,
-        "",
-        "</NumericQuestion>",
-        "",
-      ].join("\n"),
-    });
-    run = await repo.check(["--artifacts-only"]);
-  }, checkTimeout);
-
-  afterAll(() => repo.remove());
-
-  it("fails the build at the question with the component's message", () => {
-    expect(run.exitCode).toBe(1);
-    expect(run.summary).toEqual([
-      "pnpm check: 1 failure",
-      `artifacts/queda-livre/index.mdx:11:1 error build: ${message} (artifact skill: Build failures)`,
-    ]);
-  });
-});
-
-describe.each([
-  {
-    matching: "a matching with its options and items in one list, without `---`",
-    answers: '{{ "global": 2, "local": 3 }}',
-    content: [
-      "Onde fica cada item?",
-      "",
-      "1. Código",
-      "2. Dados",
-      "3. Pilha",
-      "",
-      "- Global",
-      "- Local",
-    ],
-    rule: "write the prompt, then its options as one numbered list, then a blank line, `---`, another blank line and its items as one bulleted list, with no list inside an option or item",
-  },
-  {
-    matching: "a matching with a paragraph after its items",
-    answers: '{{ "global": 2, "local": 3 }}',
-    content: [
-      "Onde fica cada item?",
-      "",
-      "1. Código",
-      "2. Dados",
-      "3. Pilha",
-      "",
-      "---",
-      "",
-      "- Global",
-      "- Local",
-      "",
-      "Globais ficam na área de dados.",
-    ],
-    rule: "after the items' bulleted list, write only a blank line, `---`, another blank line and the explanation",
-  },
-  {
-    matching: "a matching with nothing after its second `---`",
-    answers: '{{ "global": 2, "local": 3 }}',
-    content: [
-      "Onde fica cada item?",
-      "",
-      "1. Código",
-      "2. Dados",
-      "3. Pilha",
-      "",
-      "---",
-      "",
-      "- Global",
-      "- Local",
-      "",
-      "---",
-    ],
-    rule: "write the explanation after the second `---`, or leave out that `---`",
-  },
-  {
-    matching: "a matching whose item holds two paragraphs",
-    answers: '{{ "global": 2, "local": 3 }}',
-    content: [
-      "Onde fica cada item?",
-      "",
-      "1. Código",
-      "2. Dados",
-      "3. Pilha",
-      "",
-      "---",
-      "",
-      "- Global",
-      "",
-      "  Declarada fora de funções.",
-      "",
-      "- Local",
-    ],
-    rule: "keep each option and each item to one paragraph",
-  },
-  {
-    matching: "a matching with one option, one item, two answers and an answer naming no option",
-    answers: '{{ "global": 1, "local": 2 }}',
-    content: ["Onde fica cada item?", "", "1. Código", "", "---", "", "- Global"],
-    rule: "it has 1 option; give it at least two; it has 1 item; give it at least two; `answers` has 2 answers for its 1 item; give one per item, in the items' order; `answers` gives `local` 2, but it must be the number of one of its 1 option",
-  },
-])("$matching", ({ answers, content, rule }) => {
-  let repo: FixtureRepo;
-  let run: CheckRun;
-
-  beforeAll(async () => {
-    repo = await createFixtureRepo({
-      "artifacts/memoria/index.mdx": [
-        "---",
-        "id: m3m0r1a1",
-        "title: Memória",
-        "subject: Compiladores",
-        "lang: pt-BR",
-        "published: 2026-10-15",
-        "---",
-        "",
-        'import Matching from "@artifactory/design-system/matching";',
-        "",
-        `<Matching answers=${answers}>`,
-        "",
-        ...content,
-        "",
-        "</Matching>",
-        "",
-      ].join("\n"),
-    });
-    run = await repo.check(["--artifacts-only"]);
-  }, checkTimeout);
-
-  afterAll(() => repo.remove());
-
-  it("fails the build at the matching, naming the rule", () => {
-    expect(run.exitCode).toBe(1);
-    expect(run.summary).toEqual([
-      "pnpm check: 1 failure",
-      `artifacts/memoria/index.mdx:11:1 error build: Matching: ${rule} (artifact skill: Build failures)`,
-    ]);
   });
 });
 
@@ -489,6 +209,16 @@ async function statusOf(repo: FixtureRepo): Promise<LocalStatus> {
   const result = await repo.run("node", ["scripts/heavy-command.ts", "--status", "--json"]);
   expect(result.exitCode).toBe(0);
   return JSON.parse(result.stdout) as LocalStatus;
+}
+
+// A check writes its report as it starts, and under the other Vitest worker's checks that can
+// take far longer than a fixed wait allows, so this waits for as long as the test may run.
+async function reportOnceStarted(checks: string, isNew: (name: string) => boolean) {
+  for (;;) {
+    const report = (await readdir(checks)).find((name) => isNew(name) && name.endsWith(".json"));
+    if (report !== undefined) return report;
+    await sleep(50);
+  }
 }
 
 async function evidence(repo: FixtureRepo) {
@@ -569,14 +299,7 @@ describe("check evidence for a working tree", () => {
       const lastPassed = await headCommit(repo);
       const run = repo.check(["--last-passed", lastPassed]);
       const checks = join(admin, "artifactory-heavy/checks");
-      let newReport: string | undefined;
-      for (let attempt = 0; attempt < 200 && newReport === undefined; attempt++) {
-        newReport = (await readdir(checks)).find(
-          (name) => join(checks, name) !== reportPath && name.endsWith(".json"),
-        );
-        if (newReport === undefined) await sleep(50);
-      }
-      expect(newReport).toBeDefined();
+      await reportOnceStarted(checks, (name) => join(checks, name) !== reportPath);
       await writeFile(join(repo.root, ".scratch/input.txt"), "changed during verification\n");
       const scoped = await run;
       expect(scoped.exitCode).toBe(0);
@@ -629,16 +352,9 @@ describe("check evidence for a working tree", () => {
       ]);
       let replaced = false;
       try {
-        let runningReport: string | undefined;
-        for (let attempt = 0; attempt < 200 && runningReport === undefined; attempt++) {
-          runningReport = (await readdir(checks)).find(
-            (name) => !previous.has(name) && name.endsWith(".json"),
-          );
-          if (runningReport === undefined) await sleep(50);
-        }
-        expect(runningReport).toBeDefined();
+        const runningReport = await reportOnceStarted(checks, (name) => !previous.has(name));
         const initial = JSON.parse(
-          await readFile(join(checks, runningReport ?? ""), "utf8"),
+          await readFile(join(checks, runningReport), "utf8"),
         ) as CheckEvidence;
         expect(initial.exitCode).toBeNull();
         await rename(target, backup);
@@ -650,7 +366,7 @@ describe("check evidence for a working tree", () => {
           expect(withoutSidecar.output).toContain("pnpm check: provenance unavailable:");
         } else {
           const report = JSON.parse(
-            await readFile(join(checks, runningReport ?? ""), "utf8"),
+            await readFile(join(checks, runningReport), "utf8"),
           ) as CheckEvidence;
           expect(report).toMatchObject({ scope: "full", exitCode: 0, failureCount: 0 });
           expect(report.steps.every((step) => step.state === "passed")).toBe(true);

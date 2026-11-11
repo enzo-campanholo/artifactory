@@ -1,5 +1,5 @@
 ---
-import { componentError } from "./component-errors.ts";
+import { drawingParts } from "./inline-svg.ts";
 import { platedLabels, swatchPatterns } from "./swatches.ts";
 
 interface Props {
@@ -12,20 +12,7 @@ interface Props {
 
 const { svg, alt, minScale = 2 / 3, swatches, colours } = Astro.props;
 
-const root = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(svg);
-if (root === null)
-  throw componentError(["Figure", "Stepper"], "the imported SVG file has no <svg> root element");
-const [, attributeText = "", drawing = ""] = root;
-
-// The component sets the SVG's role and accessible name, so the file's own give way.
-const ownAttributes = Object.fromEntries(
-  [...attributeText.matchAll(/([^\s=]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)]
-    .map(([, name = "", doubleQuoted, singleQuoted]): [string, string] => [
-      name,
-      doubleQuoted ?? singleQuoted ?? "",
-    ])
-    .filter(([name]) => name !== "role" && !name.startsWith("aria-")),
-);
+const { ownAttributes, drawing, viewBox } = drawingParts(svg);
 
 // DESIGN.md's Square Corner Rule, for figures and D2's boxes alike.
 const squared = drawing.replace(/<rect\b[^>]*>/g, (rect) =>
@@ -41,21 +28,6 @@ const swatched =
   (swatches === "marked" && /fill-swatch-|data-swatch=/.test(content))
     ? swatchPatterns(swatches === "marked")
     : undefined;
-
-const viewBox = ownAttributes.viewBox ?? viewBoxOfSize(ownAttributes.width, ownAttributes.height);
-if (viewBox === undefined) {
-  throw componentError(
-    ["Figure", "Stepper"],
-    'the imported SVG file has no viewBox; give its <svg> root `viewBox="0 0 W H"`',
-  );
-}
-
-function viewBoxOfSize(width = "", height = ""): string | undefined {
-  const pixels = /^(\d+(?:\.\d+)?)(?:px)?$/;
-  const [, w] = pixels.exec(width.trim()) ?? [];
-  const [, h] = pixels.exec(height.trim()) ?? [];
-  return w === undefined || h === undefined ? undefined : `0 0 ${w} ${h}`;
-}
 
 // Without a size an inline SVG fills the column, which blows small drawings up. Its viewBox
 // gives its natural size, and the stylesheet shrinks it to fit narrower screens, down to
