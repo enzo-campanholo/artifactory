@@ -1,6 +1,6 @@
 # 01: The Worker's tests save and load through the store's transports
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [The HTTP transport against the Worker](../spec.md). Tests only: no production code changes.
