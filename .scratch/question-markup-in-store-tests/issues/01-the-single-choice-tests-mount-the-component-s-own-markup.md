@@ -1,6 +1,6 @@
 # 01: The single-choice tests mount the component's own markup
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Question markup in store tests](../spec.md). Tests and their Vitest setup only.
