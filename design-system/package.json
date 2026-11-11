@@ -14,6 +14,7 @@
     "./diagram": "./src/Diagram.astro",
     "./diagram-fonts": "./src/diagram-fonts.ts",
     "./figure": "./src/Figure.astro",
+    "./http-transports": "./src/http-transports.ts",
     "./library-layout": "./src/LibraryLayout.astro",
     "./library-revisit": "./src/library-revisit.ts",
     "./library-revisit-paint": "./src/library-revisit-paint.js",
