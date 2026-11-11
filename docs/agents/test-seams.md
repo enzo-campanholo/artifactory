@@ -45,7 +45,7 @@ What each of the four seams in `CODING_STANDARDS.md` owns, and what none tests.
 - attempts: the latest attempt, Start over, switching attempts, and the attempts panel
 - each question kind's behaviour on the page: inert until the store starts, locking, marks, self-marking an open question, and the numeric field's refusal of input that isn't a number, its locking as typed and the right answer it shows on a wrong answer
 - the page's attempt: progress, where the owner stopped, Next question, and what to revisit
-- state notices, the Library's statuses and what to revisit in the Library, and the theme choice
+- state notices, the Library's statuses and the text of each row's status ("Finished", "In progress · N of M answered", or none before the first answer), painted from this device's copy and from the load, what to revisit in the Library, and the theme choice
 
 ## 4. `tests/scoring`
 
