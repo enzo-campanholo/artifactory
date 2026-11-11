@@ -5,9 +5,11 @@ import type { AstroIntegration } from "astro";
 import { readArtifacts, readEntry, type ArtifactSource } from "./artifacts.ts";
 import { buildFailures, startBuild } from "./build-failures.ts";
 import { buildIdFile, stampBuildId } from "./build-id.ts";
+import { componentRuleFailures } from "./component-rule-failures.ts";
 import { firstPaintFailures, holdFirstPaintForScripts } from "./first-paint.ts";
 import { linkFailures } from "./internal-links.ts";
 import { stampLibraryQuestions } from "./library-questions.ts";
+import { renderBrokenRulesAsMarkers } from "@artifactory/design-system/component-rules";
 import { questionsInBlock } from "@artifactory/design-system/question-markers";
 import type { Question } from "@artifactory/design-system/scoring";
 import { manifestFile, questionIdFailures, writeQuestionManifest } from "./question-manifest.ts";
@@ -50,6 +52,7 @@ export function builtOutput(): AstroIntegration {
         startBuild(root);
         // `astro dev` and `astro check` run this hook too, and replace nothing the Worker reads.
         if (command === "build") {
+          renderBrokenRulesAsMarkers();
           await rm(join(root, manifestFile), { force: true });
           await rm(join(root, publicPathsFile), { force: true });
           await rm(join(root, buildIdFile), { force: true });
@@ -58,10 +61,12 @@ export function builtOutput(): AstroIntegration {
       "astro:build:generated": async ({ dir, logger }) => {
         const { report } = buildFailures(root, logger);
         const site = await readBuiltSite(root, fileURLToPath(dir));
-        for (const failure of site.artifacts.flatMap(questionIdFailures)) report(failure);
-        for (const failure of site.artifacts.flatMap(statementFailures)) report(failure);
-        for (const failure of linkFailures(site)) report(failure);
-        for (const failure of firstPaintFailures(site.artifacts)) report(failure);
+        const { failures, checked } = componentRuleFailures(site);
+        for (const failure of failures) report(failure);
+        for (const failure of checked.flatMap(questionIdFailures)) report(failure);
+        for (const failure of checked.flatMap(statementFailures)) report(failure);
+        for (const failure of linkFailures(site, checked)) report(failure);
+        for (const failure of firstPaintFailures(checked)) report(failure);
       },
       // The build ID is stamped last, so the Worker never sees one without its question manifest.
       "astro:build:done": async ({ dir, logger }) => {
