@@ -23,3 +23,7 @@ This is design-system work: do it in a local session with impeccable (`design-sy
 - [ ] No doc comment, `COMPONENTS.md` or `artifact` skill text changes: what look prints and what an agent writes are unchanged.
 
 ## Comments
+
+### 2026-11-11: what 02 left for the step row's readers
+
+From [02](02-the-step-row-owns-stepping.md)'s implementation. `scripts/look.ts` now steps a Stepper and a Stage the same way, through `stepRow`. It clicks the row's last button (`.step-controls > button:last-of-type`) and reads the step shown from the start of `.step-counter`. When look reads the step from the Stage's host, the Stepper still needs another source, or the counter read stays for it. `StepControls.astro` still writes `${kind}-back` and `${kind}-forward`. Nothing in the element reads them any more, but `design-system/catalog/stage-runs.ts` reads `.stage-forward`, and so does the look-stuck fixture in `tests/check/browser-verification.test.ts`, whose script blocks `button.stage-forward`. Once those read the step row, the `kind` prop and both classes can go.
