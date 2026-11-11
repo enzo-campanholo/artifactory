@@ -1,6 +1,6 @@
 # 02: The step row owns stepping
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01
 
 Spec: [The Stage on its page](../spec.md). A prefactor: no behaviour changes.
