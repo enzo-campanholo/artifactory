@@ -59,3 +59,12 @@ Implementer session, branch `impl/stage-on-its-page-04`, from the integration br
 **Shared parts.** `StepControls.astro` loses only its per-kind classes and the `kind` prop. Its markup otherwise and `step-row.ts` are unchanged. It reaches the Stage and every Stepper form, all checked in the catalog comparison above (D2, figure, one-block and block-per-step code Steppers, Stages and MEPA Stages).
 
 **Left undone.** Nothing on the checklist. A Stepper's step shown is still read from its counter's text, for the reason above. No doc comment, `COMPONENTS.md` or `artifact` skill text changed.
+
+### 2026-11-11: handoff
+
+Owner: implementer session for ticket 04; no delegated agents.
+Where: `/home/isolino/.t3/worktrees/artifactory-oss/t3-93c42833-7c07accbe8abbcf1`, `impl/stage-on-its-page-04`, merged with the integration tip `faf9987`.
+Done: the implementation above, with its validation; full check next.
+Partial: none. Findings: none.
+Decisions: [spec comments](../spec.md#comments), round 2 Q7.
+Running: full `pnpm check`. Next: fix anything it reports, else hand back.
