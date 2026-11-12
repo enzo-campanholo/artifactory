@@ -376,8 +376,13 @@ export class StageOnPage {
     return { input };
   }
 
+  // The host says its step, its count and a refusal, as a Stepper says its count, so a reader such
+  // as `pnpm look` needs none of the Stage's inner markup to follow a run.
   show(shown: Shown, step: number, count: number, announcement: string) {
     this.#paint(shown);
+    this.#stage.setAttribute("data-current-step", String(step));
+    this.#stage.setAttribute("data-count", String(count));
+    this.#stage.removeAttribute("data-refused");
     this.#part(".stage-counter").hidden = false;
     this.#part(".stage-current").textContent = String(step);
     this.#part(".stage-count").textContent = String(count);
@@ -388,6 +393,9 @@ export class StageOnPage {
   // A refused field is drawn dashed, and named by the step's line that gives the reason.
   refuse(why: string, field?: HTMLInputElement) {
     this.#paint(undefined);
+    this.#stage.removeAttribute("data-current-step");
+    this.#stage.removeAttribute("data-count");
+    this.#stage.setAttribute("data-refused", why);
     this.#part(".stage-counter").hidden = true;
     const say = this.#part(".stage-say");
     say.textContent = why;

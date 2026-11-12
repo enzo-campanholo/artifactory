@@ -80,6 +80,18 @@ function codeLine(stage: Element, text: string): Element {
   return found;
 }
 
+// What the host says of its run: the step it shows, how many steps the run has, and the refusal
+// when the page refused it.
+function hostSays(stage: Element): Record<"step" | "count" | "refused", string | null> {
+  return {
+    step: stage.getAttribute("data-current-step"),
+    count: stage.getAttribute("data-count"),
+    refused: stage.getAttribute("data-refused"),
+  };
+}
+
+const noRun = { step: null, count: null, refused: null };
+
 // A choice whose run doesn't start, or a refusal, ends without a step to wait for.
 const settled = () => new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -96,6 +108,7 @@ describe("a Stage with one choice", () => {
   test("shows the prompt and counts no step before a choice", () => {
     expect(textOf(said)).toBe(prompt);
     expect(counted(stage)).toBe("");
+    expect(hostSays(stage)).toEqual(noRun);
     expect(textOf(announcement(stage))).toBe("");
     expect(marks(stage, ["A", "B", "C"])).toEqual({ A: null, B: null, C: null });
   });
@@ -106,6 +119,7 @@ describe("a Stage with one choice", () => {
       expect(counted(stage)).toBe("1 de 3");
     });
     expect(textOf(said)).toBe("Começa em A, com chave 0.");
+    expect(hostSays(stage)).toEqual({ step: "1", count: "3", refused: null });
     expect(textOf(announcement(stage))).toBe("Passo 1 de 3. Começa em A, com chave 0.");
     expect(marks(stage, ["A", "B", "C", "A-B", "B-C", "A-C"])).toEqual({
       A: "reversed",
@@ -120,6 +134,7 @@ describe("a Stage with one choice", () => {
 
     button(stage, "Próximo passo").click();
     expect(counted(stage)).toBe("2 de 3");
+    expect(hostSays(stage)).toEqual({ step: "2", count: "3", refused: null });
     expect(textOf(said)).toBe("B entra pela aresta A-B, de peso 1.");
     expect(marks(stage, ["A", "B", "C", "A-B", "B-C", "A-C"])).toEqual({
       A: "strong",
@@ -137,6 +152,7 @@ describe("a Stage with one choice", () => {
 
     button(stage, "Próximo passo").click();
     expect(counted(stage)).toBe("3 de 3");
+    expect(hostSays(stage)).toEqual({ step: "3", count: "3", refused: null });
     expect(textOf(said)).toBe("C entra pela aresta B-C, de peso 2.");
     expect(marks(stage, ["A", "B", "C", "A-B", "B-C", "A-C"])).toEqual({
       A: "strong",
@@ -153,6 +169,7 @@ describe("a Stage with one choice", () => {
     button(stage, "Passo anterior").click();
     button(stage, "Passo anterior").click();
     expect(counted(stage)).toBe("1 de 3");
+    expect(hostSays(stage)).toEqual({ step: "1", count: "3", refused: null });
     expect(textOf(cell(stage, "B", "Chave"))).toBe("∞");
     expect(textOf(cell(stage, "B", "Pai"))).toBe("—");
     expect(textOf(cell(stage, "C", "Pai"))).toBe("—");
@@ -306,6 +323,7 @@ describe("a Stage with typed input", () => {
     expect(w.hasAttribute("aria-invalid")).toBe(false);
     expect(document.activeElement).toBe(n);
     expect(counted(stage)).toBe("");
+    expect(hostSays(stage)).toEqual({ step: null, count: null, refused: refusal });
   });
 
   test("refuses text that breaks its field's rule at that field", () => {
@@ -333,10 +351,21 @@ describe("a refused run", () => {
     await settled();
     expect(textOf(announcement(stage))).toBe(refusal);
     expect(counted(stage)).toBe("");
+    expect(hostSays(stage)).toEqual({ step: null, count: null, refused: refusal });
     expect(textField(stage, "n").hasAttribute("aria-invalid")).toBe(false);
     expect(codeLine(stage, "repete n vezes").getAttribute("data-mark")).toBeNull();
     expect(button(stage, "Próximo passo").getAttribute("aria-disabled")).toBe("true");
     expect(button(stage, "Passo anterior").getAttribute("aria-disabled")).toBe("true");
+  });
+
+  test("the run after it clears the refusal from the host", async () => {
+    const stage = stageLabelled("Contar até n");
+    textField(stage, "n").value = "2";
+    button(stage, "Começar").click();
+    await vi.waitFor(() => {
+      expect(counted(stage)).toBe("1 de 3");
+    });
+    expect(hostSays(stage)).toEqual({ step: "1", count: "3", refused: null });
   });
 });
 

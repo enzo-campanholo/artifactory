@@ -233,7 +233,7 @@ const shown = "marker" in stepper || stepper.diagramFailed ? undefined : stepper
 {marker !== undefined && <Fragment set:html={marker} />}
 {shown && (
   <artifact-stepper class="stepper" data-count={shown.count}>
-    <StepControls kind="stepper" class="stepper-controls">
+    <StepControls class="stepper-controls">
       <p class="step-counter">
         <span class="stepper-current" style={shown.countWidth}>
           1
