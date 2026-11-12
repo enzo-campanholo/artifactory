@@ -1,6 +1,6 @@
 # 01: The frame writes section and clause numbers
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: None (can start immediately)
 
 Spec: [Page numbering](../spec.md). No number changes on any page, on screen or in print.
