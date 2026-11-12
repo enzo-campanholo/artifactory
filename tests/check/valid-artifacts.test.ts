@@ -758,6 +758,171 @@ const steppedFigures = {
   ].join("\n"),
 };
 
+// Every displayed equation, figure and diagram the page numbers, and the ones it leaves unnumbered:
+// a figure Stepper and everything inside a question's model answer or explanation.
+const numberedDrawings = {
+  "artifacts/numeracao/index.mdx": artifact(fields("num3r4c0", "Numeração", "Grafos"), [
+    'import Diagram from "@artifactory/design-system/diagram";',
+    'import Figure from "@artifactory/design-system/figure";',
+    'import OpenQuestion from "@artifactory/design-system/open-question";',
+    'import Proof from "@artifactory/design-system/proof";',
+    'import SingleChoice from "@artifactory/design-system/single-choice";',
+    'import Stage from "@artifactory/design-system/stage";',
+    'import Statement from "@artifactory/design-system/statement";',
+    'import Stepper from "@artifactory/design-system/stepper";',
+    'import ponto from "./ponto.svg?raw";',
+    'import pontos from "./pontos.svg?raw";',
+    'import passos from "./passos.svg?raw";',
+    'import cadeia from "./cadeia.d2";',
+    "",
+    "Antes da primeira seção, uma figura e uma equação.",
+    "",
+    '<Figure src={ponto} alt="Ponto da abertura." />',
+    "",
+    "$$",
+    "a = 1",
+    "$$",
+    "",
+    '<Figure src={ponto} alt="Outro ponto da abertura." caption="Ainda antes das seções." />',
+    "",
+    "## Primeira",
+    "",
+    '<Diagram src={cadeia} alt="Cadeia da primeira seção." />',
+    "",
+    '<Figure src={ponto} alt="Ponto da primeira seção." />',
+    "",
+    "$$",
+    "b = 2",
+    "$$",
+    "",
+    "<Stage",
+    '  build="acende"',
+    '  choose={{ label: "Começar em", options: ["a", "b"] }}',
+    '  prompt="Escolha um ponto para começar."',
+    "  figure={pontos}",
+    '  alt="Dois pontos, a e b, no palco."',
+    "/>",
+    "",
+    '<Stepper figure={passos} alt="Dois pontos, um depois do outro, no stepper." captions={["O ponto a.", "O ponto b."]} />',
+    "",
+    '<Statement kind="example" id="soma">',
+    "",
+    "Quanto é $1 + 1$?",
+    "",
+    "$$",
+    "c = 1 + 1",
+    "$$",
+    "",
+    "---",
+    "",
+    "Somando,",
+    "",
+    "$$",
+    "c = 2",
+    "$$",
+    "",
+    '<Figure src={ponto} alt="Ponto da solução do exemplo." />',
+    "",
+    "</Statement>",
+    "",
+    '<Statement kind="theorem" id="dobro">',
+    "",
+    "O dobro de $1$ é $2$.",
+    "",
+    "</Statement>",
+    "",
+    '<Proof of="dobro">',
+    "",
+    "Pela soma,",
+    "",
+    "$$",
+    "d = 1 + 1 = 2",
+    "$$",
+    "",
+    "</Proof>",
+    "",
+    "## Segunda",
+    "",
+    '<OpenQuestion id="ponto-e-cadeia">',
+    "",
+    "O que a figura mostra?",
+    "",
+    '<Figure src={ponto} alt="Ponto do enunciado da questão." />',
+    "",
+    "---",
+    "",
+    "Um ponto, que a cadeia e a equação explicam:",
+    "",
+    '<Figure src={ponto} alt="Ponto da resposta-modelo." caption="Só a legenda." />',
+    "",
+    '<Diagram src={cadeia} alt="Cadeia da resposta-modelo." />',
+    "",
+    "$$",
+    "e = 5",
+    "$$",
+    "",
+    "</OpenQuestion>",
+    "",
+    '<SingleChoice id="quantos-pontos" answer={1}>',
+    "",
+    "Quantos pontos a figura tem?",
+    "",
+    "1. Um",
+    "2. Dois",
+    "",
+    "---",
+    "",
+    "Conte:",
+    "",
+    '<Figure src={ponto} alt="Ponto da explicação." />',
+    "",
+    '<Diagram src={cadeia} alt="Cadeia da explicação." />',
+    "",
+    "$$",
+    "f = 1",
+    "$$",
+    "",
+    "</SingleChoice>",
+    "",
+    '<Figure src={ponto} alt="Ponto da segunda seção." />',
+    "",
+    '<Diagram src={cadeia} alt="Cadeia da segunda seção." />',
+    "",
+    "$$",
+    "g = 7",
+    "$$",
+  ]),
+  "artifacts/numeracao/ponto.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">',
+    '  <circle cx="20" cy="20" r="6" class="fill-text" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/numeracao/pontos.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40">',
+    '  <g data-part="a"><circle cx="20" cy="20" r="6" class="fill-text" /></g>',
+    '  <g data-part="b"><circle cx="60" cy="20" r="6" class="fill-text" /></g>',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/numeracao/passos.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40">',
+    '  <circle data-step="1-" cx="20" cy="20" r="6" class="fill-text" />',
+    '  <circle data-step="2" cx="60" cy="20" r="6" class="fill-text" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/numeracao/cadeia.d2": threeStepChain,
+  "artifacts/numeracao/acende.build.ts": [
+    'import { defineBuild } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild({",
+    "  steps: (start) => [{ say: `O ponto ${start} acende.`, parts: { [start]: 'reversed' } }],",
+    "});",
+    "",
+  ].join("\n"),
+};
+
 const colouring = {
   "artifacts/coloracao/index.mdx": artifact(fields("c0l0r4c4", "Coloração", "Grafos"), [
     'import Figure from "@artifactory/design-system/figure";',
@@ -1520,6 +1685,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ...groupsStage,
       ...machineTrace,
       ...steppedFigures,
+      ...numberedDrawings,
       ...colouring,
       ...renamedTwiceAndBack,
       ...statementsAndCitations,
@@ -2265,6 +2431,64 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
         const page = await namedBy(slug);
         expect([page.has(prim ?? ""), page.has(dijkstra ?? "")]).toEqual([false, false]);
       }
+    });
+  });
+
+  describe("equation, figure and diagram numbers", () => {
+    // happy-dom's parser drops everything after a `<style>` inside an SVG, as D2 writes in every
+    // diagram, so the page is read without its styles.
+    async function main(slug: string): Promise<Element> {
+      const page = new new Window().DOMParser().parseFromString(
+        (await builtPage(slug)).replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, ""),
+        "text/html",
+      ) as unknown as Document;
+      const found = page.querySelector("main");
+      if (found === null) throw new Error(`dist/${slug}/index.html has no main`);
+      return found;
+    }
+
+    it("writes each equation's number in one series across the page, an example's solution and a proof included, and none inside a question's model answer or explanation", async () => {
+      const page = await main("numeracao");
+      const equations = [...page.querySelectorAll("div.equation")].map((equation) => [
+        equation.textContent.replace(/\s+/g, ""),
+        equation.getAttribute("data-number"),
+      ]);
+      expect(equations).toEqual([
+        ["a=1", "1"],
+        ["b=2", "2"],
+        ["c=1+1", "3"],
+        ["c=2", "4"],
+        ["d=1+1=2", "5"],
+        ["e=5", null],
+        ["f=1", null],
+        ["g=7", "6"],
+      ]);
+    });
+
+    it("writes each figure's and diagram's number in a series of its kind per section, a Stage's among the figures, and none on a figure Stepper or inside a question's model answer or explanation", async () => {
+      const page = await main("numeracao");
+      const drawings = [...page.querySelectorAll("figure, .stepper")].map((drawing) => [
+        drawing.querySelector("svg[role='img']")?.getAttribute("aria-label"),
+        drawing
+          .querySelector(":scope > figcaption > .figure-number")
+          ?.getAttribute("data-number") ?? null,
+      ]);
+      expect(drawings).toEqual([
+        ["Ponto da abertura.", "1"],
+        ["Outro ponto da abertura.", "2"],
+        ["Cadeia da primeira seção.", "1.1"],
+        ["Ponto da primeira seção.", "1.1"],
+        ["Dois pontos, a e b, no palco.", "1.2"],
+        ["Dois pontos, um depois do outro, no stepper.", null],
+        ["Ponto da solução do exemplo.", "1.3"],
+        ["Ponto do enunciado da questão.", "2.1"],
+        ["Ponto da resposta-modelo.", null],
+        ["Cadeia da resposta-modelo.", null],
+        ["Ponto da explicação.", null],
+        ["Cadeia da explicação.", null],
+        ["Ponto da segunda seção.", "2.2"],
+        ["Cadeia da segunda seção.", "2.1"],
+      ]);
     });
   });
 
