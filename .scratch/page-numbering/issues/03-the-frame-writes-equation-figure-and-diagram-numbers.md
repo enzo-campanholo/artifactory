@@ -28,3 +28,8 @@ This is design-system work: do it in a local session with impeccable (`design-sy
 - [ ] The closing comment names the shared parts this reached (`math.css`, `figure.css`, `SvgImage.astro`, `InlineSvg.astro`) and the other component checked for each.
 
 ## Comments
+
+### 2026-11-11: from 01
+
+01 (`impl/page-numbering-01`) writes `data-number` on each h2 ("4") and `data-section` ("4") on every `.figure-number` after the first h2, and `ArtifactFrame.astro` prints a figure's and a diagram's number as `attr(data-section) "." counter(…)`. Replace `data-section` with the written number. The tag walk is `tags()` in `design-system/src/html-tags.ts`, and the count is `withSectionAndClauseNumbers` in `page-numbers.ts`. Moving from counters to text makes Chromium shape the number as one run, so a caption after it moves by under 1/64 px. 01 found this by pixel diff and measured it with DOM ranges, and the numbers themselves don't change.
+
