@@ -1,6 +1,6 @@
 # 01: The single-choice tests mount the component's own markup
 
-Status: claimed
+Status: resolved
 Blocked by: None (can start immediately)
 
 Spec: [Question markup in store tests](../spec.md). Tests and their Vitest setup only.
@@ -52,3 +52,7 @@ Implementation sub-agent, branch `impl/question-markup-in-store-tests-01`. Commi
 **Shared parts reached:** none. Tests and their Vitest setup only.
 
 **Left for ticket 02:** `numeric-question.test.ts` and `matching.test.ts` still mount hand copies, which the new seam 3 line now rules out. Ticket 02 moves them onto the helper, with a fixture per kind. The `store` project already includes all of `tests/store`, so 02 needs no config change.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). It reaches `main` through the integration branch's PR.

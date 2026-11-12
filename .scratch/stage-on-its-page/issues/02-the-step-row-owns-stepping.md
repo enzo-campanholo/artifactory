@@ -1,6 +1,6 @@
 # 02: The step row owns stepping
 
-Status: claimed
+Status: resolved
 Blocked by: 01
 
 Spec: [The Stage on its page](../spec.md). A prefactor: no behaviour changes.
@@ -49,3 +49,7 @@ Branch `impl/stage-on-its-page-02`. Commits: `8885914` (claim), `4df6a95` (the c
 **Shared parts reached.** `StepControls.astro`'s row, now behind `step-row.ts`, reaches every Stepper form and the Stage, all checked above. Its markup and `page.css`'s `step-` row are unchanged. `step-row.ts` is part of that shared part. `CODING_STANDARDS.md` › Design system lists only `StepControls.astro`, and that file belongs to another worker in this run, so the list wasn't changed. Adding `step-row.ts` to it is for the orchestrator to decide.
 
 **Left undone.** Nothing on the checklist. No doc comment, `COMPONENTS.md` or `artifact` skill text changed.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). Review fixes: `setCount` is renamed `showFirstOf`, the step row writes "Step N of M." and `data-current-step`/`data-count` on every host, and `host-part.ts` joins `step-row.ts` in `CODING_STANDARDS.md` › Shared parts. It reaches `main` through the integration branch's PR.

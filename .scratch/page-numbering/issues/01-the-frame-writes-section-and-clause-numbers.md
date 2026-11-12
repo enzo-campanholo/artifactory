@@ -1,6 +1,6 @@
 # 01: The frame writes section and clause numbers
 
-Status: claimed
+Status: resolved
 Blocked by: None (can start immediately)
 
 Spec: [Page numbering](../spec.md). No number changes on any page, on screen or in print.
@@ -43,3 +43,7 @@ Branch `impl/page-numbering-01`, commits 40b5afd (claim) and f9c1386 (the work).
 
 **Not done.** `docs/agents/test-seams.md` › `tests/check` doesn't list the written numbers yet: 03's checklist owns that line, and the file was outside this ticket's files. `.impeccable/design.json` needed no change: it never says CSS counters, nor how a citation gets its number.
 
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). It reaches `main` through the integration branch's PR.

@@ -1,6 +1,6 @@
 # 03: The frame writes equation, figure and diagram numbers
 
-Status: claimed
+Status: resolved
 Blocked by: 01
 
 Spec: [Page numbering](../spec.md). No number changes on any page, on screen or in print.
@@ -61,3 +61,7 @@ Branch `impl/page-numbering-03`, commits 15e4508 (claim), 6689ad4 (the work) and
 ### 2026-11-11: merge with 02
 
 Merging this into `impl/page-numbering-02` removed `artifact-question` with the last `counter-reset`, so `ArtifactFrame.astro` counts nothing in CSS.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). Review fixes: figures before the first section keep one series (owner decision, pinned by a `valid-artifacts` case and stated in `DESIGN.md` › Numbering), `OpenQuestion.astro`'s doc comment gives the new reason and `COMPONENTS.md` was regenerated (owner decision), and `test-seams.md` › `tests/check` lists every number the page writes. It reaches `main` through the integration branch's PR.

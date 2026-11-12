@@ -1,6 +1,6 @@
 # 02: Every question test mounts its component's markup
 
-Status: claimed
+Status: resolved
 Blocked by: 01
 
 Spec: [Question markup in store tests](../spec.md). Tests only.
@@ -49,3 +49,7 @@ Done: the three test files mount through the helper; `vitest run tests/store` 21
 Partial: none. Findings: none.
 Decisions: [owner decisions](../spec.md#comments); none unresolved.
 Running: none. Next: a plain full `scripts/heavy pnpm check` on this HEAD.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). It reaches `main` through the integration branch's PR.

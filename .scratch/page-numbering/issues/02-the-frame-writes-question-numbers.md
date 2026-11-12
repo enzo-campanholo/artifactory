@@ -1,6 +1,6 @@
 # 02: The frame writes question numbers
 
-Status: claimed
+Status: resolved
 Blocked by: 01
 
 Spec: [Page numbering](../spec.md). No number changes on any page, on screen or in print.
@@ -75,3 +75,7 @@ Results:
 - `design-system/DESIGN.md` › Numbering still says questions are counted in CSS. Its paragraph is one line that 03 rewrites for equations, figures and diagrams, so I left it for that rewrite to drop "questions" too, rather than edit the same line on two branches.
 - `scripts/look.ts`'s comment above `accessibleText` still says figure and question numbers are CSS counters. The accessibility-tree read it explains is still needed, since CSS prints the number, but the comment is out of date once 03 lands. I left it to 03.
 - Merge points with 03: `ArtifactFrame.astro`'s `page-numbers.ts` import line and its `counter-reset` line (this branch keeps `artifact-equation` there).
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). The unticked item ("every other case passes unchanged") is accepted: removing the `aria-label` script changed two store assertions and the Library test's range reading, and the build test now covers the names. The merge with 03 was done by a merger child (`622fa5d`). It reaches `main` through the integration branch's PR.

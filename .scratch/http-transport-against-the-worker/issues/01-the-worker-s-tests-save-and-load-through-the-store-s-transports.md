@@ -1,6 +1,6 @@
 # 01: The Worker's tests save and load through the store's transports
 
-Status: claimed
+Status: resolved
 Blocked by: None (can start immediately)
 
 Spec: [The HTTP transport against the Worker](../spec.md). Tests only: no production code changes.
@@ -70,3 +70,7 @@ Owner, in this implementation session, on PR #7 (`impl/http-transport-against-th
 - **Approved:** ignore the impeccable hook's cache at the repo root in `.gitignore`, since Prettier failed `pnpm check` on it (`de3b39e`).
 - **Approved:** fix the CI failure in `tests/check/reporting.test.ts`, outside this ticket's files. CI failed this branch and the integration branch, never `main`, on "records the comparison…": a fixture check's report must appear within 10 s. A `--last-passed` check first waits its turn behind other full-scope fixture checks, and the integration branch's added `tests/check` and `tests/stepping` work runs beside it. Both of that file's report polls now wait until the check starts, bounded by the test's own timeout. This overlaps component rules 02's files, so merging the two may need a hand-merge in that file.
 - **Asked for:** only tests that are needed and well designed. The nine stay, one per outcome as the spec requires, but each now asserts only what the transport adds. The load and the Library's load use one saved answer, not two answers or two artifacts, since ordering and the summary rules belong to the raw-request tests and seam 4. The save no longer re-checks the time format the raw tests own, and a `savedAnswer` helper replaces the precondition guards.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). Review fixes: the transports have one import path, `./http-transports` (owner decision), and the interfaces moved to `./transport`. It reaches `main` through the integration branch's PR.

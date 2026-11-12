@@ -1,6 +1,6 @@
 # 01: A Stepper's rules are reported at its tag
 
-Status: claimed
+Status: resolved
 Blocked by: None (can start immediately)
 
 Spec: [Component rules](../spec.md). This ticket builds the whole path for one component, so [02](02-every-component-reports-its-rules.md) only repeats it.
@@ -50,3 +50,7 @@ Implementer session on `impl/component-rules-01`, from `architecture-review-impl
 - A Stepper whose `.d2` failed renders nothing, as before, so it isn't counted on the page. In that entry, a broken Stepper falls back to `1:1` until the diagram's own `d2` failure is fixed.
 - When another built-page failure (a link or a question ID in a valid artifact) comes alongside a `component-rule` one, html-validate and the custom build runs are skipped site-wide, as they are today after any failed build. Only a run whose failures are all `component-rule` keeps them for the other artifacts.
 - `<Stepper />` with no props and no children throws `Cannot read properties of undefined (reading 'match')`, because `Astro.slots.render` gives `undefined`. This was already true before this ticket and it is out of scope. The fixture page gives its Stepper a paragraph instead.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). The owner later moved a marker outside an artifact to **Platform changes** (see 02's comments), and 02 applied that to the Stepper too. It reaches `main` through the integration branch's PR.

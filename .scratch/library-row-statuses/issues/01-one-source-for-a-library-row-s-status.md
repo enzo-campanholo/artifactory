@@ -1,6 +1,6 @@
 # 01: One source for a Library row's status
 
-Status: claimed
+Status: resolved
 Blocked by: None (can start immediately)
 
 Spec: [Library row statuses](../spec.md). No behaviour changes: every row reads and paints as it does today.
@@ -37,3 +37,7 @@ Implementer sub-agent, branch `impl/library-row-statuses-01`.
 **Shared parts:** none of the ones `CODING_STANDARDS.md` lists.
 
 **Left undone:** nothing.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). It reaches `main` through the integration branch's PR.

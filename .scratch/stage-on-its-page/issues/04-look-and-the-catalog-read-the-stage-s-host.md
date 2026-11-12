@@ -1,6 +1,6 @@
 # 04: Look and the catalog read the Stage's host
 
-Status: claimed
+Status: resolved
 Blocked by: 03
 
 Spec: [The Stage on its page](../spec.md).
@@ -68,3 +68,7 @@ Done: the implementation above, with its validation; full check next.
 Partial: none. Findings: none.
 Decisions: [spec comments](../spec.md#comments), round 2 Q7.
 Running: full `pnpm check`. Next: fix anything it reports, else hand back.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). Review fixes, for the spec's "Nothing outside it reads the Stage's inner classes": `StageOnPage` offers `firstRun`, `start` and `field`, and look and `stage-runs.ts` go through the element's `onPage`. Look still tells the Stage's two forms apart by `.stage-input` when it sorts what to shoot, and it reads a Stepper's step from the host as it does a Stage's. It reaches `main` through the integration branch's PR.

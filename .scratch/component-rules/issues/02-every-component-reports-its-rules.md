@@ -1,6 +1,6 @@
 # 02: Every component reports its rules
 
-Status: claimed
+Status: resolved
 Blocked by: 01
 
 Spec: [Component rules](../spec.md).
@@ -57,3 +57,7 @@ Implementer session on `impl/component-rules-02`, from `architecture-review-impl
 
 - The order of the two inline style blocks on the question-state pages, explained above. Rollup groups modules differently now that every question imports `component-rules.ts`.
 - A Stage drawing's `Figure or Stepper: …` wording names components other than the Stage. Changing a message's wording is out of scope.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). Review fixes: a Stage holding a drawing now reports `Stage: …` (owner decision), and markers are found by `data-component` rather than a table of opening tags, which changes every artifact's content hash once. It reaches `main` through the integration branch's PR.

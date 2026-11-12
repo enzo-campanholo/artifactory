@@ -1,6 +1,6 @@
 # 01: A fifth seam for the Stage and the Stepper on a page
 
-Status: claimed
+Status: resolved
 Blocked by: None (can start immediately)
 
 Spec: [The Stage on its page](../spec.md). Tests of today's behaviour: no design-system or platform code changes beyond naming the seam.
@@ -50,3 +50,7 @@ Implementer session, branch `impl/stage-on-its-page-01`, from the integration br
 **Shared parts.** No platform or design-system code changed. The tests reach `StepControls.astro` on the Stage and on code, one-block and figure Steppers.
 
 **Left undone.** Nothing on the checklist. `tests/check/reporting.test.ts` lists the seam folders in an expected failure line, so adding the seam changes that literal. That file is outside this ticket's files: the orchestrator should know it in case component rules 01 also edits it.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). It reaches `main` through the integration branch's PR.

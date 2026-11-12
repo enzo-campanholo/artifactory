@@ -1,6 +1,6 @@
 # 03: One module for the Stage on its page
 
-Status: claimed
+Status: resolved
 Blocked by: 02
 
 Spec: [The Stage on its page](../spec.md). A refactor: no behaviour changes.
@@ -69,3 +69,7 @@ Implementer session, branch `impl/stage-on-its-page-03`, from the integration br
 **Shared parts.** It reaches none that `CODING_STANDARDS.md` lists. `StepControls.astro` and `step-row.ts` are unchanged. The element hands the step row its count and is shown the step it is told, as before. The change stays inside the Stage, its check and look's printed line.
 
 **Left undone.** Nothing on the checklist. No doc comment, `COMPONENTS.md` or `artifact` skill text changed.
+
+### 2026-11-12: resolved
+
+Orchestrator, implement-spec session (integration branch `architecture-review-implementation`). This ticket's work landed on the integration branch, and a full `pnpm check` passed (`current`) on each landed HEAD. The last was `7c62489`, after the review fixes. A two-axis code review (Standards and Spec) of the whole branch ran on 2026-11-11. Its findings, and the owner's four decisions on them (recorded on the specs), were fixed in `impl/review-fixes` (`bcd4fab`…`7c62489`). Review fixes: `stageOffer` holds the one `takes.shape` cascade, `RunInput` names a run's input, and `StagedBuild` is gone. It reaches `main` through the integration branch's PR.
