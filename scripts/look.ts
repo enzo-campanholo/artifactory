@@ -505,9 +505,9 @@ async function numberOf(page: Page, element: ElementHandle): Promise<Place> {
   return { number: number === null ? "" : await accessibleText(page, number) };
 }
 
-// Figure and question numbers are CSS counters, which only the rendered page knows, so they're
-// read from the accessibility tree: the label, in the page's language, then the counter's pieces
-// ("1", ".", "2") under one node.
+// A figure's or question's number is CSS generated content from its `data-number`, which the DOM's
+// text leaves out, and its label is there in both languages, so they're read from the
+// accessibility tree: the label, in the page's language, then the number.
 async function accessibleText(page: Page, number: ElementHandle<Node>): Promise<string> {
   const textOf = (node: SerializedAXNode, separator: string): string =>
     node.role === "StaticText"
