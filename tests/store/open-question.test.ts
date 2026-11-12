@@ -1,34 +1,17 @@
-// @vitest-environment happy-dom
+import { renderQuestion } from "./rendered-question.ts";
 import "@artifactory/design-system/open-question-element";
 import type { MemoryTransport } from "@artifactory/design-system/state";
 import { afterEach, expect, test, vi } from "vitest";
 import { isDisabled } from "./minimal-question.ts";
 import { checked, openPage, savedAttempts, seededTransport } from "./seeded-page.ts";
+import Tides from "./tides.mdx";
 
-function mountOpenQuestion(restored = "") {
-  const template = document.createElement("template");
-  template.innerHTML = `
-    <artifact-open-question id="q-tides" class="question" data-question-id="tides" inert="">
-      <form>
-        <fieldset aria-labelledby="q-tides--prompt">
-          <div class="question-prompt" id="q-tides--prompt"><p>Why are there two high tides a day?</p></div>
-          <label class="open-question-answer"><span data-lang="en">Your answer</span><textarea rows="4" required></textarea></label>
-        </fieldset>
-        <details class="question-model-answer">
-          <summary><span data-lang="en">Show the model answer</span></summary>
-          <div class="question-revealed" tabindex="-1"><p class="question-revealed-heading"><span data-lang="en">Model answer</span></p><div class="question-revealed-content"><p>The Moon pulls the near side of the Earth and leaves the far side behind.</p></div></div>
-          <fieldset class="question-own-mark">
-            <button type="submit" class="question-button" name="mark" value="right"><span data-lang="en">I got it right</span></button>
-            <button type="submit" class="question-button" name="mark" value="wrong"><span data-lang="en">I got it wrong</span></button>
-          </fieldset>
-        </details>
-        <p class="question-status" role="status"></p>
-        <div class="question-recovery" hidden></div>
-      </form>
-    </artifact-open-question>`;
-  const restoredInto = template.content.querySelector("textarea");
+async function mountOpenQuestion(restored = "") {
+  const rendered = await renderQuestion(Tides);
+  const restoredInto = rendered.querySelector("textarea");
   if (restoredInto !== null) restoredInto.value = restored;
-  document.body.replaceChildren(template.content);
+  // Before mounting, so the element connects with the restored answer already in place.
+  document.body.replaceChildren(rendered);
   const question = document.querySelector<HTMLElement>("artifact-open-question");
   const textarea = document.querySelector("textarea");
   const modelAnswer = document.querySelector("details");
@@ -50,7 +33,7 @@ function mountOpenQuestion(restored = "") {
 
 async function loadedOpenQuestion(transport: MemoryTransport) {
   const store = openPage(transport, [{ id: "tides", kind: "open-question" }]);
-  const mounted = mountOpenQuestion();
+  const mounted = await mountOpenQuestion();
   await checked(store);
   return { ...mounted, store };
 }
@@ -72,10 +55,10 @@ test("revealing the model answer saves nothing and leaves the question open", as
   expect(await savedAttempts(transport)).toEqual([]);
 });
 
-test("an answer the browser restores before the question shows can reveal the model answer", () => {
+test("an answer the browser restores before the question shows can reveal the model answer", async () => {
   openPage(seededTransport(), [{ id: "tides", kind: "open-question" }]);
 
-  const { reveal } = mountOpenQuestion("Gravity from the Moon.");
+  const { reveal } = await mountOpenQuestion("Gravity from the Moon.");
 
   expect(reveal.getAttribute("aria-disabled")).toBe("false");
 });

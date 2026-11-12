@@ -1,0 +1,22 @@
+import Matching from "@artifactory/design-system/matching";
+
+<Matching answers={{ "global-variable": 2, "local-variable": 3, "new-object": 4 }}>
+
+Where in memory does each item live?
+
+1. Code
+2. Data
+3. Stack
+4. Heap
+
+---
+
+- A global variable
+- A local variable
+- An object made with `new`
+
+---
+
+Locals live in the call's frame, on the stack; `new` allocates on the heap, and globals sit in the data area.
+
+</Matching>
