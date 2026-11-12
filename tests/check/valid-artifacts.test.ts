@@ -1183,6 +1183,62 @@ const machineTrace = {
   ].join("\n"),
 };
 
+const questionNumbers = {
+  "artifacts/autovalores/index.mdx": artifact(fields("4ut0v4l0", "Autovalores", "Cálculo"), [
+    'import Matching from "@artifactory/design-system/matching";',
+    'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+    'import OpenQuestion from "@artifactory/design-system/open-question";',
+    'import SingleChoice from "@artifactory/design-system/single-choice";',
+    "",
+    '<NumericQuestion id="frequencia-da-mola" answer="10">',
+    "",
+    "Qual é a frequência angular de uma massa de $2\\,\\mathrm{kg}$ numa mola com $k = 200$?",
+    "",
+    "</NumericQuestion>",
+    "",
+    "## Matrizes especiais",
+    "",
+    "Algumas matrizes têm autovalores que se leem de cara.",
+    "",
+    '<Matching answers={{ "matriz-identidade": 1, "matriz-nula": 2, "matriz-de-rotacao": 3 }}>',
+    "",
+    "Quais autovalores reais tem cada matriz $2 \\times 2$?",
+    "",
+    "1. Só $1$",
+    "2. Só $0$",
+    "3. Nenhum",
+    "",
+    "---",
+    "",
+    "- A identidade $I$",
+    "- A matriz nula",
+    "- Uma rotação de $90°$",
+    "",
+    "</Matching>",
+    "",
+    "## Polinômio característico",
+    "",
+    '<SingleChoice id="autovalor-da-identidade" answer={1}>',
+    "",
+    "Qual é todo autovalor da identidade?",
+    "",
+    "1. $1$",
+    "2. $0$",
+    "",
+    "</SingleChoice>",
+    "",
+    '<OpenQuestion id="por-que-o-determinante">',
+    "",
+    "Por que os autovalores zeram $\\det(A - \\lambda I)$?",
+    "",
+    "---",
+    "",
+    "Porque $A - \\lambda I$ leva um vetor não nulo a zero.",
+    "",
+    "</OpenQuestion>",
+  ]),
+};
+
 const renamedTwiceAndBack = {
   "artifacts/derivadas/index.mdx": artifact(
     fields("d3r1v4d4", "Derivadas", "Cálculo", "formerSlugs: [derivadas-velhas]"),
@@ -1521,6 +1577,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ...machineTrace,
       ...steppedFigures,
       ...colouring,
+      ...questionNumbers,
       ...renamedTwiceAndBack,
       ...statementsAndCitations,
       ...draft,
@@ -2291,6 +2348,46 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
         "/derivadas-velhas /derivada/ 301",
         "/derivadas-velhas/ /derivada/ 301",
         "",
+      ]);
+    });
+  });
+
+  describe("question numbers", () => {
+    it("names each question by its header, written with its number in page order across sections, a matching's by its items' range and each item's by its row's own number", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("autovalores"),
+        "text/html",
+      ) as unknown as Document;
+      const shown = (element: Element) => {
+        const copy = element.cloneNode(true) as Element;
+        for (const other of copy.querySelectorAll('[data-lang]:not([data-lang="pt"])')) {
+          other.remove();
+        }
+        return copy.textContent.replace(/\s+/g, " ").trim();
+      };
+      const questions = [...page.querySelectorAll(".question, [data-question-id]")].map(
+        (question) => {
+          const named = page.querySelectorAll(
+            `[id="${question.getAttribute("aria-labelledby") ?? ""}"]`,
+          );
+          const header = named.length === 1 ? named[0] : undefined;
+          return [
+            question.getAttribute("data-question-id") ?? question.localName,
+            question.hasAttribute("aria-label"),
+            header?.className,
+            header === undefined ? undefined : shown(header),
+            header?.getAttribute("data-number"),
+          ];
+        },
+      );
+      expect(questions).toEqual([
+        ["frequencia-da-mola", false, "question-number", "Questão", "1"],
+        ["artifact-matching", false, "question-number", "Questões", "2–4"],
+        ["matriz-identidade", false, "matching-item-number", "Questão", "2"],
+        ["matriz-nula", false, "matching-item-number", "Questão", "3"],
+        ["matriz-de-rotacao", false, "matching-item-number", "Questão", "4"],
+        ["autovalor-da-identidade", false, "question-number", "Questão", "5"],
+        ["por-que-o-determinante", false, "question-number", "Questão", "6"],
       ]);
     });
   });

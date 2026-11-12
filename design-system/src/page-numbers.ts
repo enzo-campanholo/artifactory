@@ -37,3 +37,37 @@ export function withSectionAndClauseNumbers(content: string): string {
   }
   return withInserted(content, insertions);
 }
+
+// A question's number is written on the element that names it, as `data-number`, which its CSS
+// prints: a question's header, a matching item's row number, and a matching's header, which takes
+// its first and last items' numbers as its range. Each takes the outline's number, the one the
+// question manifest and the Library's questions block carry.
+export function questionNumberMarker(questionId: string) {
+  return { "data-question-number": questionId };
+}
+
+export function questionRangeMarker(firstId: string, lastId: string) {
+  return { "data-question-range-from": firstId, "data-question-range-to": lastId };
+}
+
+export function withQuestionNumbers(
+  content: string,
+  questions: readonly { id: string; number: number }[],
+): string {
+  const numbers = new Map(questions.map(({ id, number }) => [id, String(number)]));
+  const insertions: { at: number; text: string }[] = [];
+  for (const tag of tags(content)) {
+    if (tag.closing) continue;
+    const numberOf = (marker: string) => {
+      const id = attributeValue(tag.attributes, marker);
+      return id === undefined ? undefined : numbers.get(id);
+    };
+    const own = numberOf("data-question-number");
+    const first = numberOf("data-question-range-from");
+    const last = numberOf("data-question-range-to");
+    const number =
+      own ?? (first === undefined || last === undefined ? undefined : `${first}–${last}`);
+    if (number !== undefined) insertions.push({ at: tag.end, text: ` data-number="${number}"` });
+  }
+  return withInserted(content, insertions);
+}

@@ -2,7 +2,8 @@
 import { matchingParts } from "./matching.ts";
 import { unlessRuleBroken } from "./component-rules.ts";
 import Question from "./Question.astro";
-import { questionAnchor, questionMarkers, questionNumberSlot } from "./question-markers.ts";
+import { questionNumberMarker } from "./page-numbers.ts";
+import { questionAnchor, questionMarkers } from "./question-markers.ts";
 
 /**
  * Several auto-checked questions, one per item, that share one list of options and are checked
@@ -74,6 +75,7 @@ const letter = (index: number) => String.fromCharCode("a".charCodeAt(0) + index)
 // Chromium drops MathML from a name taken from a <label>, but keeps it through aria-labelledby.
 const optionId = (index: number) => `${questionAnchor(first)}--option-${String(index + 1)}`;
 const itemTextId = (id: string) => `${questionAnchor(id)}--item`;
+const itemNumberId = (id: string) => `${questionAnchor(id)}--number`;
 ---
 
 {"marker" in question && <Fragment set:html={question.marker} />}
@@ -99,10 +101,16 @@ const itemTextId = (id: string) => `${questionAnchor(id)}--item`;
           {...questionMarkers({ id, kind: "single-choice", key })}
           class="matching-item"
           role="group"
+          aria-labelledby={itemNumberId(id)}
           aria-describedby={itemTextId(id)}
         >
           <fieldset>
-            <span class="matching-item-number" set:html={questionNumberSlot(id)} />
+            <span class="matching-item-number" id={itemNumberId(id)} {...questionNumberMarker(id)}>
+              <span class="artifact-visually-hidden">
+                <span data-lang="en">Question</span>
+                <span data-lang="pt">Questão</span>
+              </span>
+            </span>
             <span class="matching-item-text" id={itemTextId(id)} set:html={text} />
             <span class="matching-choices">
               {parts.options.map((_, index) => (
@@ -186,6 +194,11 @@ const itemTextId = (id: string) => `${questionAnchor(id)}--item`;
       font-size: var(--font-size-frame);
       font-weight: var(--font-weight-frame-number);
       font-variant-numeric: tabular-nums;
+
+      /* The word before it is for the row's name only, so the row shows the number alone. */
+      &::after {
+        content: attr(data-number);
+      }
     }
 
     .matching-item-text {

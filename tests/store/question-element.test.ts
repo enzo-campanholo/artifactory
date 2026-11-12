@@ -55,13 +55,6 @@ test("a question with no answer on the device is open as soon as the page's stor
   expect(question.dataset.status).toBeUndefined();
 });
 
-test("a question carries its number as its name, once, on the element going to it focuses", async () => {
-  const { question } = await loadedQuestion();
-
-  expect(question.getAttribute("aria-label")).toBe("Question 1");
-  expect(question.querySelector("fieldset")?.hasAttribute("aria-label")).toBe(false);
-});
-
 test("answering locks the question and shows the mark at once, saving until confirmed", async () => {
   const { question, input, button, status } = await loadedQuestion();
 

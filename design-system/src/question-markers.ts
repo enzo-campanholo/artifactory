@@ -1,4 +1,4 @@
-import { escapedAttribute, unescapedAttribute } from "./html-attributes.ts";
+import { unescapedAttribute } from "./html-attributes.ts";
 import type { AutoCheckedKind, Json, Question } from "./scoring.ts";
 
 export type NumberedQuestion = Question & { number: number };
@@ -20,38 +20,6 @@ export function questionMarkers({ id, kind, key }: Question) {
 // blocks escape their "<", so only a question's own start tag matches.
 const markers =
   /<[a-z][\w-]*\sid="q-[^"]*"\sdata-question-id="([^"]*)"\sdata-question-kind="([^"]*)"(?:\sdata-question-key="([^"]*)")?/g;
-
-// The page's frame fills in question numbers a component can't count: a CSS counter can't print a
-// range ahead of the questions it counts.
-export function questionRangeSlot(firstId: string, lastId: string): string {
-  return `<span data-question-range-from="${escapedAttribute(firstId)}" data-question-range-to="${escapedAttribute(lastId)}"></span>`;
-}
-
-export function questionNumberSlot(questionId: string): string {
-  return `<span data-question-number="${escapedAttribute(questionId)}"></span>`;
-}
-
-const rangeSlot =
-  /(<span data-question-range-from="([^"]*)" data-question-range-to="([^"]*)">)(<\/span>)/g;
-const numberSlot = /(<span data-question-number="([^"]*)">)(<\/span>)/g;
-
-export function withQuestionNumbers(content: string, questions: NumberedQuestion[]): string {
-  const numbers = new Map<string, number>();
-  for (const { id, number } of questions) if (!numbers.has(id)) numbers.set(id, number);
-  const numberOf = (written: string) => numbers.get(unescapedAttribute(written));
-  return content
-    .replace(rangeSlot, (slot, open: string, from: string, to: string, close: string) => {
-      const first = numberOf(from);
-      const last = numberOf(to);
-      return first === undefined || last === undefined
-        ? slot
-        : `${open} ${String(first)}–${String(last)}${close}`;
-    })
-    .replace(numberSlot, (slot, open: string, written: string, close: string) => {
-      const number = numberOf(written);
-      return number === undefined ? slot : `${open}${String(number)}${close}`;
-    });
-}
 
 export function numbered(questions: Question[]): NumberedQuestion[] {
   return questions.map((question, index) => ({ ...question, number: index + 1 }));

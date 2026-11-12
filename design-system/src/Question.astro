@@ -1,5 +1,6 @@
 ---
-import { questionAnchor, questionMarkers, questionRangeSlot } from "./question-markers.ts";
+import { questionNumberMarker, questionRangeMarker } from "./page-numbers.ts";
+import { questionAnchor, questionMarkers } from "./question-markers.ts";
 import RevealedPart from "./RevealedPart.astro";
 import type { AutoCheckedKind, Json } from "./scoring.ts";
 
@@ -41,7 +42,9 @@ const markers =
           : { id, kind: props.kind, key: props.answerKey },
       );
 const anchor = questionAnchor(id);
-const rangeId = `${anchor}--range`;
+// The header names the question, and the frame writes its number, or a matching's range, on it.
+// A matching's box takes its first item's ID, whose row number is "--number".
+const headerId = `${anchor}--${props.kind === "matching" ? "range" : "number"}`;
 // Question IDs are kebab-case, so no question's anchor can end in "--prompt".
 const promptId = `${anchor}--prompt`;
 const hints = {
@@ -53,23 +56,16 @@ const hints = {
 const hint = hints[kind];
 ---
 
-<Tag
-  {...markers}
-  class="question"
-  role="group"
-  aria-labelledby={props.kind === "matching" ? rangeId : undefined}
-  inert=""
->
+<Tag {...markers} class="question" role="group" aria-labelledby={headerId} inert="">
   <form>
     <div class="question-header">
       {props.kind === "matching" ? (
-        <span class="question-number" id={rangeId}>
+        <span class="question-number" id={headerId} {...questionRangeMarker(id, props.lastId)}>
           <span data-lang="en">Questions</span>
           <span data-lang="pt">Questões</span>
-          <Fragment set:html={questionRangeSlot(id, props.lastId)} />
         </span>
       ) : (
-        <span class="question-number">
+        <span class="question-number" id={headerId} {...questionNumberMarker(id)}>
           <span data-lang="en">Question</span>
           <span data-lang="pt">Questão</span>
         </span>
@@ -203,6 +199,10 @@ const hint = hints[kind];
       font-weight: var(--font-weight-frame-strong);
       line-height: var(--line-height-frame);
       font-variant-numeric: tabular-nums;
+    }
+
+    .question-number::after {
+      content: " " attr(data-number);
     }
 
     .question-hint {

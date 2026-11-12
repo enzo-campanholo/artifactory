@@ -6,8 +6,8 @@ import Bilingual from "./Bilingual.astro";
 import ThemeEye from "./ThemeEye.astro";
 import { outline, sectionsForContents, type Heading } from "./artifact-outline.ts";
 import { shortDate } from "./dates.ts";
-import { questionAnchor, questionsBlock, withQuestionNumbers } from "./question-markers.ts";
-import { withSectionAndClauseNumbers } from "./page-numbers.ts";
+import { questionAnchor, questionsBlock } from "./question-markers.ts";
+import { withQuestionNumbers, withSectionAndClauseNumbers } from "./page-numbers.ts";
 import { withStatementReferences } from "./statements.ts";
 
 interface Props {
@@ -669,7 +669,7 @@ const unansweredResume = {
 
     .artifact-main {
       min-inline-size: 0;
-      counter-reset: artifact-question artifact-equation;
+      counter-reset: artifact-equation;
 
       > :first-child {
         margin-block-start: 0;
@@ -786,16 +786,6 @@ const unansweredResume = {
         > figcaption[data-uncaptioned] {
           display: none;
         }
-      }
-
-      /* One count per question, as the page's questions block numbers them: a matching's box holds
-         several, each on its own row. */
-      [data-question-id] {
-        counter-increment: artifact-question;
-      }
-
-      [data-question-id] > form > .question-header > .question-number::after {
-        content: " " counter(artifact-question);
       }
     }
 

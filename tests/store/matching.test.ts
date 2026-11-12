@@ -131,11 +131,6 @@ test("each row's mark is announced with its item's number, and the right letter 
   await vi.waitFor(() => {
     expect(rowOf("new-object").dataset.status).toBe("saved");
   });
-  expect(items.map(({ id }) => rowOf(id).getAttribute("aria-label"))).toEqual([
-    "Question 2",
-    "Question 3",
-    "Question 4",
-  ]);
   expect(items.map(({ id }) => markOf(id).textContent)).toEqual([
     "Question 2: Right",
     "Question 3: Wrong · Right answer: c)",
