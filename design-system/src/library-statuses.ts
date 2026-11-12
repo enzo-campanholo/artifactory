@@ -1,18 +1,8 @@
 import { markOwner } from "./owner-mark.ts";
 import type { LibrarySummaries } from "./saved-state.ts";
 import type { Summary } from "./scoring.ts";
-import {
-  forgetKeptState,
-  keepFresh,
-  keeping,
-  keptKey,
-  loadOverHttp,
-  type LoadOutcome,
-} from "./state.ts";
-
-export interface LibraryTransport {
-  load(): Promise<LoadOutcome<LibrarySummaries>>;
-}
+import { forgetKeptState, keepFresh, keeping, keptKey } from "./state.ts";
+import type { LibraryTransport } from "./transport.ts";
 
 type ForcedOutcome = "load fails" | "signed out" | "library updated";
 
@@ -35,14 +25,6 @@ export function memoryLibraryTransport(seed: LibrarySummaries): MemoryLibraryTra
         outcome: "loaded",
         state: { buildId, summaries: structuredClone(summaries) },
       });
-    },
-  };
-}
-
-export function httpLibraryTransport(): LibraryTransport {
-  return {
-    load() {
-      return loadOverHttp<LibrarySummaries>("/api/library");
     },
   };
 }

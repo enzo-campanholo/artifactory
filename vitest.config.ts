@@ -1,10 +1,25 @@
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
+import type { AstroInlineConfig } from "astro";
+import { getViteConfig } from "astro/config";
 import { defineConfig } from "vitest/config";
+import astroConfig from "./astro.config.ts";
 import { accessCerts, createAccessKeys } from "./scripts/access-keys.ts";
 import { seamFolders } from "./scripts/check/seams.ts";
 
 const workerSeam = "tests/worker";
+const storeSeam = "tests/store";
 const accessTeamDomain = "https://artifactory-test.cloudflareaccess.com";
+
+// getViteConfig runs every integration's setup as `astro dev`. built-output's would delete the
+// failures a build in progress in this checkout has reported, and it renders nothing, so it stays
+// out.
+const renderingConfig: AstroInlineConfig = {
+  ...astroConfig,
+  configFile: false,
+  integrations: (astroConfig.integrations ?? []).filter(
+    (integration) => !(integration && "name" in integration && integration.name === "built-output"),
+  ),
+};
 
 export default defineConfig({
   test: {
@@ -17,10 +32,15 @@ export default defineConfig({
         test: {
           name: "node",
           include: seamFolders
-            .filter((folder) => folder !== workerSeam)
+            .filter((folder) => folder !== workerSeam && folder !== storeSeam)
             .map((folder) => `${folder}/**/*.test.ts`),
         },
       },
+      // The question tests render the design system's components as the build does.
+      getViteConfig(
+        { test: { name: "store", include: [`${storeSeam}/**/*.test.ts`] } },
+        renderingConfig,
+      ),
       {
         resolve: {
           alias: {

@@ -61,3 +61,10 @@ Owner, architecture review session, 2026-11-10 (thread 8d57bee0-37b7-4277-bf58-c
 - **Approved, round 2 Q9:** figures inside a model answer or explanation stay unnumbered, with the reason rewritten; citing a figure stays out.
 - **Approved, round 3 Q1:** the three tickets in `issues/`.
 - **Order of work, round 2 Q12:** fifth, after [The Stage on its page](../stage-on-its-page/spec.md).
+
+### 2026-11-11: owner decisions at the code review
+
+Owner, implement-spec orchestration session, 2026-11-11, on the code review of the integration branch (`c6b9706...622fa5d`).
+
+- **Approved, decision 1 (figures before the first section):** the flat series `page-numbers.ts` counts stays. Before the first section, figures and diagrams take one series of each kind, a figure inside a question's prompt included, where the CSS counter restarted inside each wrapper. `design-system/DESIGN.md` › Numbering records it, and one `tests/check/valid-artifacts.test.ts` case pins it.
+- **Approved, decision 4 (OpenQuestion's reason):** `OpenQuestion.astro`'s doc comment gives the reason `DESIGN.md` › Numbering now gives for leaving a model answer's figures unnumbered, and `design-system/COMPONENTS.md` is regenerated with `pnpm components`. Only the reason changes. This narrows [Documentation](#documentation)'s "No `COMPONENTS.md` … text changes" for that one sentence.

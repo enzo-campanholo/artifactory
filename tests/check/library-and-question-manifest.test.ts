@@ -602,15 +602,17 @@ describe("a repo with published artifacts and drafts, some with questions", () =
       const { copy } = inLanguage(page.querySelector("artifact-matching"), lang);
       const text = (node: Element | null | undefined) =>
         node?.textContent.replace(/\s+/g, " ").trim();
+      // The page prints a question's number from the number the frame writes on its header.
+      const header = copy?.querySelector(".question-number");
       return {
         page,
         box: copy,
-        header: text(copy?.querySelector(".question-number")),
+        header: `${text(header) ?? ""} ${header?.getAttribute("data-number") ?? ""}`,
         hint: text(copy?.querySelector(".question-hint")),
         options: [...(copy?.querySelectorAll(".matching-options > li") ?? [])].map(text),
         rows: [...(copy?.querySelectorAll(".matching-item") ?? [])].map((row) => ({
           anchor: row.id,
-          number: text(row.querySelector(".matching-item-number")),
+          number: row.querySelector(".matching-item-number")?.getAttribute("data-number"),
           item: text(row.querySelector(".matching-item-text")),
           letters: [...row.querySelectorAll("label")].map(text),
         })),

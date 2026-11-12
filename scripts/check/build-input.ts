@@ -1,12 +1,7 @@
 import { join } from "node:path";
 import typescript from "typescript";
-import type { NamedValue, Takes } from "@artifactory/design-system/step-applier";
+import type { NamedValue, StageOnPage, Takes } from "@artifactory/design-system/stage-on-page";
 import type { Failure } from "../../src/check-failure.ts";
-
-interface StagedBuild {
-  file: string;
-  takes: Takes;
-}
 
 const givers: Record<Takes["shape"], string> = {
   option: "options",
@@ -29,7 +24,10 @@ const kindTypes: Record<
 
 // A build's input type comes from its own file and a Stage's fields from the entry, so neither
 // TypeScript program sees both: this compares what `steps` takes with what the Stage gives it.
-export function buildInputFailures(root: string, stages: StagedBuild[]): Failure[] {
+export function buildInputFailures(
+  root: string,
+  stages: Pick<StageOnPage, "build" | "takes">[],
+): Failure[] {
   if (stages.length === 0) return [];
   const config = typescript.getParsedCommandLineOfConfigFile(
     join(root, "tsconfig.builds.json"),
@@ -37,11 +35,11 @@ export function buildInputFailures(root: string, stages: StagedBuild[]): Failure
     { ...typescript.sys, onUnRecoverableConfigFileDiagnostic: () => undefined },
   );
   const program = typescript.createProgram(
-    stages.map(({ file }) => join(root, file)),
+    stages.map(({ build }) => join(root, build)),
     config?.options ?? {},
   );
   const checker = program.getTypeChecker();
-  return stages.flatMap(({ file, takes }): Failure[] => {
+  return stages.flatMap(({ build: file, takes }): Failure[] => {
     const source = program.getSourceFile(join(root, file));
     const build = source?.statements.find(typescript.isExportAssignment)?.expression;
     if (source === undefined || build === undefined) return [];

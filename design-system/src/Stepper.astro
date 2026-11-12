@@ -3,7 +3,8 @@ import "./figure-colours.css";
 import InlineSvg from "./InlineSvg.astro";
 import StepControls from "./StepControls.astro";
 import { drawInStandard, inOneFrame, smallestLabelSize } from "./d2-board.ts";
-import { componentError } from "./component-errors.ts";
+import { brokenRule, ruledInstance, unlessRuleBroken } from "./component-rules.ts";
+import { drawingParts } from "./inline-svg.ts";
 import { inSteps, printedLines, steppedBlocks, steppedCode, steppedFigure } from "./stepper.ts";
 
 interface Captioned {
@@ -120,103 +121,125 @@ const props = Astro.props;
 const { captions } = props;
 const alt = "alt" in props ? props.alt : "";
 
-// TypeScript accepts a prop from another member of a union, so the types alone let two sources in.
-const sources = ["diagram", "figure", "lines"].filter((source) => source in props);
-if (sources.length > 1) {
-  throw componentError(
-    "Stepper",
-    "give it one of `diagram`, `figure` or `lines`, or none of them and one fenced code block per step",
-  );
-}
-const drawing = sources.find((source) => source !== "lines");
-if (drawing !== undefined && Astro.slots.has("default")) {
-  throw componentError(
-    "Stepper",
-    `a \`${drawing}\` Stepper holds nothing inside it: give it the \`${drawing}\` alone, or none of \`diagram\`, \`figure\` or \`lines\` and one fenced code block per step`,
-  );
-}
-
-let count: number;
-let boards: { svg: string; crop: string }[] | undefined;
-let figure: string | undefined;
-let figureSteps: string[] | undefined;
-let code: string | undefined;
-let blocks: string[] | undefined;
-let linesOfStep: number[][] | undefined;
-if ("diagram" in props) {
-  const { frame, boards: framed } = inOneFrame(props.diagram.map(drawInStandard));
-  boards = framed.map(({ svg, box }) => ({
-    svg,
-    crop: [
-      `--frame-width: ${String(frame.width)}`,
-      `--board-width: ${String(box.width)}`,
-      `--board-height: ${String(box.height)}`,
-      `--board-x: ${String(box.x - frame.x)}`,
-      `--board-y: ${String(box.y - frame.y)}`,
-    ].join("; "),
-  }));
-  count = boards.length;
-} else if ("figure" in props) {
-  if (/fill-swatch-|data-swatch/.test(props.figure)) {
-    throw componentError(
+async function steps() {
+  // TypeScript accepts a prop from another member of a union, so the types alone let two sources in.
+  const sources = ["diagram", "figure", "lines"].filter((source) => source in props);
+  if (sources.length > 1) {
+    throw brokenRule(
       "Stepper",
-      "swatches are only for a Figure or a Stage, so a figure Stepper draws none: draw the colouring as a Figure, or step through it in a Stage",
+      "give it one of `diagram`, `figure` or `lines`, or none of them and one fenced code block per step",
     );
   }
-  ({ svg: figure, count, printedSteps: figureSteps } = steppedFigure(props.figure));
-} else if ("lines" in props) {
-  ({ html: code, linesOfStep } = steppedCode(await Astro.slots.render("default"), props.lines));
-  count = props.lines.length;
-} else {
-  blocks = steppedBlocks(await Astro.slots.render("default"));
-  count = blocks.length;
-}
+  const drawing = sources.find((source) => source !== "lines");
+  if (drawing !== undefined && Astro.slots.has("default")) {
+    throw brokenRule(
+      "Stepper",
+      `a \`${drawing}\` Stepper holds nothing inside it: give it the \`${drawing}\` alone, or none of \`diagram\`, \`figure\` or \`lines\` and one fenced code block per step`,
+    );
+  }
 
-// A diagram that failed has no boards, and its failure is already reported against the .d2 file.
-const diagramFailed = boards?.length === 0;
-if (!diagramFailed && count < 2) {
-  throw componentError("Stepper", `it has ${String(count)} step; give it at least two`);
-}
-if (!diagramFailed && captions !== undefined && captions.length !== count) {
-  throw componentError(
-    "Stepper",
-    `it has ${String(count)} steps but ${String(captions.length)} captions; give one caption per step`,
-  );
-}
-
-const boardMinScale =
-  boards && boards.length > 0
-    ? Math.min(1, Math.max(1 / 2, 8 / Math.min(...boards.map(({ svg }) => smallestLabelSize(svg)))))
-    : undefined;
-const countWidth = `min-inline-size: ${String(String(count).length)}ch`;
-const printedSteps = linesOfStep
-  ? linesOfStep.map((lines, index) => {
-      const caption = captions ? `: ${captions[index] ?? ""}` : "";
-      return {
-        number: String(index + 1),
-        en: `(${printedLines(lines, { line: "line", lines: "lines" })})${caption}`,
-        pt: `(${printedLines(lines, { line: "linha", lines: "linhas" })})${caption}`,
-      };
-    })
-  : figure &&
-    !figureSteps &&
-    captions?.map((caption, index) => ({
-      number: `${String(index + 1)}.`,
-      en: caption,
-      pt: caption,
+  let count: number;
+  let boards: { svg: string; crop: string }[] | undefined;
+  let figure: string | undefined;
+  let figureSteps: string[] | undefined;
+  let code: string | undefined;
+  let blocks: string[] | undefined;
+  let linesOfStep: number[][] | undefined;
+  if ("diagram" in props) {
+    const { frame, boards: framed } = inOneFrame(props.diagram.map(drawInStandard));
+    boards = framed.map(({ svg, box }) => ({
+      svg,
+      crop: [
+        `--frame-width: ${String(frame.width)}`,
+        `--board-width: ${String(box.width)}`,
+        `--board-height: ${String(box.height)}`,
+        `--board-x: ${String(box.x - frame.x)}`,
+        `--board-y: ${String(box.y - frame.y)}`,
+      ].join("; "),
     }));
+    count = boards.length;
+  } else if ("figure" in props) {
+    if (/fill-swatch-|data-swatch/.test(props.figure)) {
+      throw brokenRule(
+        "Stepper",
+        "swatches are only for a Figure or a Stage, so a figure Stepper draws none: draw the colouring as a Figure, or step through it in a Stage",
+      );
+    }
+    ({ svg: figure, count, printedSteps: figureSteps } = steppedFigure(props.figure));
+  } else if ("lines" in props) {
+    ({ html: code, linesOfStep } = steppedCode(await Astro.slots.render("default"), props.lines));
+    count = props.lines.length;
+  } else {
+    blocks = steppedBlocks(await Astro.slots.render("default"));
+    count = blocks.length;
+  }
+
+  // A diagram that failed has no boards, and its failure is already reported against the .d2 file.
+  const diagramFailed = boards?.length === 0;
+  if (!diagramFailed && count < 2) {
+    throw brokenRule("Stepper", `it has ${String(count)} step; give it at least two`);
+  }
+  if (!diagramFailed && captions !== undefined && captions.length !== count) {
+    throw brokenRule(
+      "Stepper",
+      `it has ${String(count)} steps but ${String(captions.length)} captions; give one caption per step`,
+    );
+  }
+  if (figure !== undefined) drawingParts(figure);
+
+  const boardMinScale =
+    boards && boards.length > 0
+      ? Math.min(
+          1,
+          Math.max(1 / 2, 8 / Math.min(...boards.map(({ svg }) => smallestLabelSize(svg)))),
+        )
+      : undefined;
+  const countWidth = `min-inline-size: ${String(String(count).length)}ch`;
+  const printedSteps = linesOfStep
+    ? linesOfStep.map((lines, index) => {
+        const caption = captions ? `: ${captions[index] ?? ""}` : "";
+        return {
+          number: String(index + 1),
+          en: `(${printedLines(lines, { line: "line", lines: "lines" })})${caption}`,
+          pt: `(${printedLines(lines, { line: "linha", lines: "linhas" })})${caption}`,
+        };
+      })
+    : figure &&
+      !figureSteps &&
+      captions?.map((caption, index) => ({
+        number: `${String(index + 1)}.`,
+        en: caption,
+        pt: caption,
+      }));
+  return {
+    diagramFailed,
+    count,
+    countWidth,
+    boards,
+    boardMinScale,
+    figure,
+    figureSteps,
+    code,
+    blocks,
+    printedSteps,
+  };
+}
+
+const { checked: stepper, marker } = await unlessRuleBroken("Stepper", steps);
+const shown = stepper?.diagramFailed === false ? stepper : undefined;
 ---
 
-{!diagramFailed && (
-  <artifact-stepper class="stepper" data-count={count}>
-    <StepControls kind="stepper" class="stepper-controls">
+{marker !== undefined && <Fragment set:html={marker} />}
+{shown && (
+  <artifact-stepper {...ruledInstance("Stepper")} class="stepper" data-count={shown.count}>
+    <StepControls class="stepper-controls">
       <p class="step-counter">
-        <span class="stepper-current" style={countWidth}>
+        <span class="stepper-current" style={shown.countWidth}>
           1
         </span>{" "}
         <span data-lang="en">of</span>
-        <span data-lang="pt">de</span> {count}{" "}
-        {(code ?? blocks) && <span class="stepper-lines step-unseen" />}
+        <span data-lang="pt">de</span> {shown.count}{" "}
+        {(shown.code ?? shown.blocks) && <span class="stepper-lines step-unseen" />}
       </p>
       {captions && (
         <div class="stepper-captions">
@@ -226,28 +249,28 @@ const printedSteps = linesOfStep
         </div>
       )}
     </StepControls>
-    {boards && (
+    {shown.boards && (
       <div class="stepper-stage stepper-boards">
-        {boards.map((board, index) => (
+        {shown.boards.map((board, index) => (
           <div {...inSteps([index + 1])}>
             <p class="stepper-step">
               <span class="stepper-step-number">{index + 1}.</span> {captions?.[index]}
             </p>
             <div class="stepper-board" style={board.crop}>
-              <InlineSvg svg={board.svg} alt={alt} minScale={boardMinScale} />
+              <InlineSvg svg={board.svg} alt={alt} minScale={shown.boardMinScale} />
             </div>
           </div>
         ))}
       </div>
     )}
-    {figure && (
+    {shown.figure && (
       <div class="stepper-stage stepper-figure figure">
-        <InlineSvg svg={figure} alt={alt} />
+        <InlineSvg svg={shown.figure} alt={alt} />
       </div>
     )}
-    {figureSteps && (
+    {shown.figureSteps && (
       <div class="stepper-figure-steps" aria-hidden="true">
-        {figureSteps.map((step, index) => (
+        {shown.figureSteps.map((step, index) => (
           <div class="stepper-figure-step figure">
             <p class="stepper-step">
               <span class="stepper-step-number">{index + 1}.</span> {captions?.[index]}
@@ -257,10 +280,10 @@ const printedSteps = linesOfStep
         ))}
       </div>
     )}
-    {code && <div class="stepper-stage stepper-code" set:html={code} />}
-    {blocks && (
+    {shown.code && <div class="stepper-stage stepper-code" set:html={shown.code} />}
+    {shown.blocks && (
       <div class="stepper-stage stepper-blocks">
-        {blocks.map((block, index) => (
+        {shown.blocks.map((block, index) => (
           <div {...inSteps([index + 1])}>
             <p class="stepper-step">
               <span class="stepper-step-number">{index + 1}.</span> {captions?.[index]}
@@ -270,9 +293,9 @@ const printedSteps = linesOfStep
         ))}
       </div>
     )}
-    {printedSteps && (
+    {shown.printedSteps && (
       <ol class="stepper-steps">
-        {printedSteps.map((step) => (
+        {shown.printedSteps.map((step) => (
           <li class="stepper-step">
             <span class="stepper-step-number">{step.number}</span>{" "}
             <span data-lang="en">{step.en}</span>
@@ -286,112 +309,7 @@ const printedSteps = linesOfStep
 )}
 
 <script>
-  import { inPageLanguage } from "./page-language.ts";
-  import { lineRuns } from "./stepper.ts";
-
-  const texts = {
-    en: {
-      step: (step: number, count: number) => `Step ${String(step)} of ${String(count)}.`,
-      lines: { one: "Line", many: "Lines", to: "to", and: "and" },
-    },
-    pt: {
-      step: (step: number, count: number) => `Passo ${String(step)} de ${String(count)}.`,
-      lines: { one: "Linha", many: "Linhas", to: "a", and: "e" },
-    },
-  };
-
-  function saidLines(lines: number[], words: (typeof texts)["en"]["lines"]): string {
-    const runs = lineRuns(lines).map(({ from, to }) =>
-      from === to ? String(from) : `${String(from)} ${words.to} ${String(to)}`,
-    );
-    const last = runs.pop() ?? "";
-    const list = runs.length === 0 ? last : `${runs.join(", ")} ${words.and} ${last}`;
-    return `${lines.length === 1 ? words.one : words.many} ${list}.`;
-  }
-
-  class ArtifactStepper extends HTMLElement {
-    #step = 1;
-
-    constructor() {
-      super();
-      this.addEventListener("click", (event) => {
-        if (!(event.target instanceof Element)) return;
-        const button = event.target.closest("button");
-        if (button === this.#part("button.stepper-back")) this.#go(-1);
-        if (button === this.#part("button.stepper-forward")) this.#go(1);
-      });
-      this.addEventListener("keydown", (event) => {
-        if (!(event.target instanceof HTMLButtonElement)) return;
-        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-        event.preventDefault();
-        this.#go(event.key === "ArrowLeft" ? -1 : 1);
-      });
-    }
-
-    connectedCallback() {
-      for (const button of this.querySelectorAll(".stepper-controls button")) {
-        button.removeAttribute("disabled");
-      }
-      this.#show();
-    }
-
-    get #count(): number {
-      return Number(this.dataset.count);
-    }
-
-    get #texts() {
-      return inPageLanguage(this, texts);
-    }
-
-    #part(selector: string): HTMLElement {
-      const part = this.querySelector<HTMLElement>(selector);
-      if (part === null) throw new Error(`artifact-stepper has no ${selector}`);
-      return part;
-    }
-
-    #go(by: number) {
-      const step = Math.min(Math.max(this.#step + by, 1), this.#count);
-      if (step === this.#step) return;
-      this.#step = step;
-      this.dataset.stepped = "";
-      this.#show();
-      this.#part(".stepper-announcement").textContent = [
-        this.#texts.step(step, this.#count),
-        this.querySelector(".stepper-lines")?.textContent,
-        this.querySelector(".stepper-captions > :not([data-off])")?.textContent,
-      ]
-        .filter(Boolean)
-        .join(" ");
-    }
-
-    #show() {
-      const step = String(this.#step);
-      for (const part of this.querySelectorAll<HTMLElement | SVGElement>("[data-in-steps]")) {
-        const steps = (part.dataset.inSteps ?? "").split(" ");
-        part.toggleAttribute("data-off", !steps.includes(step));
-      }
-      this.#part(".stepper-current").textContent = step;
-      const lines = this.querySelector(".stepper-lines");
-      if (lines !== null) {
-        const block = this.querySelector(
-          ".stepper-code pre, .stepper-blocks > :not([data-off]) > pre",
-        );
-        const lit = block?.matches("[data-marks]")
-          ? [...block.querySelectorAll<HTMLElement>(".line:not([data-off])")].map((line) =>
-              Number(line.dataset.line),
-            )
-          : [];
-        lines.textContent = lit.length > 0 ? saidLines(lit, this.#texts.lines) : "";
-      }
-      this.#part("button.stepper-back").setAttribute("aria-disabled", String(this.#step === 1));
-      this.#part("button.stepper-forward").setAttribute(
-        "aria-disabled",
-        String(this.#step === this.#count),
-      );
-    }
-  }
-
-  customElements.define("artifact-stepper", ArtifactStepper);
+  import "./stepper-element.ts";
 </script>
 
 <style is:global>

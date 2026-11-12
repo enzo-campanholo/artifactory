@@ -1,9 +1,11 @@
 ---
-import { questionAnchor, questionMarkers, questionRangeSlot } from "./question-markers.ts";
+import { ruledInstance, type RuledComponent } from "./component-rules.ts";
+import { questionNumberAttributes, questionRangeAttributes } from "./page-numbers.ts";
+import { questionAnchor, questionAttributes } from "./question-markers.ts";
 import RevealedPart from "./RevealedPart.astro";
 import type { AutoCheckedKind, Json } from "./scoring.ts";
 
-// A matching's box holds its items' questions, whose rows carry their markers: `id` is its first
+// A matching's box holds its items' questions, whose rows carry their attributes: `id` is its first
 // item's and `lastId` its last item's.
 type Props = { id: string; prompt: string } & (
   | {
@@ -32,16 +34,18 @@ type Props = { id: string; prompt: string } & (
 const { props } = Astro;
 const { id, kind, modelAnswer, explanation, prompt } = props;
 const Tag = `artifact-${kind}` as const;
-const markers =
+const ownAttributes =
   props.kind === "matching"
     ? {}
-    : questionMarkers(
+    : questionAttributes(
         props.kind === "open-question"
           ? { id, kind }
           : { id, kind: props.kind, key: props.answerKey },
       );
 const anchor = questionAnchor(id);
-const rangeId = `${anchor}--range`;
+// The header names the question, and the frame writes its number, or a matching's range, on it.
+// A matching's box takes its first item's ID, whose row number is "--number".
+const headerId = `${anchor}--${props.kind === "matching" ? "range" : "number"}`;
 // Question IDs are kebab-case, so no question's anchor can end in "--prompt".
 const promptId = `${anchor}--prompt`;
 const hints = {
@@ -51,25 +55,31 @@ const hints = {
   matching: { en: "Match", pt: "Associe" },
 } satisfies Record<Props["kind"], { en: string; pt: string }>;
 const hint = hints[kind];
+const components = {
+  "single-choice": "SingleChoice",
+  numeric: "NumericQuestion",
+  "open-question": "OpenQuestion",
+  matching: "Matching",
+} satisfies Record<Props["kind"], RuledComponent>;
 ---
 
 <Tag
-  {...markers}
+  {...ownAttributes}
+  {...ruledInstance(components[kind])}
   class="question"
   role="group"
-  aria-labelledby={props.kind === "matching" ? rangeId : undefined}
+  aria-labelledby={headerId}
   inert=""
 >
   <form>
     <div class="question-header">
       {props.kind === "matching" ? (
-        <span class="question-number" id={rangeId}>
+        <span class="question-number" id={headerId} {...questionRangeAttributes(id, props.lastId)}>
           <span data-lang="en">Questions</span>
           <span data-lang="pt">Questões</span>
-          <Fragment set:html={questionRangeSlot(id, props.lastId)} />
         </span>
       ) : (
-        <span class="question-number">
+        <span class="question-number" id={headerId} {...questionNumberAttributes(id)}>
           <span data-lang="en">Question</span>
           <span data-lang="pt">Questão</span>
         </span>
@@ -203,6 +213,10 @@ const hint = hints[kind];
       font-weight: var(--font-weight-frame-strong);
       line-height: var(--line-height-frame);
       font-variant-numeric: tabular-nums;
+    }
+
+    .question-number::after {
+      content: " " attr(data-number);
     }
 
     .question-hint {

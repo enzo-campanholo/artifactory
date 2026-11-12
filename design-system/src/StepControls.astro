@@ -1,17 +1,16 @@
 ---
 interface Props {
-  kind: "stepper" | "stage";
   class?: string;
 }
 
-const { kind, class: className } = Astro.props;
+const { class: className } = Astro.props;
 ---
 
 <div class:list={["step-controls", className]}>
   <div class="step-where">
     <slot />
   </div>
-  <button type="button" class={`control-button control-button-outline ${kind}-back`} disabled>
+  <button type="button" class="control-button control-button-outline" disabled>
     <svg viewBox="0 0 20 20" aria-hidden="true">
       <path d="m13 4-6 6 6 6"></path>
     </svg>
@@ -22,7 +21,7 @@ const { kind, class: className } = Astro.props;
       Passo anterior
     </span>
   </button>
-  <button type="button" class={`control-button control-button-outline ${kind}-forward`} disabled>
+  <button type="button" class="control-button control-button-outline" disabled>
     <svg viewBox="0 0 20 20" aria-hidden="true">
       <path d="m7 4 6 6-6 6"></path>
     </svg>

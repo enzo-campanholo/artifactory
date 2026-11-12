@@ -6,7 +6,12 @@ import Bilingual from "./Bilingual.astro";
 import ThemeEye from "./ThemeEye.astro";
 import { outline, sectionsForContents, type Heading } from "./artifact-outline.ts";
 import { shortDate } from "./dates.ts";
-import { questionAnchor, questionsBlock, withQuestionNumbers } from "./question-markers.ts";
+import { questionAnchor, questionsBlock } from "./question-markers.ts";
+import {
+  withEquationFigureAndDiagramNumbers,
+  withQuestionNumbers,
+  withSectionAndClauseNumbers,
+} from "./page-numbers.ts";
 import { withStatementReferences } from "./statements.ts";
 
 interface Props {
@@ -21,7 +26,9 @@ interface Props {
 }
 
 const { title, subject, published, draft, public: isPublic, headings, lang } = Astro.props;
-const referenced = withStatementReferences(Astro.props.content);
+const referenced = withStatementReferences(
+  withEquationFigureAndDiagramNumbers(withSectionAndClauseNumbers(Astro.props.content)),
+);
 const sections = outline(referenced, headings);
 const headed = sections.flatMap(({ heading }) => (heading === undefined ? [] : [heading]));
 const questions = sections.flatMap((section) => section.questions);
@@ -668,7 +675,6 @@ const unansweredResume = {
 
     .artifact-main {
       min-inline-size: 0;
-      counter-reset: artifact-section artifact-question artifact-equation;
 
       > :first-child {
         margin-block-start: 0;
@@ -683,8 +689,6 @@ const unansweredResume = {
         margin-block: var(--block-clearance) 0.75rem;
         padding-block-start: 0.875rem;
         border-block-start: var(--rule) solid var(--color-text);
-        counter-increment: artifact-section;
-        counter-reset: artifact-clause artifact-figure artifact-diagram;
         break-after: avoid;
       }
 
@@ -693,18 +697,13 @@ const unansweredResume = {
         break-after: avoid;
       }
 
-      /* `statementsAndProofs` in `statements.ts` counts these same elements for the citations. */
-      > h2 ~ :is(p, h3, [data-statement-id]) {
-        counter-increment: artifact-clause;
-      }
-
       > h2::before {
-        content: counter(artifact-section);
+        content: attr(data-number);
       }
 
       > h2 ~ :is(p, h3)::before,
       > h2 ~ [data-statement-id] > :first-child::before {
-        content: counter(artifact-section) "." counter(artifact-clause);
+        content: attr(data-number);
         font-size: var(--font-size-frame);
         font-style: normal;
         font-weight: var(--font-weight-frame-number);
@@ -713,7 +712,7 @@ const unansweredResume = {
 
       /* A statement's label already says its number to screen readers. */
       > h2 ~ [data-statement-id] > :first-child::before {
-        content: counter(artifact-section) "." counter(artifact-clause) / "";
+        content: attr(data-number) / "";
       }
 
       > :is(h2, h2 ~ p, h2 ~ h3)::before,
@@ -737,14 +736,13 @@ const unansweredResume = {
         align-items: baseline;
         column-gap: var(--space-3);
         margin-block: 0.875rem 1.125rem;
-        counter-increment: artifact-equation;
 
         > math {
           grid-column: 2;
         }
 
         &::after {
-          content: "(" counter(artifact-equation) ")";
+          content: "(" attr(data-number) ")";
           grid-column: 3;
           justify-self: end;
           font-family: var(--font-frame);
@@ -755,52 +753,17 @@ const unansweredResume = {
         }
       }
 
-      figure.figure {
-        counter-increment: artifact-figure;
+      :is(figure.figure, figure.diagram) .figure-number::after {
+        content: attr(data-number);
       }
 
-      figure.diagram {
-        counter-increment: artifact-diagram;
-      }
-
-      figure.figure .figure-number::after {
-        content: counter(artifact-section) "." counter(artifact-figure);
-      }
-
-      figure.diagram .figure-number::after {
-        content: counter(artifact-section) "." counter(artifact-diagram);
-      }
-
-      > figure.figure:not(h2 ~ *) .figure-number::after,
-      > :not(h2 ~ *) figure.figure .figure-number::after {
-        content: counter(artifact-figure);
-      }
-
-      > figure.diagram:not(h2 ~ *) .figure-number::after,
-      > :not(h2 ~ *) figure.diagram .figure-number::after {
-        content: counter(artifact-diagram);
-      }
-
-      /* CSS can't count what a closed model answer or a hidden explanation hides, so a figure in
-         a question's revealed part takes no number: counting it would renumber every figure after
-         the question as it opens or locks. */
+      /* A figure in a question's revealed part takes no number, so it shows its caption alone: a
+         number on a figure the page hides would leave a gap in the series the owner sees. */
       .question-revealed :is(figure.figure, figure.diagram) {
-        counter-increment: none;
-
         > figcaption > .figure-number,
         > figcaption[data-uncaptioned] {
           display: none;
         }
-      }
-
-      /* One count per question, as the page's questions block numbers them: a matching's box holds
-         several, each on its own row. */
-      [data-question-id] {
-        counter-increment: artifact-question;
-      }
-
-      [data-question-id] > form > .question-header > .question-number::after {
-        content: " " counter(artifact-question);
       }
     }
 

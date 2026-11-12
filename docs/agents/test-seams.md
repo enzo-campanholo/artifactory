@@ -1,6 +1,6 @@
 # Test seams
 
-What each of the four seams in `CODING_STANDARDS.md` owns, and what none tests.
+What each of the five seams in `CODING_STANDARDS.md` owns, and what none tests.
 
 ## 1. `tests/check`
 
@@ -13,12 +13,13 @@ What each of the four seams in `CODING_STANDARDS.md` owns, and what none tests.
 - statements: the clause number each takes beside paragraphs and h3s, the label naming its group and its citations' text and link, in both languages; statement IDs kebab-case and unique within an artifact and found by the name the entry imports `Statement` as, a statement before the first section, in a list or in a question, and a citation of no statement
 - proofs: the opening of one right after its statement and of one elsewhere, with its statement's label, number and link, and its end square, in both languages; the mark that only a proof right after its own statement carries, a proof right after another statement included; the end square on a closing list's last item; a proof of no statement, of a definition or of an example
 - examples: an example's number, label and solution, shown openly after its run-in label, in both languages; an example without a solution, and any other statement with a `---`
+- the numbers the frame writes in the built page: a section's on its h2, and a clause's on a paragraph, an h3 and a statement of its section, none on the lede, a proof's paragraphs or an example's solution, in both languages; a question's on the header that names it, with no `aria-label`, a matching's range on its header and each of its items' on its row, in page order across sections, its header's words in both languages; an equation's in one series across the page, an example's solution and a proof included; a figure's and a diagram's in a series of its kind per section, and before the first section in one series of each kind with the number alone, a figure in a question's prompt there included; a Stage's on the figures' series; none on a figure Stepper, nor on an equation, figure or diagram inside a question's model answer or explanation, the ones after it keeping theirs
 - internal links and anchors, with links to former slugs failing
-- an MDX syntax error at its line, and a component's own error at its artifact's entry, at the component when the entry has only one of that name
-- a numeric question's key that can't work failing as `build`, with the scoring module's reason
+- an MDX syntax error at its line; every broken component rule in one run as `component-rule`, each at its own tag, found by the name the entry imports the component as: a Stage, a `Matching` and a `Figure` naming every rule they break in one line, two Stages in one entry, an imported drawing's own rules at the `Figure`, figure `Stepper` or Stage that draws it, named as the Stage's own at a Stage, the entry's start when the entry's tags and the page's components of that kind don't count the same, and the config, as a platform change, on a page that isn't an artifact's
+- a numeric question's key that can't work failing as `component-rule`, with the scoring module's reason
 - html-validate failures mapped to the source, an entry that isn't `index.mdx`, and the build's warnings
 - a stale component reference, unformatted code, unused files and misplaced tests
-- every failure in one run, the closing block, skipped built-output steps after a failed build, and no question manifest, public paths manifest or build ID after one
+- every failure in one run, the closing block, skipped built-output steps after a failed build, or only for the artifacts with a broken component when that is all that failed, and no question manifest, public paths manifest or build ID after one
 - running Vitest only when a file the tests read changed since the last commit that passed
 - running a step again only once a file it reads has changed since it passed, with a failed step run every time
 - the built site: the Library and drafts page and the eye in their running head, "Public" on a public artifact's Library row and on no other row, an artifact masthead's back link, date line and eye, the remembered theme applied in every page's head (the 404's included) and no eye on the 404, the first screen's fonts preloaded in every page's head (the 404's included) as the files its stylesheets name, a public artifact's page (its public marker, back link, visitor's line and signed-out link to the Library, none of which a private page has) and the viewer its head decides from the owner mark, with none decided on a private page, rendered math, code, tables, diagrams, figures and images, the question manifest, the Library questions block (each listed artifact's question numbers and sections, in the list's order), content hashes, the build ID, redirects for former slugs, the public paths manifest, the `noindex` header rule with no `robots.txt`, and an empty Library passing with no public paths
@@ -36,8 +37,11 @@ What each of the four seams in `CODING_STANDARDS.md` owns, and what none tests.
 - loading an artifact's state: every attempt with its answers, and the content hash
 - the Library API: the latest-attempt rule, drafts included, artifacts without questions left out, and the build ID
 - Access: a missing or invalid token, and a valid one let through
+- the store's HTTP transports, through global `fetch` routed to the Worker: a load `loaded` with the attempts and answers saved before it, `signed out` without a token and `failed` for an unknown artifact; a save `saved` with the answer, `already answered` with the first answer, `signed out` without a token and `failed` for a question the manifest doesn't have; and the Library's load `loaded` with the latest attempts' summaries and `signed out` without a token. The raw-request cases above own the status codes, and seam 3 trusts these outcomes.
 
 ## 3. `tests/store`
+
+A question test mounts its component's own markup: `rendered-question.ts` renders a small `.mdx` fixture with Astro's Container API, through the site's Markdown pipeline, and mounts it under happy-dom. A file that renders runs in node, since Astro won't render under a DOM environment, and gets its page from that module. `minimal-question.ts` is the one exception: it defines its own minimal element to test the store, and copies no component.
 
 - the device copy: starting from it, the first load's check, keeping it after loads and saves, and forgetting it on sign-out
 - the owner mark: left by an artifact's load and saves and the Library's load, never by a failed load or throwaway state, and kept on sign-out
@@ -45,12 +49,33 @@ What each of the four seams in `CODING_STANDARDS.md` owns, and what none tests.
 - attempts: the latest attempt, Start over, switching attempts, and the attempts panel
 - each question kind's behaviour on the page: inert until the store starts, locking, marks, self-marking an open question, and the numeric field's refusal of input that isn't a number, its locking as typed and the right answer it shows on a wrong answer
 - the page's attempt: progress, where the owner stopped, Next question, and what to revisit
-- state notices, the Library's statuses and what to revisit in the Library, and the theme choice
+- state notices, the Library's statuses and the text of each row's status ("Finished", "In progress · N of M answered", or none before the first answer), painted from this device's copy and from the load, what to revisit in the Library, and the theme choice
 
 ## 4. `tests/scoring`
 
 It owns each question kind's `check`, the number syntax a numeric answer and its key are written in (refused and ambiguous input included), the numeric key's rules, and the revision rules of [ADR 0001](../adr/0001-artifact-state-stores-answers-only.md): a corrected key or tolerance rescores, self-checked marks stand, an added question reopens a finished attempt, a removed question is ignored until its ID returns, and progress and score arithmetic. Seams 2 and 3 trust it and don't repeat these cases.
 
+## 5. `tests/stepping`
+
+The Stage and the Stepper on a built page, under happy-dom. Each test file builds one small fixture repo with `tests/check/fixture-repo.ts`, opens one built page with its shipped scripts, and drives it as the owner would, finding each control by its role and accessible name, never by a class.
+
+- a Stage with one choice: the prompt and no step counted before a choice, then at each step the counter, the step and count its host says, the line that says it, the announcement, the marks on drawn parts, and the cells it rewrites and gives back; a drawn part named like an option choosing it
+- choice groups: the run waiting for a choice in every group, and running again from step 1 when either group changes
+- typed input: the first example run from the fields as they open, the line each step runs marked and announced, and a number or text that breaks its field's rule refused at that field (`aria-invalid`, the focus, and the rule in the step's line)
+- a refused run: the refusal said and announced and on its host, no step counted, both buttons refused, and the run after it clearing the refusal from the host
+- steps that colour parts: each part's swatch and its colour's name at each step, going back included
+- the step row on a Stage, a code Stepper, a one-block Stepper and a figure Stepper: the buttons and the left and right arrow keys, both ends refusing to go further with `aria-disabled`, and the buttons usable once the element connects
+- a Stepper's announcement: its step, a code block's marked lines and its caption; a one-block Stepper's lit lines; a figure Stepper's parts at each step
+
+Seam 1 keeps every failure line for a build's steps, the printed steps in the built page, and `pnpm look`.
+
 ## Not tested automatically
 
 Whether `pnpm look`'s shots read well (agents judge each one against its `alt` or caption), the CI workflow, Access login and routing (what the public Access script, `scripts/public-access.ts`, actually opens on the live account, and what the live site answers `pnpm probe`; both are tested against the stand-ins above, and the probe, which CI runs after every deploy, is the check on the live site), browser accessibility (the design system checks it with impeccable), and external links.
+
+Under happy-dom, `tests/stepping` can't reach these, so `pnpm look` and the catalog are the check on them:
+
+- a D2 Stepper's stepping: happy-dom reads only the first of its boards. It shares its element with the code and figure Steppers, which are tested.
+- what the page's styles do to a Stage or a Stepper: happy-dom applies none of the page's stylesheets, which sit in cascade layers. So which of a rewritten cell's two texts shows on screen (the step's, with the content as written kept beside it for print), and how the marks and swatches look, aren't tested.
+- a colouring's cross-fade from one swatch to the next: the tests open the page with reduced motion, since happy-dom rejects every animation the fade cancels, and nothing handles the rejection.
+- the size and place of a drawn part's hit area: happy-dom lays nothing out, so a part's box is empty. Choosing by clicking the part is tested.

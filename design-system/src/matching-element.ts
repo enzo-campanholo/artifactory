@@ -10,8 +10,8 @@ import { QuestionBox } from "./question-element.ts";
 import type { PageAnswer } from "./state.ts";
 
 const labels = {
-  en: { right: "Right", wrong: "Wrong", rightAnswer: "Right answer" },
-  pt: { right: "Correta", wrong: "Incorreta", rightAnswer: "Resposta certa" },
+  en: { question: "Question", right: "Right", wrong: "Wrong", rightAnswer: "Right answer" },
+  pt: { question: "Questão", right: "Correta", wrong: "Incorreta", rightAnswer: "Resposta certa" },
 };
 
 const letters = "abcdefghijklmnopqrstuvwxyz";
@@ -64,7 +64,7 @@ class Matching extends QuestionBox {
         return;
       }
       if (answer.restored) mark.setAttribute("aria-live", "off");
-      const name = row.getAttribute("aria-label") ?? "";
+      const name = `${text.question} ${String(answer.number)}`;
       const letter = letters[Number(rightChoice) - 1] ?? "";
       mark.textContent =
         answer.mark === "right"

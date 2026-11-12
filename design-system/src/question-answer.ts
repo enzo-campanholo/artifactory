@@ -1,4 +1,3 @@
-import { inPageLanguage } from "./page-language.ts";
 import type { NumberedQuestion } from "./question-markers.ts";
 import { check, type Json, type Mark } from "./scoring.ts";
 import type { PageAnswer, Store } from "./state.ts";
@@ -25,6 +24,7 @@ export function chosenOption(within: Element): QuestionResponse {
 }
 
 export interface ShownAnswer {
+  number: number;
   status: PageAnswer["status"];
   mark: Mark | "ownRight" | "ownWrong";
   restored: boolean;
@@ -38,8 +38,6 @@ export function locksAnswer(status: PageAnswer["status"] | undefined): boolean {
 export function rightAnswerShown(answer: ShownAnswer | undefined): boolean {
   return locksAnswer(answer?.status) && answer?.mark === "wrong";
 }
-
-const labels = { en: { question: "Question" }, pt: { question: "Questão" } };
 
 function ownMark(submitter: HTMLElement | null): Mark | undefined {
   const value = submitter?.getAttribute("value");
@@ -69,14 +67,6 @@ export class QuestionAnswer {
     return store.answers.get(this.#question(store).id) === undefined;
   }
 
-  // The page numbers questions with a CSS counter, which Chromium leaves out of a computed name.
-  // The name is on the question itself, which going to a question focuses.
-  name(store: Store) {
-    const { number } = this.#question(store);
-    const { question } = inPageLanguage(this.#element, labels);
-    this.#element.setAttribute("aria-label", `${question} ${String(number)}`);
-  }
-
   save(store: Store, submitter: HTMLElement | null) {
     const question = this.#question(store);
     if (store.answers.get(question.id) !== undefined) return;
@@ -103,6 +93,7 @@ export class QuestionAnswer {
     this.#element.dataset.mark = mark;
     this.#element.dataset.status = answer.status;
     return {
+      number: question.number,
       status: answer.status,
       mark: question.key === undefined ? (mark === "right" ? "ownRight" : "ownWrong") : mark,
       restored,

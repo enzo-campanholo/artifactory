@@ -1,5 +1,5 @@
 ---
-import { componentError } from "./component-errors.ts";
+import { brokenRule, unlessRuleBroken } from "./component-rules.ts";
 import Question from "./Question.astro";
 import { splitAtRule } from "./split-at-rule.ts";
 
@@ -12,8 +12,9 @@ import { splitAtRule } from "./split-at-rule.ts";
  *
  * Write the question, a blank line, `---`, another blank line, then the model answer. Without the
  * blank line above it, `---` turns the question into a heading. Both can hold math, code, lists
- * and figures. A figure or diagram in the model answer shows its caption with no number, since the
- * page can't count what the closed model answer hides; one in the question keeps its number:
+ * and figures. A figure or diagram in the model answer shows its caption with no number, since a
+ * number on a figure the page hides would leave a gap in the series; one in the question keeps its
+ * number:
  *
  * ```mdx
  * import OpenQuestion from "@artifactory/design-system/open-question";
@@ -38,26 +39,32 @@ interface Props {
 }
 
 const { id } = Astro.props;
-const parts = splitAtRule(await Astro.slots.render("default"));
-const prompt = parts?.before ?? "";
-const modelAnswer = parts?.after ?? "";
-if (prompt === "" || modelAnswer === "") {
-  throw componentError(
-    "OpenQuestion",
-    "write the question, then `---` between blank lines, then the model answer",
-  );
-}
+const { checked: parts, marker } = await unlessRuleBroken("OpenQuestion", async () => {
+  const split = splitAtRule(await Astro.slots.render("default"));
+  const prompt = split?.before ?? "";
+  const modelAnswer = split?.after ?? "";
+  if (prompt === "" || modelAnswer === "") {
+    throw brokenRule(
+      "OpenQuestion",
+      "write the question, then `---` between blank lines, then the model answer",
+    );
+  }
+  return { prompt, modelAnswer };
+});
 ---
 
-<Question id={id} kind="open-question" prompt={prompt} modelAnswer={modelAnswer}>
-  <label class="open-question-answer">
-    <span class="open-question-label">
-      <span data-lang="en">Your answer</span>
-      <span data-lang="pt">Sua resposta</span>
-    </span>
-    <textarea rows="4" required></textarea>
-  </label>
-</Question>
+{marker !== undefined && <Fragment set:html={marker} />}
+{parts && (
+  <Question id={id} kind="open-question" prompt={parts.prompt} modelAnswer={parts.modelAnswer}>
+    <label class="open-question-answer">
+      <span class="open-question-label">
+        <span data-lang="en">Your answer</span>
+        <span data-lang="pt">Sua resposta</span>
+      </span>
+      <textarea rows="4" required></textarea>
+    </label>
+  </Question>
+)}
 
 <script>
   import "./open-question-element.ts";

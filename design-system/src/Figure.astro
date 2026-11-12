@@ -1,7 +1,8 @@
 ---
 import "./figure-colours.css";
 import SvgImage from "./SvgImage.astro";
-import { componentError } from "./component-errors.ts";
+import { brokenRule, ruledInstance, unlessRuleBroken } from "./component-rules.ts";
+import { drawingParts } from "./inline-svg.ts";
 import { swatchProblems } from "./swatches.ts";
 
 /**
@@ -76,8 +77,22 @@ interface Props {
 
 const { src, alt, caption, colours } = Astro.props;
 
-const problems = swatchProblems(src, colours, "Figure");
-if (problems.length > 0) throw componentError("Figure", problems.join("; "));
+const { marker } = await unlessRuleBroken("Figure", () => {
+  const problems = swatchProblems(src, colours, "Figure");
+  if (problems.length > 0) throw brokenRule("Figure", problems.join("; "));
+  drawingParts(src);
+});
 ---
 
-<SvgImage svg={src} alt={alt} caption={caption} class="figure" swatches />
+{marker === undefined ? (
+  <SvgImage
+    svg={src}
+    alt={alt}
+    caption={caption}
+    class="figure"
+    swatches
+    instance={ruledInstance("Figure")}
+  />
+) : (
+  <Fragment set:html={marker} />
+)}

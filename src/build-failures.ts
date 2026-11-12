@@ -49,11 +49,16 @@ export function startBuild(root: string): void {
   rmSync(join(root, failuresFile), { force: true });
 }
 
+// A build whose only failures are broken components still built every other page, so the checks of
+// the built pages run, each leaving the broken components' pages unchecked.
 export function readBuildResult(root: string): BuildResult {
+  const failures = readFailures(join(root, failuresFile));
   return {
-    failures: readFailures(join(root, failuresFile)),
+    failures,
     contentSynced: existsSync(join(root, contentTypesFile)),
-    builtOutput: existsSync(join(root, buildIdFile)),
+    builtOutput:
+      existsSync(join(root, buildIdFile)) ||
+      (failures.length > 0 && failures.every(({ ruleId }) => ruleId === "component-rule")),
   };
 }
 

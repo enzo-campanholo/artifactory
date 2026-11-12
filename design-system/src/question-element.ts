@@ -115,7 +115,6 @@ export abstract class QuestionBox extends HTMLElement {
     whenStoreStarts((store) => {
       if (!this.isConnected || this.#store !== undefined) return;
       this.#store = store;
-      for (const answer of this.answers) answer.name(store);
       this.#unsubscribe = store.answers.subscribe(() => {
         this.#show(store);
       });

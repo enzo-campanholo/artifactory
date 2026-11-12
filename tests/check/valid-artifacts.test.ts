@@ -758,6 +758,202 @@ const steppedFigures = {
   ].join("\n"),
 };
 
+// Every displayed equation, figure and diagram the page numbers, and the ones it leaves unnumbered:
+// a figure Stepper and everything inside a question's model answer or explanation.
+const numberedDrawings = {
+  "artifacts/numeracao/index.mdx": artifact(fields("num3r4c0", "Numeração", "Grafos"), [
+    'import Diagram from "@artifactory/design-system/diagram";',
+    'import Figure from "@artifactory/design-system/figure";',
+    'import OpenQuestion from "@artifactory/design-system/open-question";',
+    'import Proof from "@artifactory/design-system/proof";',
+    'import SingleChoice from "@artifactory/design-system/single-choice";',
+    'import Stage from "@artifactory/design-system/stage";',
+    'import Statement from "@artifactory/design-system/statement";',
+    'import Stepper from "@artifactory/design-system/stepper";',
+    'import ponto from "./ponto.svg?raw";',
+    'import pontos from "./pontos.svg?raw";',
+    'import passos from "./passos.svg?raw";',
+    'import cadeia from "./cadeia.d2";',
+    "",
+    "Antes da primeira seção, uma figura e uma equação.",
+    "",
+    '<Figure src={ponto} alt="Ponto da abertura." />',
+    "",
+    "$$",
+    "a = 1",
+    "$$",
+    "",
+    '<Figure src={ponto} alt="Outro ponto da abertura." caption="Ainda antes das seções." />',
+    "",
+    "## Primeira",
+    "",
+    '<Diagram src={cadeia} alt="Cadeia da primeira seção." />',
+    "",
+    '<Figure src={ponto} alt="Ponto da primeira seção." />',
+    "",
+    "$$",
+    "b = 2",
+    "$$",
+    "",
+    "<Stage",
+    '  build="acende"',
+    '  choose={{ label: "Começar em", options: ["a", "b"] }}',
+    '  prompt="Escolha um ponto para começar."',
+    "  figure={pontos}",
+    '  alt="Dois pontos, a e b, no palco."',
+    "/>",
+    "",
+    '<Stepper figure={passos} alt="Dois pontos, um depois do outro, no stepper." captions={["O ponto a.", "O ponto b."]} />',
+    "",
+    '<Statement kind="example" id="soma">',
+    "",
+    "Quanto é $1 + 1$?",
+    "",
+    "$$",
+    "c = 1 + 1",
+    "$$",
+    "",
+    "---",
+    "",
+    "Somando,",
+    "",
+    "$$",
+    "c = 2",
+    "$$",
+    "",
+    '<Figure src={ponto} alt="Ponto da solução do exemplo." />',
+    "",
+    "</Statement>",
+    "",
+    '<Statement kind="theorem" id="dobro">',
+    "",
+    "O dobro de $1$ é $2$.",
+    "",
+    "</Statement>",
+    "",
+    '<Proof of="dobro">',
+    "",
+    "Pela soma,",
+    "",
+    "$$",
+    "d = 1 + 1 = 2",
+    "$$",
+    "",
+    "</Proof>",
+    "",
+    "## Segunda",
+    "",
+    '<OpenQuestion id="ponto-e-cadeia">',
+    "",
+    "O que a figura mostra?",
+    "",
+    '<Figure src={ponto} alt="Ponto do enunciado da questão." />',
+    "",
+    "---",
+    "",
+    "Um ponto, que a cadeia e a equação explicam:",
+    "",
+    '<Figure src={ponto} alt="Ponto da resposta-modelo." caption="Só a legenda." />',
+    "",
+    '<Diagram src={cadeia} alt="Cadeia da resposta-modelo." />',
+    "",
+    "$$",
+    "e = 5",
+    "$$",
+    "",
+    "</OpenQuestion>",
+    "",
+    '<SingleChoice id="quantos-pontos" answer={1}>',
+    "",
+    "Quantos pontos a figura tem?",
+    "",
+    "1. Um",
+    "2. Dois",
+    "",
+    "---",
+    "",
+    "Conte:",
+    "",
+    '<Figure src={ponto} alt="Ponto da explicação." />',
+    "",
+    '<Diagram src={cadeia} alt="Cadeia da explicação." />',
+    "",
+    "$$",
+    "f = 1",
+    "$$",
+    "",
+    "</SingleChoice>",
+    "",
+    '<Figure src={ponto} alt="Ponto da segunda seção." />',
+    "",
+    '<Diagram src={cadeia} alt="Cadeia da segunda seção." />',
+    "",
+    "$$",
+    "g = 7",
+    "$$",
+  ]),
+  "artifacts/abertura/index.mdx": artifact(fields("ab3rtur4", "Abertura", "Grafos"), [
+    'import Figure from "@artifactory/design-system/figure";',
+    'import OpenQuestion from "@artifactory/design-system/open-question";',
+    'import ponto from "./ponto.svg?raw";',
+    "",
+    '<Figure src={ponto} alt="Ponto antes da questão." />',
+    "",
+    '<OpenQuestion id="ponto-da-abertura">',
+    "",
+    "O que a figura mostra?",
+    "",
+    '<Figure src={ponto} alt="Ponto no enunciado da abertura." />',
+    "",
+    "---",
+    "",
+    "Um ponto.",
+    "",
+    "</OpenQuestion>",
+    "",
+    '<Figure src={ponto} alt="Ponto depois da questão." />',
+    "",
+    "## Primeira",
+    "",
+    '<Figure src={ponto} alt="Ponto da primeira seção." />',
+  ]),
+  "artifacts/abertura/ponto.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">',
+    '  <circle cx="20" cy="20" r="6" class="fill-text" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/numeracao/ponto.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">',
+    '  <circle cx="20" cy="20" r="6" class="fill-text" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/numeracao/pontos.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40">',
+    '  <g data-part="a"><circle cx="20" cy="20" r="6" class="fill-text" /></g>',
+    '  <g data-part="b"><circle cx="60" cy="20" r="6" class="fill-text" /></g>',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/numeracao/passos.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40">',
+    '  <circle data-step="1-" cx="20" cy="20" r="6" class="fill-text" />',
+    '  <circle data-step="2" cx="60" cy="20" r="6" class="fill-text" />',
+    "</svg>",
+    "",
+  ].join("\n"),
+  "artifacts/numeracao/cadeia.d2": threeStepChain,
+  "artifacts/numeracao/acende.build.ts": [
+    'import { defineBuild } from "@artifactory/design-system/stage-build";',
+    "",
+    "export default defineBuild({",
+    "  steps: (start) => [{ say: `O ponto ${start} acende.`, parts: { [start]: 'reversed' } }],",
+    "});",
+    "",
+  ].join("\n"),
+};
+
 const colouring = {
   "artifacts/coloracao/index.mdx": artifact(fields("c0l0r4c4", "Coloração", "Grafos"), [
     'import Figure from "@artifactory/design-system/figure";',
@@ -1183,6 +1379,62 @@ const machineTrace = {
   ].join("\n"),
 };
 
+const questionNumbers = {
+  "artifacts/autovalores/index.mdx": artifact(fields("4ut0v4l0", "Autovalores", "Cálculo"), [
+    'import Matching from "@artifactory/design-system/matching";',
+    'import NumericQuestion from "@artifactory/design-system/numeric-question";',
+    'import OpenQuestion from "@artifactory/design-system/open-question";',
+    'import SingleChoice from "@artifactory/design-system/single-choice";',
+    "",
+    '<NumericQuestion id="frequencia-da-mola" answer="10">',
+    "",
+    "Qual é a frequência angular de uma massa de $2\\,\\mathrm{kg}$ numa mola com $k = 200$?",
+    "",
+    "</NumericQuestion>",
+    "",
+    "## Matrizes especiais",
+    "",
+    "Algumas matrizes têm autovalores que se leem de cara.",
+    "",
+    '<Matching answers={{ "matriz-identidade": 1, "matriz-nula": 2, "matriz-de-rotacao": 3 }}>',
+    "",
+    "Quais autovalores reais tem cada matriz $2 \\times 2$?",
+    "",
+    "1. Só $1$",
+    "2. Só $0$",
+    "3. Nenhum",
+    "",
+    "---",
+    "",
+    "- A identidade $I$",
+    "- A matriz nula",
+    "- Uma rotação de $90°$",
+    "",
+    "</Matching>",
+    "",
+    "## Polinômio característico",
+    "",
+    '<SingleChoice id="autovalor-da-identidade" answer={1}>',
+    "",
+    "Qual é todo autovalor da identidade?",
+    "",
+    "1. $1$",
+    "2. $0$",
+    "",
+    "</SingleChoice>",
+    "",
+    '<OpenQuestion id="por-que-o-determinante">',
+    "",
+    "Por que os autovalores zeram $\\det(A - \\lambda I)$?",
+    "",
+    "---",
+    "",
+    "Porque $A - \\lambda I$ leva um vetor não nulo a zero.",
+    "",
+    "</OpenQuestion>",
+  ]),
+};
+
 const renamedTwiceAndBack = {
   "artifacts/derivadas/index.mdx": artifact(
     fields("d3r1v4d4", "Derivadas", "Cálculo", "formerSlugs: [derivadas-velhas]"),
@@ -1520,7 +1772,9 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ...groupsStage,
       ...machineTrace,
       ...steppedFigures,
+      ...numberedDrawings,
       ...colouring,
+      ...questionNumbers,
       ...renamedTwiceAndBack,
       ...statementsAndCitations,
       ...draft,
@@ -2268,6 +2522,78 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
     });
   });
 
+  describe("equation, figure and diagram numbers", () => {
+    // happy-dom's parser drops everything after a `<style>` inside an SVG, as D2 writes in every
+    // diagram, so the page is read without its styles.
+    async function main(slug: string): Promise<Element> {
+      const page = new new Window().DOMParser().parseFromString(
+        (await builtPage(slug)).replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, ""),
+        "text/html",
+      ) as unknown as Document;
+      const found = page.querySelector("main");
+      if (found === null) throw new Error(`dist/${slug}/index.html has no main`);
+      return found;
+    }
+
+    it("writes each equation's number in one series across the page, an example's solution and a proof included, and none inside a question's model answer or explanation", async () => {
+      const page = await main("numeracao");
+      const equations = [...page.querySelectorAll("div.equation")].map((equation) => [
+        equation.textContent.replace(/\s+/g, ""),
+        equation.getAttribute("data-number"),
+      ]);
+      expect(equations).toEqual([
+        ["a=1", "1"],
+        ["b=2", "2"],
+        ["c=1+1", "3"],
+        ["c=2", "4"],
+        ["d=1+1=2", "5"],
+        ["e=5", null],
+        ["f=1", null],
+        ["g=7", "6"],
+      ]);
+    });
+
+    it("writes each figure's and diagram's number in a series of its kind per section, a Stage's among the figures, and none on a figure Stepper or inside a question's model answer or explanation", async () => {
+      const page = await main("numeracao");
+      const drawings = [...page.querySelectorAll("figure, .stepper")].map((drawing) => [
+        drawing.querySelector("svg[role='img']")?.getAttribute("aria-label"),
+        drawing
+          .querySelector(":scope > figcaption > .figure-number")
+          ?.getAttribute("data-number") ?? null,
+      ]);
+      expect(drawings).toEqual([
+        ["Ponto da abertura.", "1"],
+        ["Outro ponto da abertura.", "2"],
+        ["Cadeia da primeira seção.", "1.1"],
+        ["Ponto da primeira seção.", "1.1"],
+        ["Dois pontos, a e b, no palco.", "1.2"],
+        ["Dois pontos, um depois do outro, no stepper.", null],
+        ["Ponto da solução do exemplo.", "1.3"],
+        ["Ponto do enunciado da questão.", "2.1"],
+        ["Ponto da resposta-modelo.", null],
+        ["Cadeia da resposta-modelo.", null],
+        ["Ponto da explicação.", null],
+        ["Cadeia da explicação.", null],
+        ["Ponto da segunda seção.", "2.2"],
+        ["Cadeia da segunda seção.", "2.1"],
+      ]);
+    });
+
+    it("numbers the figures before the first section in one series, one inside a question's prompt included", async () => {
+      const page = await main("abertura");
+      const figures = [...page.querySelectorAll("figure")].map((figure) => [
+        figure.querySelector("svg[role='img']")?.getAttribute("aria-label"),
+        figure.querySelector(":scope > figcaption > .figure-number")?.getAttribute("data-number"),
+      ]);
+      expect(figures).toEqual([
+        ["Ponto antes da questão.", "1"],
+        ["Ponto no enunciado da abertura.", "2"],
+        ["Ponto depois da questão.", "3"],
+        ["Ponto da primeira seção.", "1.1"],
+      ]);
+    });
+  });
+
   describe("renaming", () => {
     it("rewrites every link to the renamed artifact to its current slug", async () => {
       const linking = await readFile(join(repo.root, "artifacts/limites/index.mdx"), "utf8");
@@ -2291,6 +2617,46 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
         "/derivadas-velhas /derivada/ 301",
         "/derivadas-velhas/ /derivada/ 301",
         "",
+      ]);
+    });
+  });
+
+  describe("question numbers", () => {
+    it("names each question by its header, written with its number in page order across sections, a matching's by its items' range and each item's by its row's own number", async () => {
+      const page = new new Window().DOMParser().parseFromString(
+        await builtPage("autovalores"),
+        "text/html",
+      ) as unknown as Document;
+      const shown = (element: Element) => {
+        const copy = element.cloneNode(true) as Element;
+        for (const other of copy.querySelectorAll('[data-lang]:not([data-lang="pt"])')) {
+          other.remove();
+        }
+        return copy.textContent.replace(/\s+/g, " ").trim();
+      };
+      const questions = [...page.querySelectorAll(".question, [data-question-id]")].map(
+        (question) => {
+          const named = page.querySelectorAll(
+            `[id="${question.getAttribute("aria-labelledby") ?? ""}"]`,
+          );
+          const header = named.length === 1 ? named[0] : undefined;
+          return [
+            question.getAttribute("data-question-id") ?? question.localName,
+            question.hasAttribute("aria-label"),
+            header?.className,
+            header === undefined ? undefined : shown(header),
+            header?.getAttribute("data-number"),
+          ];
+        },
+      );
+      expect(questions).toEqual([
+        ["frequencia-da-mola", false, "question-number", "Questão", "1"],
+        ["artifact-matching", false, "question-number", "Questões", "2–4"],
+        ["matriz-identidade", false, "matching-item-number", "Questão", "2"],
+        ["matriz-nula", false, "matching-item-number", "Questão", "3"],
+        ["matriz-de-rotacao", false, "matching-item-number", "Questão", "4"],
+        ["autovalor-da-identidade", false, "question-number", "Questão", "5"],
+        ["por-que-o-determinante", false, "question-number", "Questão", "6"],
       ]);
     });
   });
@@ -2434,6 +2800,65 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
             .join(" "),
         ]);
         expect(statements).toEqual(expected);
+      }
+    });
+
+    it("writes each section's number on its heading, and each clause's on its paragraph, its h3 or its statement's first line, but none on the lede, a proof or an example's solution", async () => {
+      for (const [slug, expected] of [
+        [
+          "valor-medio",
+          [
+            ["h2", "1"],
+            ["p", "1.1"],
+            ["S-derivavel", "1.2"],
+            ["h3", "1.3"],
+            ["p", "1.4"],
+            ["S-fermat", "1.5"],
+            ["h2", "2"],
+            ["S-valor-medio", "2.1"],
+            ["p", "2.2"],
+            ["S-constante", "2.3"],
+            ["S-troca", "2.4"],
+            ["S-troca-name", "2.5"],
+            ["p", "2.6"],
+            ["S-seno", "2.7"],
+            ["S-cosseno", "2.8"],
+            ["p", "2.9"],
+            ["h2", "3"],
+            ["S-media", "3.1"],
+            ["S-limitada", "3.2"],
+            ["p", "3.3"],
+          ],
+        ],
+        [
+          "mean-value",
+          [
+            ["h2", "1"],
+            ["S-rolle", "1.1"],
+            ["p", "1.2"],
+            ["S-secant", "1.3"],
+            ["h2", "2"],
+            ["S-sign", "2.1"],
+            ["S-increasing", "2.2"],
+            ["p", "2.3"],
+            ["S-cube", "2.4"],
+            ["h2", "3"],
+            ["S-average", "3.1"],
+            ["S-bounded", "3.2"],
+            ["p", "3.3"],
+          ],
+        ],
+      ] as const) {
+        const page = await main(slug);
+        const numbered = [...page.querySelectorAll(":is(h2, h3, p)[data-number]")].map(
+          (element) => [
+            element.parentElement?.matches(".statement") === true
+              ? element.parentElement.id
+              : element.tagName.toLowerCase(),
+            element.getAttribute("data-number"),
+          ],
+        );
+        expect(numbered).toEqual(expected);
       }
     });
 

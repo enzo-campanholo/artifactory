@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join, relative } from "node:path";
 import {
@@ -7,10 +6,7 @@ import {
   type BuildResult,
 } from "../../../src/build-failures.ts";
 import type { Failure } from "../../../src/check-failure.ts";
-import { componentNamesIn } from "@artifactory/design-system/component-errors";
-import { importableComponents } from "../../component-reference.ts";
-import { artifactsFolderItems, entryFile, readEntry } from "../../../src/artifacts.ts";
-import { locate } from "../../../src/source-locator.ts";
+import { artifactsFolderItems } from "../../../src/artifacts.ts";
 import { runTool } from "../run-tool.ts";
 
 interface LogRecord {
@@ -25,9 +21,7 @@ export async function build(root: string): Promise<BuildResult> {
   const { failures, contentSynced, builtOutput } = readBuildResult(root);
   const { records, text } = splitLog(astroBuild.output);
   const unreported =
-    astroBuild.exitCode !== 0 && failures.length === 0
-      ? [await failureFromAstroError(root, records, text)]
-      : [];
+    astroBuild.exitCode !== 0 && failures.length === 0 ? [failureFromAstroError(root, text)] : [];
   const libraryIsEmpty = (await artifactsFolderItems(root)).length === 0;
   return {
     failures: [
@@ -90,11 +84,7 @@ function warnings(records: LogRecord[]): Failure[] {
     }));
 }
 
-async function failureFromAstroError(
-  root: string,
-  records: LogRecord[],
-  text: string[],
-): Promise<Failure> {
+function failureFromAstroError(root: string, text: string[]): Failure {
   const locationIndex = text.findIndex((line) => line.trim() === "Location:");
   const location = /^\s*(?<file>.+):(?<line>\d+):(?<column>\d+)$/.exec(
     text[locationIndex + 1] ?? "",
@@ -103,44 +93,18 @@ async function failureFromAstroError(
     .slice(0, locationIndex === -1 ? undefined : locationIndex)
     .findLast((line) => /^\S/.test(line))
     ?.trim();
-  const place: Place | undefined =
+  const place: Place =
     location?.file === undefined
-      ? await componentInArtifact(root, failedPage(records), message)
+      ? configStart
       : {
           file: relative(root, location.file),
           line: Math.max(1, Number(location.line)),
           column: Math.max(1, Number(location.column)),
         };
   return {
-    ...(place ?? configStart),
+    ...place,
     ruleId: "build",
     message: message ?? "the build failed",
     skillSection: "Build failures",
   };
-}
-
-function failedPage(records: LogRecord[]): string | undefined {
-  return records
-    .filter(({ level, label }) => level === "error" && label === "build")
-    .map(({ message }) => /^Caught error rendering \/(?<slug>[^/\s:]+)\/?:/.exec(message))
-    .find((match) => match !== null)?.groups?.slug;
-}
-
-// A component's own error has no location, but the build log names the page it failed on.
-async function componentInArtifact(
-  root: string,
-  slug: string | undefined,
-  message: string | undefined,
-): Promise<Place | undefined> {
-  const names = await componentsNamedIn(root, message ?? "");
-  if (slug === undefined || names.length === 0) return undefined;
-  if (!existsSync(join(root, entryFile(slug)))) return undefined;
-  const { file, source } = await readEntry(root, slug);
-  return { file, ...locate(source, { kind: "component", names }).position };
-}
-
-async function componentsNamedIn(root: string, message: string): Promise<string[]> {
-  const names = componentNamesIn(message);
-  const components = new Set((await importableComponents(root)).map(({ name }) => name));
-  return names.every((name) => components.has(name)) ? names : [];
 }

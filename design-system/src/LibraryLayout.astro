@@ -10,7 +10,8 @@ import ThemeEye from "./ThemeEye.astro";
 import ThemeHead from "./ThemeHead.astro";
 import { shortDate } from "./dates.ts";
 import { keptSummariesKey } from "./library-statuses.ts";
-import paintFromKeptCopy from "./library-revisit-paint.js?raw";
+import paintRevisitFromKeptCopy from "./library-revisit-paint.js?raw";
+import paintRowStatusesFromKeptCopy from "./library-row-statuses-paint.js?raw";
 import { libraryQuestionsBlock } from "./question-markers.ts";
 
 /**
@@ -177,40 +178,18 @@ const publishedOn = (date: Date) => shortDate(date, "en", { timeZone: "UTC" });
               </li>
             ))}
           </ol>
-          {/*
-           * Inline and right after the list, so the statuses this device last loaded paint with
-           * the rows and the load only corrects them. It writes the markup the module writes.
-           */}
-          <script is:inline define:vars={{ keptSummariesKey }}>
-            let kept = {};
-            try {
-              kept = JSON.parse(localStorage.getItem(keptSummariesKey) ?? "{}") ?? {};
-            } catch {
-              // A cache that can't be read paints no statuses, and the load fills them in.
-            }
-            for (const row of document.querySelectorAll(".library-row")) {
-              const summary = Object.hasOwn(kept, row.dataset.artifactId)
-                ? kept[row.dataset.artifactId]
-                : undefined;
-              const { answered, total } = summary?.progress ?? {};
-              if (typeof answered !== "number" || typeof total !== "number" || answered === 0) {
-                continue;
-              }
-              const status = row.appendChild(document.createElement("p"));
-              status.className = "library-status";
-              status.textContent =
-                summary.finished === true
-                  ? "Finished"
-                  : `In progress · ${answered} of ${total} answered`;
-            }
-          </script>
+          <script
+            is:inline
+            data-kept-summaries-key={keptSummariesKey}
+            set:html={paintRowStatusesFromKeptCopy}
+          />
           <library-revisit></library-revisit>
           {/* Written empty: a clean build fills it in, as it stamps the build ID. */}
           <Fragment set:html={libraryQuestionsBlock([])} />
           <script
             is:inline
             data-kept-summaries-key={keptSummariesKey}
-            set:html={paintFromKeptCopy}
+            set:html={paintRevisitFromKeptCopy}
           />
         </>
       )}
@@ -220,14 +199,14 @@ const publishedOn = (date: Date) => shortDate(date, "en", { timeZone: "UTC" });
 </html>
 
 <script>
+  import { httpLibraryTransport } from "./http-transports.ts";
   import "./library-revisit.ts";
   import {
-    httpLibraryTransport,
     keptLibraryTransport,
     memoryLibraryTransport,
     startLibraryStatuses,
   } from "./library-statuses.ts";
-  import type { Summary } from "./scoring.ts";
+  import { showRowStatuses } from "./library-row-statuses.ts";
 
   const { buildId = "" } = document.documentElement.dataset;
   const transport =
@@ -236,31 +215,7 @@ const publishedOn = (date: Date) => shortDate(date, "en", { timeZone: "UTC" });
       : memoryLibraryTransport({ buildId, summaries: {} });
   const statuses = startLibraryStatuses({ buildId, transport });
   document.documentElement.dataset.storeStarted = "";
-
-  function statusText({ progress: { answered, total }, finished }: Summary): string {
-    if (answered === 0) return "";
-    return finished ? "Finished" : `In progress · ${String(answered)} of ${String(total)} answered`;
-  }
-
-  function showStatuses() {
-    if (!statuses.loaded) return;
-    for (const row of document.querySelectorAll<HTMLElement>(".library-row")) {
-      const rowSummary = statuses.summary(row.dataset.artifactId ?? "");
-      const text = rowSummary === undefined ? "" : statusText(rowSummary);
-      let status = row.querySelector(".library-status");
-      if (text === "") {
-        status?.remove();
-        continue;
-      }
-      if (status === null) {
-        status = row.appendChild(document.createElement("p"));
-        status.className = "library-status";
-      }
-      if (status.textContent !== text) status.textContent = text;
-    }
-  }
-
-  statuses.subscribe(showStatuses);
+  showRowStatuses(statuses);
 </script>
 
 <style is:global>

@@ -1,6 +1,7 @@
 import type { SavedAttempt } from "../src/saved-state.ts";
 import type { Answer, NumericKey, Question } from "../src/scoring.ts";
-import { memoryTransport, startStore, type Store, type Transport } from "../src/state.ts";
+import { memoryTransport, startStore, type Store } from "../src/state.ts";
+import type { Transport } from "../src/transport.ts";
 
 export const questionIds = {
   singleChoice: "area-of-a-circle",

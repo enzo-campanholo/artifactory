@@ -1,10 +1,12 @@
-// @vitest-environment happy-dom
+import { mountQuestion } from "./rendered-question.ts";
 import "@artifactory/design-system/artifact-attempt";
 import "@artifactory/design-system/matching-element";
 import type { SavedAttempt } from "@artifactory/design-system/saved-state";
 import type { Question } from "@artifactory/design-system/scoring";
-import type { MemoryTransport, Transport } from "@artifactory/design-system/state";
+import type { MemoryTransport } from "@artifactory/design-system/state";
+import type { Transport } from "@artifactory/design-system/transport";
 import { afterEach, expect, test, vi } from "vitest";
+import MemoryAreas from "./memory-areas.mdx";
 import { isDisabled } from "./minimal-question.ts";
 import {
   capital,
@@ -15,57 +17,17 @@ import {
   seededTransport,
 } from "./seeded-page.ts";
 
-const options = ["Code", "Data", "Stack", "Heap"];
 const items = [
-  { id: "global-variable", text: "A global variable", key: 2 },
-  { id: "local-variable", text: "A local variable", key: 3 },
-  { id: "new-object", text: "An object made with new", key: 4 },
+  { id: "global-variable", key: 2 },
+  { id: "local-variable", key: 3 },
+  { id: "new-object", key: 4 },
 ] as const;
 type ItemId = (typeof items)[number]["id"];
 
 const itemQuestions: Question[] = items.map(({ id, key }) => ({ id, kind: "single-choice", key }));
 
-function mountMatching() {
-  const optionId = (index: number) => `q-global-variable--option-${String(index + 1)}`;
-  const row = ({ id, text, key }: (typeof items)[number]) => `
-    <div id="q-${id}" data-question-id="${id}" data-question-kind="single-choice" data-question-key="${String(key)}" class="matching-item" role="group" aria-describedby="q-${id}--item">
-      <fieldset>
-        <span class="matching-item-text" id="q-${id}--item">${text}</span>
-        <span class="matching-choices">
-          ${options
-            .map(
-              (_, index) =>
-                `<label><input type="radio" name="q-${id}" value="${String(index + 1)}" aria-labelledby="${optionId(index)}" required><span aria-hidden="true">${"abcd"[index] ?? ""}</span></label>`,
-            )
-            .join("")}
-        </span>
-        <span class="matching-item-mark" role="status"></span>
-      </fieldset>
-    </div>`;
-  const template = document.createElement("template");
-  template.innerHTML = `
-    <artifact-matching class="question matching" role="group" inert="">
-      <form>
-        <div class="question-header">
-          <p class="question-status" role="status" tabindex="-1"></p>
-        </div>
-        <fieldset>
-          <div class="question-prompt"><p>Where in memory does each item live?</p></div>
-          <ol class="matching-options">
-            ${options.map((option, index) => `<li><span id="${optionId(index)}">${option}</span></li>`).join("")}
-          </ol>
-          <div class="matching-items">${items.map(row).join("")}</div>
-          <div class="question-actions">
-            <button type="submit" class="question-check" aria-disabled="true">Check</button>
-          </div>
-        </fieldset>
-        <div class="question-explanation" hidden>
-          <p>Locals live in the call's frame, on the stack; new allocates on the heap, and globals sit in the data area.</p>
-        </div>
-        <div class="question-recovery" hidden></div>
-      </form>
-    </artifact-matching>`;
-  document.body.replaceChildren(template.content);
+async function mountMatching() {
+  await mountQuestion(MemoryAreas);
   const part = (selector: string) => {
     const found = document.querySelector<HTMLElement>(selector);
     if (found === null) throw new Error(`no ${selector}`);
@@ -94,7 +56,7 @@ function mountMatching() {
 
 async function loadedMatching(transport: Transport, startFrom: SavedAttempt[] = []) {
   const store = openPage(transport, [capital, ...itemQuestions], startFrom);
-  const mounted = mountMatching();
+  const mounted = await mountMatching();
   await checked(store);
   return { ...mounted, store };
 }
@@ -170,11 +132,6 @@ test("each row's mark is announced with its item's number, and the right letter 
   await vi.waitFor(() => {
     expect(rowOf("new-object").dataset.status).toBe("saved");
   });
-  expect(items.map(({ id }) => rowOf(id).getAttribute("aria-label"))).toEqual([
-    "Question 2",
-    "Question 3",
-    "Question 4",
-  ]);
   expect(items.map(({ id }) => markOf(id).textContent)).toEqual([
     "Question 2: Right",
     "Question 3: Wrong · Right answer: c)",
@@ -204,10 +161,10 @@ const everyItemAnswered = attemptWith([
   ["new-object", 4, "right"],
 ]);
 
-test("answers this device last showed show locked with their marks as soon as the store starts, without being announced", () => {
+test("answers this device last showed show locked with their marks as soon as the store starts, without being announced", async () => {
   openPage(neverChecked, [capital, ...itemQuestions], [everyItemAnswered]);
 
-  const { box, rowOf, radiosOf, status, markOf } = mountMatching();
+  const { box, rowOf, radiosOf, status, markOf } = await mountMatching();
 
   expect(box.inert).toBe(false);
   expect(items.map(({ id }) => rowOf(id).dataset.mark)).toEqual(["right", "wrong", "right"]);
@@ -430,7 +387,7 @@ test("the explanation stays hidden while any item is open or saving, and shows o
 
 test("the explanation shows from the device copy as soon as the store starts, and from the server once it loads", async () => {
   openPage(neverChecked, [capital, ...itemQuestions], [everyItemAnswered]);
-  expect(mountMatching().explanation.hidden).toBe(false);
+  expect((await mountMatching()).explanation.hidden).toBe(false);
   document.body.innerHTML = "";
 
   const { explanation } = await loadedMatching(seededTransport([everyItemAnswered]));

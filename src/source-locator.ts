@@ -11,7 +11,7 @@ type SourceTarget =
   | { kind: "statement-id"; id: string; occurrence: number }
   | { kind: "citation"; to: string; occurrence: number }
   | { kind: "proof"; of: string; occurrence: number }
-  | { kind: "component"; names: string[] };
+  | { kind: "component-instance"; module: string; occurrence: number; onPage: number };
 
 interface ElementTarget {
   kind: "element";
@@ -53,8 +53,8 @@ function offsetOf(source: ArtifactSource, target: SourceTarget): number | undefi
       return componentPropOffsets(source.text, "ref", "to", target.to)[target.occurrence];
     case "proof":
       return componentPropOffsets(source.text, "proof", "of", target.of)[target.occurrence];
-    case "component":
-      return onlyTagOffset(source.text, target.names);
+    case "component-instance":
+      return instanceOffset(source.text, target);
   }
 }
 
@@ -144,7 +144,7 @@ interface WrittenProp {
 
 // A design system component is found by the name the entry imports it as. Its props are read whole,
 // so a `<` or `>` in a prop's value doesn't end its tag.
-function componentProps(text: string, component: string): WrittenProp[] {
+function componentTags(text: string, component: string): RegExpExecArray[] {
   const module = escaped(`@artifactory/design-system/${component}`);
   const names = [
     ...text.matchAll(
@@ -153,10 +153,14 @@ function componentProps(text: string, component: string): WrittenProp[] {
   ].map(([, name = ""]) => name);
   if (names.length === 0) return [];
   const tags = new RegExp(
-    String.raw`<(?:${names.map(escaped).join("|")})(${writtenProps.source})`,
+    String.raw`<(?:${names.map(escaped).join("|")})(${writtenProps.source})(?=[\s/>])`,
     "g",
   );
-  return [...text.matchAll(tags)].flatMap(({ 0: tag, 1: props = "", index }) => {
+  return [...text.matchAll(tags)];
+}
+
+function componentProps(text: string, component: string): WrittenProp[] {
+  return componentTags(text, component).flatMap(({ 0: tag, 1: props = "", index }) => {
     const propsStart = index + tag.length - props.length;
     return [...props.matchAll(writtenProp)].map(
       ({ 0: whole, 1: name = "", 2: written = "", index: at }) => {
@@ -177,11 +181,14 @@ function unquoted(written: string): string | undefined {
   return (/^\{\s*(["'\x60])(.*)\1\s*\}$/s.exec(written) ?? /^(["'])(.*)\1$/s.exec(written))?.[2];
 }
 
-// A component's own error has no location, so it is placed at the component only when the entry
-// has a single tag with one of its names.
-function onlyTagOffset(text: string, names: string[]): number | undefined {
-  const tags = [...text.matchAll(new RegExp(`<(?:${names.join("|")})(?=[\\s/>])`, "g"))];
-  return tags.length === 1 ? tags[0]?.index : undefined;
+// The page and the entry list a component's instances in the same order, unless one wasn't rendered,
+// such as one inside a component whose rule is broken. Then the counts disagree and none is placed.
+function instanceOffset(
+  text: string,
+  { module, occurrence, onPage }: Extract<SourceTarget, { kind: "component-instance" }>,
+): number | undefined {
+  const tags = componentTags(text, module);
+  return tags.length === onPage ? tags[occurrence]?.index : undefined;
 }
 
 function escaped(text: string): string {

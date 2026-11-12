@@ -50,3 +50,9 @@ Owner, architecture review session, 2026-11-10 (thread 8d57bee0-37b7-4277-bf58-c
 - **Approved, round 2 Q10:** one test per outcome, with the existing raw-request tests kept.
 - **Approved, round 3 Q1:** one ticket, whose first step proves the import; if it can't be done, the ticket returns to the owner as `needs-info`.
 - **Order of work, round 2 Q12:** third. It depends on no other feature.
+
+### 2026-11-11: owner decision at the code review
+
+Owner, implement-spec orchestration session, 2026-11-11, on the code review of the integration branch (`c6b9706...622fa5d`).
+
+- **Approved, decision 2 (one import path for the transports):** the `./http-transports` package export stays. `state.ts` and `library-statuses.ts` drop their re-exports of the transports, and their importers (the layouts, the catalog, `tests/store`) import from `./http-transports`. `Transport` moves to wherever reads best for the in-memory transport. This supersedes [Behaviour](#behaviour)'s "No production code changes" for those import lines.

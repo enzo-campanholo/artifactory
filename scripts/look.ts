@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { ElementHandle, Page, SerializedAXNode } from "puppeteer-core";
+import type { StageHost } from "@artifactory/design-system/stage-on-page";
 import { kebabCase } from "../src/artifacts.ts";
 import {
   assertCase,
@@ -67,16 +68,10 @@ interface ShotProblem {
   problem: string;
 }
 
-interface Stepping {
-  forward: string;
-  current: string;
-}
-
-const stepperStepping: Stepping = {
-  forward: "button.stepper-forward",
-  current: ".stepper-current",
-};
-const stageStepping: Stepping = { forward: "button.stage-forward", current: ".stage-current" };
+// A Stepper and a Stage step through the same row, StepControls.astro's, whose last button goes
+// forward. Either host says the step it shows and its count, and a Stage's says a refusal too.
+const stepRow = { forward: ".step-controls > button:last-of-type" };
+const stageHost = { step: "data-current-step", count: "data-count", refused: "data-refused" };
 
 // An item takes the first kind whose `element` it is and whose `marks` it holds, so each form
 // comes before its family's unknown one. A form look doesn't know is never shot as one it does:
@@ -508,9 +503,9 @@ async function numberOf(page: Page, element: ElementHandle): Promise<Place> {
   return { number: number === null ? "" : await accessibleText(page, number) };
 }
 
-// Figure and question numbers are CSS counters, which only the rendered page knows, so they're
-// read from the accessibility tree: the label, in the page's language, then the counter's pieces
-// ("1", ".", "2") under one node.
+// A figure's or question's number is CSS generated content from its `data-number`, which the DOM's
+// text leaves out, and its label is there in both languages, so they're read from the
+// accessibility tree: the label, in the page's language, then the number.
 async function accessibleText(page: Page, number: ElementHandle<Node>): Promise<string> {
   const textOf = (node: SerializedAXNode, separator: string): string =>
     node.role === "StaticText"
@@ -606,7 +601,9 @@ async function shootAlone({ page, test, item }: Shooting, file: string): Promise
 
 async function shootOnce(shooting: Shooting): Promise<Shots> {
   const { item, width } = shooting;
-  return { files: await shootSteps(shooting, 1, () => `${item.name}-${String(width)}.png`) };
+  const file = `${item.name}-${String(width)}.png`;
+  await shootAlone(shooting, file);
+  return { files: [file] };
 }
 
 // A stepper is shot once per step, with its buttons and caption, the way the owner sees each step.
@@ -620,49 +617,44 @@ async function shootStepper(shooting: Shooting): Promise<Shots> {
       shooting,
       steps,
       (step) => `${item.name}${steps > 1 ? `-step-${String(step)}` : ""}-${String(width)}.png`,
-      stepperStepping,
     ),
   };
 }
 
 // Only the first option of every group, or the first example, is shot: `pnpm check` runs the
-// others, and its first combination is these first options. The fields open filled with the first
-// example, so Start runs it; a run with choice groups starts once every group has its option.
+// others, and its first combination is these first options. The Stage's module says what to press
+// for that run and names it, so look reads none of the Stage's inner markup.
 async function shootStage(shooting: Shooting): Promise<Shots> {
   const { page, test, item, width } = shooting;
   const { element, name } = item;
   const asWritten = `${name}-as-written-${String(width)}.png`;
   await shootAlone(shooting, asWritten);
-  const prompt = await element.$eval(".stage-say", (say) => say.textContent);
-  const control = await element.evaluate((node) =>
-    node.closest("artifact-stage")?.getAttribute("data-control"),
-  );
+  const firstRun = await element.evaluate((node) => {
+    const onPage = node.closest<StageHost>("artifact-stage")?.onPage;
+    return onPage === undefined
+      ? undefined
+      : {
+          control: onPage.control,
+          name: onPage.firstRun.name,
+          groups: onPage.firstRun.presses.map(({ group }) => group),
+        };
+  });
   const actions: { group: string; action: ElementHandle }[] = [];
-  let first: string;
-  if (control === "input") {
-    const fields = await element.$$eval(".stage-field input", (nodes) =>
-      nodes.map((node) => ({ name: node.name, value: node.value })),
+  for (const [index, group] of (firstRun?.groups ?? [""]).entries()) {
+    const press = await element.evaluateHandle(
+      (node, index) =>
+        node.closest<StageHost>("artifact-stage")?.onPage?.firstRun.presses[index]?.control ?? null,
+      index,
     );
-    first = `first example ${fields.map(({ name, value }) => `${name} = ${value}`).join(", ")}`;
-    actions.push({
-      group: "",
-      action: required(test, `${name}: Stage action exists`, await element.$(".stage-start")),
-    });
-  } else {
-    const chosen: string[] = [];
-    for (const choice of await element.$$(".stage-choice")) {
-      const group = await choice.evaluate((node) => node.getAttribute("data-group") ?? "");
-      const action = required(
-        test,
-        `${name}: Stage action exists${group === "" ? "" : ` in ${group}`}`,
-        await choice.$(".stage-option input"),
-      );
-      const option = await action.evaluate((node) => node.value);
-      chosen.push(group === "" ? option : `${group} = ${option}`);
-      actions.push({ group, action });
-    }
-    first = `${actions.length === 1 ? "first option" : "first options"} ${chosen.join(", ")}`;
+    const action = required(
+      test,
+      `${name}: Stage action exists${group === "" ? "" : ` in ${group}`}`,
+      press.asElement() as ElementHandle | null,
+    );
+    actions.push({ group, action });
   }
+  const typed = firstRun?.control === "input";
+  const first = `${typed ? "first example" : actions.length === 1 ? "first option" : "first options"} ${firstRun?.name ?? ""}`;
   for (const { group, action } of actions) {
     assertCase(
       test,
@@ -674,23 +666,21 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
   }
   const completed = () =>
     element.evaluate(
-      (node, prompt) =>
-        node.closest("artifact-stage")?.hasAttribute("data-stepped") === true ||
-        node.querySelector(".stage-say")?.textContent !== prompt,
-      prompt,
+      (node, { step, refused }) =>
+        node.closest("artifact-stage")?.matches(`[${step}], [${refused}]`) === true,
+      stageHost,
     );
   await page
     .waitForFunction(
-      (node, prompt) =>
-        node.closest("artifact-stage")?.hasAttribute("data-stepped") === true ||
-        node.querySelector(".stage-say")?.textContent !== prompt,
+      (node, { step, refused }) =>
+        node.closest("artifact-stage")?.matches(`[${step}], [${refused}]`) === true,
       {},
       element,
-      prompt,
+      stageHost,
     )
     .catch(() => undefined);
   assertCase(test, `${name}: Stage ran or explicitly refused`, true, await completed());
-  if (control !== "input")
+  if (!typed)
     for (const { group, action } of actions)
       assertCase(
         test,
@@ -700,14 +690,17 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
         true,
         await action.evaluate((node) => (node as HTMLInputElement).checked),
       );
-  const steps = await element.$eval("p.stage-counter", (counter) =>
-    counter.hidden ? 0 : Number(counter.querySelector(".stage-count")?.textContent),
-  );
-  if (steps === 0) {
+  const { steps, refusal } = await element.evaluate((node, { count, refused }) => {
+    const host = node.closest("artifact-stage");
+    return {
+      steps: Number(host?.getAttribute(count) ?? "0"),
+      refusal: host?.getAttribute(refused) ?? null,
+    };
+  }, stageHost);
+  if (refusal !== null) {
     const refused = `${name}-refused-${String(width)}.png`;
     await shootAlone(shooting, refused);
     if (test.outcome === "passed") test.outcome = "refused";
-    const refusal = await element.$eval(".stage-say", (say) => say.textContent);
     return {
       files: [asWritten, refused],
       summary: `${first}, refused: ${refusal}`,
@@ -717,7 +710,6 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
     shooting,
     steps,
     (step) => `${name}-step-${String(step)}-${String(width)}.png`,
-    stageStepping,
   );
   return {
     files: [asWritten, ...files],
@@ -725,26 +717,36 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
   };
 }
 
+// Puppeteer sends each function to the page on its own, so the read and the wait each name the
+// hosts' attribute.
+function shownStep(node: Element): string | undefined {
+  return (
+    node.closest("artifact-stage, artifact-stepper")?.getAttribute("data-current-step") ?? undefined
+  );
+}
+
+function shows(node: Element, step: string): boolean {
+  return (
+    node.closest("artifact-stage, artifact-stepper")?.getAttribute("data-current-step") === step
+  );
+}
+
 async function shootSteps(
   shooting: Shooting,
   steps: number,
   fileFor: (step: number) => string,
-  stepping?: Stepping,
 ): Promise<string[]> {
   const { page, test, item } = shooting;
   const { element } = item;
   const files: string[] = [];
-  const currentStep = (current: string) =>
-    element.evaluate((node, current) => node.querySelector(current)?.textContent.trim(), current);
   assertCase(test, `${fileFor(1)}: capture step count`, true, Number.isInteger(steps) && steps > 0);
   for (let step = 1; step <= steps; step += 1) {
     const file = fileFor(step);
-    if (stepping !== undefined)
-      assertCase(test, `${file}: current step`, String(step), await currentStep(stepping.current));
+    assertCase(test, `${file}: current step`, String(step), await element.evaluate(shownStep));
     await shootAlone(shooting, file);
     files.push(file);
-    if (stepping !== undefined && step < steps) {
-      const button = required(test, `${file}: forward exists`, await element.$(stepping.forward));
+    if (step < steps) {
+      const button = required(test, `${file}: forward exists`, await element.$(stepRow.forward));
       assertCase(
         test,
         `${file}: forward available`,
@@ -757,21 +759,8 @@ async function shootSteps(
         ),
       );
       await button.click();
-      await page
-        .waitForFunction(
-          (node, current, expected) => node.querySelector(current)?.textContent.trim() === expected,
-          {},
-          element,
-          stepping.current,
-          String(step + 1),
-        )
-        .catch(() => undefined);
-      assertCase(
-        test,
-        `${file}: advancement`,
-        String(step + 1),
-        await currentStep(stepping.current),
-      );
+      await page.waitForFunction(shows, {}, element, String(step + 1)).catch(() => undefined);
+      assertCase(test, `${file}: advancement`, String(step + 1), await element.evaluate(shownStep));
     }
   }
   return files;

@@ -9,13 +9,16 @@
     "./artifact-layout": "./src/ArtifactLayout.astro",
     "./attempts-panel": "./src/attempts-panel.ts",
     "./catalog": "./catalog/integration.ts",
-    "./component-errors": "./src/component-errors.ts",
+    "./component-rules": "./src/component-rules.ts",
     "./diagram": "./src/Diagram.astro",
     "./diagram-fonts": "./src/diagram-fonts.ts",
     "./figure": "./src/Figure.astro",
+    "./http-transports": "./src/http-transports.ts",
     "./library-layout": "./src/LibraryLayout.astro",
     "./library-revisit": "./src/library-revisit.ts",
     "./library-revisit-paint": "./src/library-revisit-paint.js",
+    "./library-row-statuses": "./src/library-row-statuses.ts",
+    "./library-row-statuses-paint": "./src/library-row-statuses-paint.js",
     "./library-statuses": "./src/library-statuses.ts",
     "./machines/mepa": "./src/machines/mepa.ts",
     "./not-found-layout": "./src/NotFoundLayout.astro",
@@ -43,9 +46,11 @@
     "./state-notices": "./src/state-notices.ts",
     "./statement": "./src/Statement.astro",
     "./statements": "./src/statements.ts",
-    "./step-applier": "./src/step-applier.ts",
+    "./stage-on-page": "./src/stage-on-page.ts",
     "./stepper": "./src/Stepper.astro",
-    "./theme-eye-element": "./src/theme-eye-element.ts"
+    "./stepper-element": "./src/stepper-element.ts",
+    "./theme-eye-element": "./src/theme-eye-element.ts",
+    "./transport": "./src/transport.ts"
   },
   "peerDependencies": {
     "astro": "7.3.8"

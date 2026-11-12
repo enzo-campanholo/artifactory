@@ -1,47 +1,25 @@
-// @vitest-environment happy-dom
+import { mountQuestion } from "./rendered-question.ts";
 import "@artifactory/design-system/numeric-question-element";
 import type { NumericKey } from "@artifactory/design-system/scoring";
 import type { MemoryTransport } from "@artifactory/design-system/state";
 import { afterEach, expect, test, vi } from "vitest";
+import Gravity from "./gravity.mdx";
+import GravityWorked from "./gravity-worked.mdx";
 import { isDisabled } from "./minimal-question.ts";
 import { checked, openPage, savedAttempts, seededTransport } from "./seeded-page.ts";
 
 const gravity: NumericKey = { value: "9.81", tolerance: 0.01 };
 
-function mountNumericQuestion(lang: "en" | "pt-BR", key: NumericKey, unit = "", explanation = "") {
-  const template = document.createElement("template");
-  const unitPart =
-    unit === "" ? "" : `<span class="numeric-question-unit" id="q-gravity--unit">${unit}</span>`;
-  template.innerHTML = `
-    <div lang="${lang}">
-      <artifact-numeric id="q-gravity" class="question" data-question-id="gravity" data-question-kind="numeric" inert="">
-        <form>
-          <fieldset aria-describedby="q-gravity--prompt">
-            <div class="question-prompt" id="q-gravity--prompt"><p>How fast does a dropped stone speed up?</p></div>
-            <div class="numeric-question-answer">
-              <label for="q-gravity--field">Your answer</label>
-              <div class="numeric-question-field">
-                <input id="q-gravity--field" type="text" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="100" required${unit === "" ? "" : ' aria-describedby="q-gravity--unit"'}>
-                ${unitPart}
-              </div>
-            </div>
-            <div class="question-actions">
-              <button type="submit" class="question-check" aria-disabled="true">Check</button>
-            </div>
-          </fieldset>
-          ${explanation === "" ? "" : `<div class="question-explanation" hidden><p>${explanation}</p></div>`}
-          <p class="question-status" role="status" tabindex="-1"></p>
-          <div class="question-recovery" hidden></div>
-        </form>
-      </artifact-numeric>
-    </div>`;
-  template.content
-    .querySelector("artifact-numeric")
-    ?.setAttribute("data-question-key", JSON.stringify(key));
-  document.body.replaceChildren(template.content);
+async function mountNumericQuestion(key: NumericKey, unit: string, worked: boolean) {
+  await mountQuestion(worked ? GravityWorked : Gravity, {
+    answer: key.value,
+    tolerance: key.tolerance,
+    relativeTolerance: key.relativeTolerance,
+    unit: unit === "" ? undefined : unit,
+  });
   const question = document.querySelector<HTMLElement>("artifact-numeric");
   const field = document.querySelector("input");
-  const check = document.querySelector("button");
+  const check = document.querySelector<HTMLButtonElement>(".question-check");
   if (question === null || field === null || check === null) throw new Error("not mounted");
   return { question, field, check };
 }
@@ -52,11 +30,12 @@ async function loadedNumericQuestion(
     lang = "en",
     key = gravity,
     unit = "m/s²",
-    explanation = "",
-  }: { lang?: "en" | "pt-BR"; key?: NumericKey; unit?: string; explanation?: string } = {},
+    worked = false,
+  }: { lang?: "en" | "pt-BR"; key?: NumericKey; unit?: string; worked?: boolean } = {},
 ) {
+  document.documentElement.lang = lang;
   const store = openPage(transport, [{ id: "gravity", kind: "numeric", key }]);
-  const mounted = mountNumericQuestion(lang, key, unit, explanation);
+  const mounted = await mountNumericQuestion(key, unit, worked);
   await checked(store);
   return { ...mounted, store };
 }
@@ -68,6 +47,7 @@ function type(field: HTMLInputElement, text: string) {
 
 afterEach(() => {
   document.body.innerHTML = "";
+  document.documentElement.removeAttribute("lang");
 });
 
 test("a number saves once with the check's mark and locks showing the text as typed", async () => {
@@ -214,9 +194,12 @@ test("starting over removes the right answer and reopens the field empty", async
 
 const workedSolution = "From d = gt²/2, g = 2 · 4.905 m / (1 s)² = 9.81 m/s².";
 
+// The explanation's own text, without its heading.
 function shownExplanation(): HTMLElement | null {
   const explanation = document.querySelector<HTMLElement>(".question-explanation");
-  return explanation === null || explanation.hidden ? null : explanation;
+  return explanation === null || explanation.hidden
+    ? null
+    : explanation.querySelector<HTMLElement>(".question-revealed-content");
 }
 
 function follows(later: Node | null, earlier: Node | null): boolean {
@@ -229,7 +212,7 @@ function follows(later: Node | null, earlier: Node | null): boolean {
 
 test("a saved wrong answer shows the explanation after the right-answer line, which with the unit still alone describes the field", async () => {
   const { field } = await loadedNumericQuestion(answered("12", "wrong"), {
-    explanation: workedSolution,
+    worked: true,
   });
 
   const explanation = shownExplanation();
@@ -240,7 +223,7 @@ test("a saved wrong answer shows the explanation after the right-answer line, wh
 
 test("a saved right answer shows the explanation after the locked field and its unit, which alone describes the field", async () => {
   const { field } = await loadedNumericQuestion(answered("9.81", "right"), {
-    explanation: workedSolution,
+    worked: true,
   });
 
   const explanation = shownExplanation();
@@ -252,7 +235,7 @@ test("a saved right answer shows the explanation after the locked field and its 
 
 test("the explanation stays hidden through a refused input and while saving, and shows once the answer saves", async () => {
   const { question, field, check } = await loadedNumericQuestion(seededTransport(), {
-    explanation: workedSolution,
+    worked: true,
   });
   expect(shownExplanation()).toBeNull();
   type(field, "abc");
@@ -273,7 +256,7 @@ test("the explanation stays hidden through a refused input and while saving, and
 
 test("starting over hides the explanation along with the right-answer line", async () => {
   const { field, store } = await loadedNumericQuestion(answered("12", "wrong"), {
-    explanation: workedSolution,
+    worked: true,
   });
   expect(shownExplanation()).not.toBeNull();
 
