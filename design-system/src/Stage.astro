@@ -5,7 +5,7 @@ import "./figure.css";
 import "./figure-colours.css";
 import InlineSvg from "./InlineSvg.astro";
 import StepControls from "./StepControls.astro";
-import { brokenRule, unlessRuleBroken } from "./component-rules.ts";
+import { brokenRule, ruledInstance, unlessRuleBroken } from "./component-rules.ts";
 import { drawingParts } from "./inline-svg.ts";
 import { buildModule } from "./stage-builds.ts";
 import { fieldProblem, type Control, type Field } from "./stage-on-page.ts";
@@ -658,11 +658,10 @@ const problems = [
       ]
     : []),
 ];
-const checked = await unlessRuleBroken("Stage", () => {
+const { marker } = await unlessRuleBroken("Stage", () => {
   if (problems.length > 0) throw brokenRule("Stage", problems.join("; "));
-  return figure === undefined ? {} : drawingParts(figure);
+  if (figure !== undefined) drawingParts(figure, "Stage");
 });
-const marker = "marker" in checked ? checked.marker : undefined;
 
 // A drawn part chooses the option it's named like, so an option's name must say which group's.
 function groupsProblems(given: { name: string; options: string[] }[]): string[] {
@@ -790,6 +789,7 @@ const width = (field: Field) =>
 {marker !== undefined && <Fragment set:html={marker} />}
 {marker === undefined && (
   <artifact-stage
+    {...ruledInstance("Stage")}
     data-build={buildFile}
     data-module={buildModule(buildFile)}
     data-control={control}

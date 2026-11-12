@@ -1,15 +1,19 @@
-import { brokenRule } from "./component-rules.ts";
+import { brokenRule, type RuledComponent } from "./component-rules.ts";
 
 // `InlineSvg` draws a Figure's, a Stepper's or a Stage's drawing, and each of them reads it here
 // before rendering, so a drawing that breaks these rules is reported at the component holding it.
-export function drawingParts(svg: string): {
+// A Stage names itself in the message, and a Figure or a Stepper names both, as they share it.
+export function drawingParts(
+  svg: string,
+  drawnBy: RuledComponent | readonly RuledComponent[] = ["Figure", "Stepper"],
+): {
   ownAttributes: Record<string, string>;
   drawing: string;
   viewBox: string;
 } {
   const root = /<svg\b([^>]*)>([\s\S]*)<\/svg>/.exec(svg);
   if (root === null) {
-    throw brokenRule(["Figure", "Stepper"], "the imported SVG file has no <svg> root element");
+    throw brokenRule(drawnBy, "the imported SVG file has no <svg> root element");
   }
   const [, attributeText = "", drawing = ""] = root;
 
@@ -26,7 +30,7 @@ export function drawingParts(svg: string): {
   const viewBox = ownAttributes.viewBox ?? viewBoxOfSize(ownAttributes.width, ownAttributes.height);
   if (viewBox === undefined) {
     throw brokenRule(
-      ["Figure", "Stepper"],
+      drawnBy,
       'the imported SVG file has no viewBox; give its <svg> root `viewBox="0 0 W H"`',
     );
   }

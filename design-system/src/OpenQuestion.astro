@@ -39,7 +39,7 @@ interface Props {
 }
 
 const { id } = Astro.props;
-const question = await unlessRuleBroken("OpenQuestion", async () => {
+const { checked: parts, marker } = await unlessRuleBroken("OpenQuestion", async () => {
   const split = splitAtRule(await Astro.slots.render("default"));
   const prompt = split?.before ?? "";
   const modelAnswer = split?.after ?? "";
@@ -51,10 +51,9 @@ const question = await unlessRuleBroken("OpenQuestion", async () => {
   }
   return { prompt, modelAnswer };
 });
-const parts = "marker" in question ? undefined : question;
 ---
 
-{"marker" in question && <Fragment set:html={question.marker} />}
+{marker !== undefined && <Fragment set:html={marker} />}
 {parts && (
   <Question id={id} kind="open-question" prompt={parts.prompt} modelAnswer={parts.modelAnswer}>
     <label class="open-question-answer">

@@ -74,7 +74,7 @@ const { id, answer, tolerance, relativeTolerance, unit } = Astro.props;
 const key: NumericKey = { value: answer };
 if (tolerance !== undefined) key.tolerance = tolerance;
 if (relativeTolerance !== undefined) key.relativeTolerance = relativeTolerance;
-const question = await unlessRuleBroken("NumericQuestion", async () => {
+const { checked: parts, marker } = await unlessRuleBroken("NumericQuestion", async () => {
   const problem = numericKeyProblem(key);
   if (problem !== undefined) throw brokenRule("NumericQuestion", problem);
   const content = (await Astro.slots.render("default")).trim();
@@ -90,13 +90,12 @@ const question = await unlessRuleBroken("NumericQuestion", async () => {
   }
   return { prompt, explanation };
 });
-const parts = "marker" in question ? undefined : question;
 const anchor = questionAnchor(id);
 const fieldId = `${anchor}--field`;
 const unitId = `${anchor}--unit`;
 ---
 
-{"marker" in question && <Fragment set:html={question.marker} />}
+{marker !== undefined && <Fragment set:html={marker} />}
 {parts && (
   <Question
     id={id}

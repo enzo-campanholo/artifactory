@@ -3,7 +3,7 @@ import "./figure-colours.css";
 import InlineSvg from "./InlineSvg.astro";
 import StepControls from "./StepControls.astro";
 import { drawInStandard, inOneFrame, smallestLabelSize } from "./d2-board.ts";
-import { brokenRule, unlessRuleBroken } from "./component-rules.ts";
+import { brokenRule, ruledInstance, unlessRuleBroken } from "./component-rules.ts";
 import { drawingParts } from "./inline-svg.ts";
 import { inSteps, printedLines, steppedBlocks, steppedCode, steppedFigure } from "./stepper.ts";
 
@@ -225,14 +225,13 @@ async function steps() {
   };
 }
 
-const stepper = await unlessRuleBroken("Stepper", steps);
-const marker = "marker" in stepper ? stepper.marker : undefined;
-const shown = "marker" in stepper || stepper.diagramFailed ? undefined : stepper;
+const { checked: stepper, marker } = await unlessRuleBroken("Stepper", steps);
+const shown = stepper?.diagramFailed === false ? stepper : undefined;
 ---
 
 {marker !== undefined && <Fragment set:html={marker} />}
 {shown && (
-  <artifact-stepper class="stepper" data-count={shown.count}>
+  <artifact-stepper {...ruledInstance("Stepper")} class="stepper" data-count={shown.count}>
     <StepControls class="stepper-controls">
       <p class="step-counter">
         <span class="stepper-current" style={shown.countWidth}>

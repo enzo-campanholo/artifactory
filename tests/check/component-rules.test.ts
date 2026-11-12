@@ -654,7 +654,7 @@ describe("a repo whose components break their rules", () => {
       ),
       failure(
         "artifacts/estagios/index.mdx:78:1",
-        'Figure or Stepper: the imported SVG file has no viewBox; give its <svg> root `viewBox="0 0 W H"`',
+        'Stage: the imported SVG file has no viewBox; give its <svg> root `viewBox="0 0 W H"`',
       ),
       failure(
         "artifacts/grafos/index.mdx:14:1",

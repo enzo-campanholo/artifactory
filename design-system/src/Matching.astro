@@ -64,10 +64,9 @@ interface Props {
   answers: Record<string, number>;
 }
 
-const question = await unlessRuleBroken("Matching", async () =>
+const { checked: parts, marker } = await unlessRuleBroken("Matching", async () =>
   matchingParts(await Astro.slots.render("default"), Astro.props.answers),
 );
-const parts = "marker" in question ? undefined : question;
 const items = parts?.items ?? [];
 const first = items[0]?.id ?? "";
 const last = items.at(-1)?.id ?? "";
@@ -78,7 +77,7 @@ const itemTextId = (id: string) => `${questionAnchor(id)}--item`;
 const itemNumberId = (id: string) => `${questionAnchor(id)}--number`;
 ---
 
-{"marker" in question && <Fragment set:html={question.marker} />}
+{marker !== undefined && <Fragment set:html={marker} />}
 {parts && (
   <Question
     kind="matching"

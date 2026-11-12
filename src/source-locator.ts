@@ -185,7 +185,7 @@ function unquoted(written: string): string | undefined {
 // such as one inside a component whose rule is broken. Then the counts disagree and none is placed.
 function instanceOffset(
   text: string,
-  { module, occurrence, onPage }: { module: string; occurrence: number; onPage: number },
+  { module, occurrence, onPage }: Extract<SourceTarget, { kind: "component-instance" }>,
 ): number | undefined {
   const tags = componentTags(text, module);
   return tags.length === onPage ? tags[occurrence]?.index : undefined;

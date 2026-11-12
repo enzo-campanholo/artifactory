@@ -1,6 +1,7 @@
 ---
 import "./figure.css";
 import InlineSvg from "./InlineSvg.astro";
+import type { ruledInstance } from "./component-rules.ts";
 
 interface Props {
   svg: string;
@@ -9,14 +10,15 @@ interface Props {
   class: "figure" | "diagram";
   minScale?: number;
   swatches?: boolean;
+  instance?: ReturnType<typeof ruledInstance>;
 }
 
-const { svg, alt, caption, class: className, minScale, swatches } = Astro.props;
+const { svg, alt, caption, class: className, minScale, swatches, instance } = Astro.props;
 const label =
   className === "figure" ? { en: "Figure", pt: "Figura" } : { en: "Diagram", pt: "Diagrama" };
 ---
 
-<figure class={className}>
+<figure {...instance} class={className}>
   <div class="figure-stage">
     <InlineSvg
       svg={svg}

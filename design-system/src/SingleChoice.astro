@@ -54,15 +54,14 @@ interface Props {
 }
 
 const { id, answer } = Astro.props;
-const question = await unlessRuleBroken("SingleChoice", async () =>
+const { checked: parts, marker } = await unlessRuleBroken("SingleChoice", async () =>
   singleChoiceParts(await Astro.slots.render("default"), answer),
 );
-const parts = "marker" in question ? undefined : question;
 // Chromium drops MathML from a name taken from a <label>, but keeps it through aria-labelledby.
 const optionId = (index: number) => `${questionAnchor(id)}--option-${String(index + 1)}`;
 ---
 
-{"marker" in question && <Fragment set:html={question.marker} />}
+{marker !== undefined && <Fragment set:html={marker} />}
 {parts && (
   <Question
     id={id}

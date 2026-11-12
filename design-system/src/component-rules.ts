@@ -4,18 +4,18 @@ import { escapedAttribute, unescapedAttribute } from "./html-attributes.ts";
 // place, so the check reports every broken rule in one run, each at its component's tag. Elsewhere,
 // as in `astro dev`, the rule throws, so Astro's overlay names it.
 
-// Each component's module under `@artifactory/design-system/`, and how its rendered instance opens.
-const components = {
-  Figure: { module: "figure", opens: 'figure class="figure"' },
-  Matching: { module: "matching", opens: "artifact-matching" },
-  NumericQuestion: { module: "numeric-question", opens: "artifact-numeric" },
-  OpenQuestion: { module: "open-question", opens: "artifact-open-question" },
-  SingleChoice: { module: "single-choice", opens: "artifact-single-choice" },
-  Stage: { module: "stage", opens: "artifact-stage" },
-  Stepper: { module: "stepper", opens: "artifact-stepper" },
+// Each component's module under `@artifactory/design-system/`.
+const modules = {
+  Figure: "figure",
+  Matching: "matching",
+  NumericQuestion: "numeric-question",
+  OpenQuestion: "open-question",
+  SingleChoice: "single-choice",
+  Stage: "stage",
+  Stepper: "stepper",
 } as const;
 
-type RuledComponent = keyof typeof components;
+export type RuledComponent = keyof typeof modules;
 
 class BrokenRule extends Error {}
 
@@ -37,12 +37,15 @@ export function renderBrokenRulesAsMarkers(): void {
   shared[markersWanted] = true;
 }
 
-export async function unlessRuleBroken<T extends object>(
+// A component renders what `checked` holds, or else the marker in its place.
+type RuleCheck<T> = { checked: T; marker?: undefined } | { checked?: undefined; marker: string };
+
+export async function unlessRuleBroken<T>(
   component: RuledComponent,
   render: () => Promise<T> | T,
-): Promise<T | { marker: string }> {
+): Promise<RuleCheck<T>> {
   try {
-    return await render();
+    return { checked: await render() };
   } catch (error) {
     if (!(error instanceof BrokenRule) || shared[markersWanted] !== true) throw error;
     return {
@@ -51,39 +54,29 @@ export async function unlessRuleBroken<T extends object>(
   }
 }
 
+// A rendered component names itself on its outermost element, as its marker does when it's broken,
+// so the check can count every instance in the page's order.
+export function ruledInstance(component: RuledComponent) {
+  return { "data-component": component };
+}
+
 export interface ComponentOnPage {
   module: string;
   brokenRule: string | undefined;
 }
 
 // Astro writes attribute values in double quotes and escapes only `&` and `"` in them, and code
-// blocks escape their "<", so only a component's own element or marker matches. Built on each call,
-// so the page's scripts, which import the rules through their component's module, don't carry it.
-function instances(): RegExp {
-  const opening = Object.values(components).map(({ opens }) => opens);
-  return new RegExp(
-    String.raw`<(?<opens>${opening.join("|")})[\s>]|<template data-component-rule="(?<marked>[^"]*)" data-message="(?<message>[^"]*)">`,
-    "g",
-  );
-}
-
-function ruledComponent(written: string | undefined): RuledComponent | undefined {
-  return (Object.keys(components) as RuledComponent[]).find(
-    (component) => component === written || components[component].opens === written,
-  );
-}
+// blocks escape their "<", so only a component's own element or marker matches.
+const instances =
+  /<(?:template data-component-rule="(?<marked>[^"]*)" data-message="(?<message>[^"]*)"|[a-z][\w-]*\s(?:[^>"]|"[^"]*")*?\bdata-component="(?<rendered>[^"]*)")/g;
 
 // Each instance of a component that checks its rules, broken or not, in the page's order.
 export function componentsOnPage(html: string): ComponentOnPage[] {
-  return [...html.matchAll(instances())].flatMap(({ groups = {} }): ComponentOnPage[] => {
-    const { opens, marked, message } = groups;
-    const component = ruledComponent(opens ?? marked);
-    if (component === undefined) return [];
-    return [
-      {
-        module: components[component].module,
-        brokenRule: message === undefined ? undefined : unescapedAttribute(message),
-      },
-    ];
+  return [...html.matchAll(instances)].map(({ groups = {} }) => {
+    const { marked, message, rendered } = groups;
+    return {
+      module: modules[(marked ?? rendered) as RuledComponent],
+      brokenRule: message === undefined ? undefined : unescapedAttribute(message),
+    };
   });
 }
