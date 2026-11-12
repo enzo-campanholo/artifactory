@@ -65,7 +65,7 @@ Tests exist so agents can rewrite code freely while behaviour holds. A test that
 
 1. **`pnpm check` and public repo CLIs against fixture repos** (`tests/check`). Tests run the check or relevant public CLI against fixture input and assert on exit codes, failure lines, returned reports or deployable output.
 2. **The Worker's HTTP API against a local D1** (`tests/worker`), with the real migrations and a fixture question manifest, and the store's HTTP transports against it: the outcome each returns for a load, a save and the Library's load (loaded, saved, already answered, signed out, failed).
-3. **The state store's public interface over the in-memory transport** (`tests/store`), with happy-dom, seeded state and forced outcomes.
+3. **The state store's public interface over the in-memory transport** (`tests/store`), with happy-dom, seeded state and forced outcomes. A question's markup is its component's own, rendered as the build renders it (`tests/store/rendered-question.ts`), never a copy written into the test.
 4. **The scoring module** (`tests/scoring`).
 5. **The Stage and the Stepper on a built page** (`tests/stepping`), under happy-dom. A test file builds one small fixture repo, opens its built page with the page's shipped scripts, and drives it as the owner would, finding each control by its role and accessible name. Agreed with the owner at the architecture review, 2026-11-10 ([The Stage on its page](.scratch/stage-on-its-page/spec.md#comments)).
 

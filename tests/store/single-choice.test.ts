@@ -1,8 +1,9 @@
-// @vitest-environment happy-dom
+import { mountQuestion } from "./rendered-question.ts";
 import "@artifactory/design-system/single-choice-element";
 import type { SavedAttempt } from "@artifactory/design-system/saved-state";
 import type { MemoryTransport } from "@artifactory/design-system/state";
 import { afterEach, expect, test, vi } from "vitest";
+import Capital from "./capital.mdx";
 import {
   artifactId,
   capital,
@@ -14,32 +15,11 @@ import {
   seededTransport,
 } from "./seeded-page.ts";
 
-function mountSingleChoice() {
-  const template = document.createElement("template");
-  template.innerHTML = `
-    <artifact-single-choice id="q-capital" class="question" data-question-id="capital" data-question-kind="single-choice" data-question-key="2" inert="">
-      <form>
-        <p class="question-status" role="status" tabindex="-1"></p>
-        <fieldset aria-describedby="q-capital--prompt">
-          <div class="question-prompt" id="q-capital--prompt"><p>Which city is the capital of Brazil?</p></div>
-          <ol class="single-choice-options">
-            <li><label><input type="radio" name="q-capital" value="1" required><span>Rio de Janeiro</span></label></li>
-            <li><label><input type="radio" name="q-capital" value="2" required><span>Brasília</span></label></li>
-          </ol>
-          <div class="question-actions">
-            <button type="submit" class="question-check" aria-disabled="true">Check</button>
-          </div>
-        </fieldset>
-        <div class="question-explanation" hidden>
-          <p>Brasília has been the capital since 1960; Rio de Janeiro was the one before it.</p>
-        </div>
-        <div class="question-recovery" hidden></div>
-      </form>
-    </artifact-single-choice>`;
-  document.body.replaceChildren(template.content);
+async function mountSingleChoice() {
+  await mountQuestion(Capital);
   const question = document.querySelector<HTMLElement>("artifact-single-choice");
   const explanation = document.querySelector<HTMLElement>(".question-explanation");
-  const check = document.querySelector("button");
+  const check = document.querySelector<HTMLButtonElement>(".question-check");
   const status = document.querySelector(".question-status");
   if (question === null || explanation === null || check === null || status === null) {
     throw new Error("not mounted");
@@ -56,7 +36,7 @@ function mountSingleChoice() {
 
 async function loadedSingleChoice(transport: MemoryTransport, startFrom: SavedAttempt[] = []) {
   const store = openPage(transport, [capital], startFrom);
-  const mounted = mountSingleChoice();
+  const mounted = await mountSingleChoice();
   await checked(store);
   return { ...mounted, store };
 }
@@ -108,7 +88,7 @@ test("a wrong answer shows the explanation once saved, with the right option tic
   expect(explanation.hidden).toBe(false);
 });
 
-test("a locked answer this device last showed shows the explanation as soon as the store starts", () => {
+test("a locked answer this device last showed shows the explanation as soon as the store starts", async () => {
   openPage(
     {
       load: () => new Promise<never>(() => undefined),
@@ -118,7 +98,7 @@ test("a locked answer this device last showed shows the explanation as soon as t
     [attemptWith(1, "wrong")],
   );
 
-  const { explanation } = mountSingleChoice();
+  const { explanation } = await mountSingleChoice();
 
   expect(explanation.hidden).toBe(false);
 });
