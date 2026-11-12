@@ -69,9 +69,11 @@ interface ShotProblem {
   problem: string;
 }
 
-// A Stepper and a Stage step through the same row, StepControls.astro's: its counter starts with
-// the step shown, and its last button goes forward.
+// A Stepper and a Stage step through the same row, StepControls.astro's, whose last button goes
+// forward. A Stage's host says the step it shows, its run's count and a refusal; a Stepper's host
+// says only its count, so its step shown is read from the start of the row's counter.
 const stepRow = { forward: ".step-controls > button:last-of-type", counter: ".step-counter" };
+const stageHost = { step: "data-current-step", count: "data-count", refused: "data-refused" };
 
 // An item takes the first kind whose `element` it is and whose `marks` it holds, so each form
 // comes before its family's unknown one. A form look doesn't know is never shot as one it does:
@@ -628,7 +630,6 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
   const { element, name } = item;
   const asWritten = `${name}-as-written-${String(width)}.png`;
   await shootAlone(shooting, asWritten);
-  const prompt = await element.$eval(".stage-say", (say) => say.textContent);
   const control = await element.evaluate((node) =>
     node.closest("artifact-stage")?.getAttribute("data-control"),
   );
@@ -672,19 +673,17 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
   }
   const completed = () =>
     element.evaluate(
-      (node, prompt) =>
-        node.closest("artifact-stage")?.hasAttribute("data-stepped") === true ||
-        node.querySelector(".stage-say")?.textContent !== prompt,
-      prompt,
+      (node, { step, refused }) =>
+        node.closest("artifact-stage")?.matches(`[${step}], [${refused}]`) === true,
+      stageHost,
     );
   await page
     .waitForFunction(
-      (node, prompt) =>
-        node.closest("artifact-stage")?.hasAttribute("data-stepped") === true ||
-        node.querySelector(".stage-say")?.textContent !== prompt,
+      (node, { step, refused }) =>
+        node.closest("artifact-stage")?.matches(`[${step}], [${refused}]`) === true,
       {},
       element,
-      prompt,
+      stageHost,
     )
     .catch(() => undefined);
   assertCase(test, `${name}: Stage ran or explicitly refused`, true, await completed());
@@ -698,14 +697,17 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
         true,
         await action.evaluate((node) => (node as HTMLInputElement).checked),
       );
-  const steps = await element.$eval("p.stage-counter", (counter) =>
-    counter.hidden ? 0 : Number(counter.querySelector(".stage-count")?.textContent),
-  );
-  if (steps === 0) {
+  const { steps, refusal } = await element.evaluate((node, { count, refused }) => {
+    const host = node.closest("artifact-stage");
+    return {
+      steps: Number(host?.getAttribute(count) ?? "0"),
+      refusal: host?.getAttribute(refused) ?? null,
+    };
+  }, stageHost);
+  if (refusal !== null) {
     const refused = `${name}-refused-${String(width)}.png`;
     await shootAlone(shooting, refused);
     if (test.outcome === "passed") test.outcome = "refused";
-    const refusal = await element.$eval(".stage-say", (say) => say.textContent);
     return {
       files: [asWritten, refused],
       summary: `${first}, refused: ${refusal}`,
@@ -732,11 +734,14 @@ async function shootSteps(
   const { page, test, item } = shooting;
   const { element } = item;
   const files: string[] = [];
+  const stepShown = { stage: stageHost.step, counter: stepRow.counter };
   const currentStep = () =>
-    element.evaluate(
-      (node, counter) => node.querySelector(counter)?.textContent.trim().split(/\s/, 1)[0],
-      stepRow.counter,
-    );
+    element.evaluate((node, { stage, counter }) => {
+      const host = node.closest("artifact-stage");
+      return host === null
+        ? node.querySelector(counter)?.textContent.trim().split(/\s/, 1)[0]
+        : (host.getAttribute(stage) ?? undefined);
+    }, stepShown);
   assertCase(test, `${fileFor(1)}: capture step count`, true, Number.isInteger(steps) && steps > 0);
   for (let step = 1; step <= steps; step += 1) {
     const file = fileFor(step);
@@ -759,11 +764,17 @@ async function shootSteps(
       await button.click();
       await page
         .waitForFunction(
-          (node, counter, expected) =>
-            node.querySelector(counter)?.textContent.trim().split(/\s/, 1)[0] === expected,
+          (node, { stage, counter }, expected) => {
+            const host = node.closest("artifact-stage");
+            const shown =
+              host === null
+                ? node.querySelector(counter)?.textContent.trim().split(/\s/, 1)[0]
+                : host.getAttribute(stage);
+            return shown === expected;
+          },
           {},
           element,
-          stepRow.counter,
+          stepShown,
           String(step + 1),
         )
         .catch(() => undefined);

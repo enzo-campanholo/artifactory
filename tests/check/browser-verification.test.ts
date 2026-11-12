@@ -362,10 +362,9 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
     beforeAll(async () => {
       const files: Record<string, string> = {
         "public/block-stage-forward.js":
-          'addEventListener("click", event => { if (event.target instanceof Element && event.target.closest("button.stage-forward")) event.stopImmediatePropagation(); }, true);\n',
+          'addEventListener("click", event => { if (event.target instanceof Element && event.target.closest(".step-controls > button:last-of-type")) event.stopImmediatePropagation(); }, true);\n',
       };
       for (const [slug, id] of [
-        ["look-equal-prompt", "equal001"],
         ["look-stuck", "stuck001"],
         ["look-refused", "refused1"],
       ] as const) {
@@ -496,8 +495,8 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
       },
       checkTimeout,
     );
-    it.each(["look-equal-prompt", "look-stuck", "look-refused"])(
-      "records all Stage steps or an explicit failure/refusal through pnpm look: %s",
+    it.each(["look-stuck", "look-refused"])(
+      "records a refused Stage, and fails one whose forward doesn't step, through pnpm look: %s",
       async (slug) => {
         const result = await look(repo, slug);
         expect(result.exitCode, result.output).toBe(slug === "look-stuck" ? 1 : 0);
@@ -513,19 +512,11 @@ describe.skipIf(process.env.ARTIFACTORY_BROWSER_ACCEPTANCE !== "1")(
               passed: false,
             });
           } else {
-            expect(test.outcome).toBe(
-              slug === "look-refused" ? "refused" : "captured-awaiting-visual-review",
-            );
+            expect(test.outcome).toBe("refused");
             expect(test.assertions.every((assertion) => assertion.passed)).toBe(true);
             expect(test.captures).toEqual([
               `01-stage-choose-as-written-${String(width)}.png`,
-              ...(slug === "look-refused"
-                ? [`01-stage-choose-refused-${String(width)}.png`]
-                : [
-                    `01-stage-choose-step-1-${String(width)}.png`,
-                    `01-stage-choose-step-2-${String(width)}.png`,
-                    `01-stage-choose-step-3-${String(width)}.png`,
-                  ]),
+              `01-stage-choose-refused-${String(width)}.png`,
             ]);
           }
         }

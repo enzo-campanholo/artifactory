@@ -58,10 +58,10 @@ It owns each question kind's `check`, the number syntax a numeric answer and its
 
 The Stage and the Stepper on a built page, under happy-dom. Each test file builds one small fixture repo with `tests/check/fixture-repo.ts`, opens one built page with its shipped scripts, and drives it as the owner would, finding each control by its role and accessible name, never by a class.
 
-- a Stage with one choice: the prompt and no step counted before a choice, then at each step the counter, the line that says it, the announcement, the marks on drawn parts, and the cells it rewrites and gives back; a drawn part named like an option choosing it
+- a Stage with one choice: the prompt and no step counted before a choice, then at each step the counter, the step and count its host says, the line that says it, the announcement, the marks on drawn parts, and the cells it rewrites and gives back; a drawn part named like an option choosing it
 - choice groups: the run waiting for a choice in every group, and running again from step 1 when either group changes
 - typed input: the first example run from the fields as they open, the line each step runs marked and announced, and a number or text that breaks its field's rule refused at that field (`aria-invalid`, the focus, and the rule in the step's line)
-- a refused run: the refusal said and announced, no step counted, and both buttons refused
+- a refused run: the refusal said and announced and on its host, no step counted, both buttons refused, and the run after it clearing the refusal from the host
 - steps that colour parts: each part's swatch and its colour's name at each step, going back included
 - the step row on a Stage, a code Stepper, a one-block Stepper and a figure Stepper: the buttons and the left and right arrow keys, both ends refusing to go further with `aria-disabled`, and the buttons usable once the element connects
 - a Stepper's announcement: its step, a code block's marked lines and its caption; a one-block Stepper's lit lines; a figure Stepper's parts at each step

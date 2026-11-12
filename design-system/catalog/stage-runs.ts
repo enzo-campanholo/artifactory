@@ -7,12 +7,13 @@ export async function runCatalogStages(): Promise<void> {
       run.dataset.catalogRun === "start"
         ? run.querySelector(".stage-start")
         : run.querySelector(`input[type="radio"][value="${run.dataset.catalogRun ?? ""}"]`);
-    const forward = run.querySelector<HTMLButtonElement>(".stage-forward");
-    const counter = run.querySelector<HTMLElement>(".stage-counter");
-    if (!(start instanceof HTMLElement) || forward === null || counter === null) continue;
+    const stage = run.querySelector("artifact-stage");
+    const forward =
+      stage?.querySelector<HTMLButtonElement>(".step-controls > button:last-of-type") ?? null;
+    if (!(start instanceof HTMLElement) || stage === null || forward === null) continue;
     start.click();
     const stepTo = () => {
-      if (counter.hidden) {
+      if (!stage.hasAttribute("data-count")) {
         requestAnimationFrame(stepTo);
         return;
       }
