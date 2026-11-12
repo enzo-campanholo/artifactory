@@ -892,6 +892,37 @@ const numberedDrawings = {
     "g = 7",
     "$$",
   ]),
+  "artifacts/abertura/index.mdx": artifact(fields("ab3rtur4", "Abertura", "Grafos"), [
+    'import Figure from "@artifactory/design-system/figure";',
+    'import OpenQuestion from "@artifactory/design-system/open-question";',
+    'import ponto from "./ponto.svg?raw";',
+    "",
+    '<Figure src={ponto} alt="Ponto antes da questão." />',
+    "",
+    '<OpenQuestion id="ponto-da-abertura">',
+    "",
+    "O que a figura mostra?",
+    "",
+    '<Figure src={ponto} alt="Ponto no enunciado da abertura." />',
+    "",
+    "---",
+    "",
+    "Um ponto.",
+    "",
+    "</OpenQuestion>",
+    "",
+    '<Figure src={ponto} alt="Ponto depois da questão." />',
+    "",
+    "## Primeira",
+    "",
+    '<Figure src={ponto} alt="Ponto da primeira seção." />',
+  ]),
+  "artifacts/abertura/ponto.svg": [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">',
+    '  <circle cx="20" cy="20" r="6" class="fill-text" />',
+    "</svg>",
+    "",
+  ].join("\n"),
   "artifacts/numeracao/ponto.svg": [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">',
     '  <circle cx="20" cy="20" r="6" class="fill-text" />',
@@ -2545,6 +2576,20 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
         ["Cadeia da explicação.", null],
         ["Ponto da segunda seção.", "2.2"],
         ["Cadeia da segunda seção.", "2.1"],
+      ]);
+    });
+
+    it("numbers the figures before the first section in one series, one inside a question's prompt included", async () => {
+      const page = await main("abertura");
+      const figures = [...page.querySelectorAll("figure")].map((figure) => [
+        figure.querySelector("svg[role='img']")?.getAttribute("aria-label"),
+        figure.querySelector(":scope > figcaption > .figure-number")?.getAttribute("data-number"),
+      ]);
+      expect(figures).toEqual([
+        ["Ponto antes da questão.", "1"],
+        ["Ponto no enunciado da abertura.", "2"],
+        ["Ponto depois da questão.", "3"],
+        ["Ponto da primeira seção.", "1.1"],
       ]);
     });
   });
