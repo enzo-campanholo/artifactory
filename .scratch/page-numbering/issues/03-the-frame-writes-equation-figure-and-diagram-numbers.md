@@ -1,6 +1,6 @@
 # 03: The frame writes equation, figure and diagram numbers
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 01
 
 Spec: [Page numbering](../spec.md). No number changes on any page, on screen or in print.
