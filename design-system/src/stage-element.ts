@@ -1,6 +1,6 @@
 import { inPageLanguage, mainLanguage } from "./page-language.ts";
-import type { Build, Typed } from "./stage-build.ts";
-import { StageOnPage, type Field, type Shown } from "./stage-on-page.ts";
+import type { Build } from "./stage-build.ts";
+import { StageOnPage, type Field, type Retry, type RunInput, type Shown } from "./stage-on-page.ts";
 import { StepRow } from "./step-row.ts";
 
 // Numbers in the step's line take a real minus sign, as the page writes them.
@@ -11,10 +11,6 @@ interface Refused {
   failed: string;
   retry: string;
 }
-
-// What a refused run asks the owner to change: the option, the options of several groups, or the
-// input, which a Stage with a text field can't call numbers.
-type Retry = "option" | "options" | "numbers" | "text";
 
 type TextField = Extract<Field, { kind: "text" }>;
 
@@ -54,7 +50,6 @@ const textRule = (wording: Wording, name: string, field: TextField) => {
 
 const texts = {
   en: {
-    step: (step: number, count: number) => `Step ${String(step)} of ${String(count)}.`,
     line: (line: number) => `Line ${String(line)}.`,
     fault: (line: number, fault: string) => `Line ${String(line)}: ${fault}.`,
     refused: {
@@ -101,7 +96,6 @@ const texts = {
       ),
   },
   pt: {
-    step: (step: number, count: number) => `Passo ${String(step)} de ${String(count)}.`,
     line: (line: number) => `Linha ${String(line)}.`,
     fault: (line: number, fault: string) => `Linha ${String(line)}: ${fault}.`,
     refused: {
@@ -162,9 +156,8 @@ interface Fade {
 }
 
 class ArtifactStage extends HTMLElement {
-  #build: Promise<Build<string | Typed> | undefined> = Promise.resolve(undefined);
+  #build: Promise<Build<RunInput> | undefined> = Promise.resolve(undefined);
   #page: StageOnPage | undefined;
-  #retry: Retry = "option";
   #fades = new Map<Element, Fade>();
   #row: StepRow | undefined;
   #steps: Shown[] = [];
@@ -179,7 +172,7 @@ class ArtifactStage extends HTMLElement {
     });
     this.addEventListener("submit", (event) => {
       event.preventDefault();
-      this.#type();
+      this.#runTyped();
     });
     this.addEventListener("click", (event) => {
       if (!(event.target instanceof Element)) return;
@@ -192,7 +185,7 @@ class ArtifactStage extends HTMLElement {
     const module = this.dataset.module;
     if (module !== undefined) {
       this.#build = (
-        import(/* @vite-ignore */ module) as Promise<{ default: Build<string | Typed> }>
+        import(/* @vite-ignore */ module) as Promise<{ default: Build<RunInput> }>
       ).then(
         (loaded) => loaded.default,
         () => undefined,
@@ -202,20 +195,16 @@ class ArtifactStage extends HTMLElement {
       this.#fade(part, recolour);
     });
     this.#page = page;
-    const { takes } = page;
-    this.#retry =
-      takes.shape === "option"
-        ? "option"
-        : takes.shape === "groups"
-          ? "options"
-          : takes.values.some(({ kind }) => kind === "text")
-            ? "text"
-            : "numbers";
     this.#row = new StepRow(this, (step) => {
       this.#show(step);
     });
     page.open();
     this.#linkParts(page);
+  }
+
+  // `pnpm look` and the catalog find what to press through the Stage's module, not its classes.
+  get onPage(): StageOnPage | undefined {
+    return this.#page;
   }
 
   get #texts() {
@@ -261,14 +250,13 @@ class ArtifactStage extends HTMLElement {
     this.#runChosen();
   }
 
-  // With several groups the run waits for every group's choice, the prompt holding the line.
   #runChosen() {
     const chosen = this.#page?.chosen();
     if (chosen !== undefined) void this.#run(chosen);
   }
 
   // The first field refused takes the focus back, drawn dashed, with the reason in the step's line.
-  #type() {
+  #runTyped() {
     const typed = this.#page?.typed();
     if (typed === undefined) return;
     if ("input" in typed) {
@@ -286,7 +274,7 @@ class ArtifactStage extends HTMLElement {
     refused.focus();
   }
 
-  async #run(input: string | Typed) {
+  async #run(input: RunInput) {
     const running = ++this.#running;
     const build = await this.#build;
     if (running !== this.#running) return;
@@ -295,7 +283,7 @@ class ArtifactStage extends HTMLElement {
         ? { refused: "no-steps" as const }
         : this.#page.run(build, input);
     if ("refused" in run) {
-      const refused = this.#texts.refused[this.#retry];
+      const refused = this.#texts.refused[this.#page?.retry ?? "option"];
       this.#refuse(
         run.refused === "too-many"
           ? refused.tooMany(run.most)
@@ -307,7 +295,7 @@ class ArtifactStage extends HTMLElement {
     }
     this.#steps = run.steps;
     this.dataset.stepped = "";
-    this.#row?.setCount(run.steps.length);
+    this.#row?.showFirstOf(run.steps.length);
   }
 
   #show(step: number) {
@@ -319,7 +307,7 @@ class ArtifactStage extends HTMLElement {
       step,
       count,
       [
-        this.#texts.step(step, count),
+        this.#row?.said(step),
         shown.running === undefined ? "" : this.#texts.line(shown.running),
         shown.say,
       ]
@@ -331,7 +319,7 @@ class ArtifactStage extends HTMLElement {
   #refuse(why: string, field?: HTMLInputElement) {
     ++this.#running;
     this.#steps = [];
-    this.#row?.setCount(0);
+    this.#row?.showFirstOf(0);
     this.#page?.refuse(why, field);
   }
 

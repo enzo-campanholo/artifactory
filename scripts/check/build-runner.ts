@@ -1,17 +1,18 @@
 import { pathToFileURL } from "node:url";
 import { parentPort, workerData } from "node:worker_threads";
-import type { Build, Content, Typed } from "@artifactory/design-system/stage-build";
+import type { Build, Content } from "@artifactory/design-system/stage-build";
 import {
   runBuild,
   type Control,
   type Run,
+  type RunInput,
   type Written,
 } from "@artifactory/design-system/stage-on-page";
 
 export interface Job {
   file: string;
   control: Control;
-  inputs: (string | Typed)[];
+  inputs: RunInput[];
   written: Written;
   lang: Content["lang"];
 }
@@ -23,8 +24,8 @@ export interface Thrown {
 
 export type Result =
   | { loaded: false; error: Thrown }
-  | { loaded: true; input: string | Typed; run: Exclude<Run, { refused: "threw" }> }
-  | { loaded: true; input: string | Typed; run: { refused: "threw"; error: Thrown } };
+  | { loaded: true; input: RunInput; run: Exclude<Run, { refused: "threw" }> }
+  | { loaded: true; input: RunInput; run: { refused: "threw"; error: Thrown } };
 
 function thrown(error: unknown): Thrown {
   return error instanceof Error
@@ -39,8 +40,7 @@ const post = (result: Result) => {
   parentPort?.postMessage(result);
 };
 try {
-  const build = ((await import(pathToFileURL(file).href)) as { default: Build<string | Typed> })
-    .default;
+  const build = ((await import(pathToFileURL(file).href)) as { default: Build<RunInput> }).default;
   for (const input of inputs) {
     const run = runBuild(build, control, input, written, lang);
     post(

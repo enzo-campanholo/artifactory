@@ -1,3 +1,4 @@
+import { partOf } from "./host-part.ts";
 import { mainLanguage } from "./page-language.ts";
 import {
   MachineFault,
@@ -150,19 +151,68 @@ export interface NamedValue {
   kind: Field["kind"];
 }
 
-function stageControl(stage: Element): { control: Control; takes: Takes } {
-  const control = stage.getAttribute("data-control") as Control;
-  if (control === "choose") {
-    const groups = stageGroups(stage);
-    return groups.length === 0
-      ? { control, takes: { shape: "option" } }
-      : {
-          control,
-          takes: { shape: "groups", values: groups.map(({ name }) => ({ name, kind: "text" })) },
-        };
+// What a run takes: an option as text, or values by name.
+export type RunInput = string | Typed;
+
+// What a refused run asks the owner to change: the option, the options of several groups, or the
+// input, which a Stage with a text field can't call numbers.
+export type Retry = "option" | "options" | "numbers" | "text";
+
+// What the owner presses to run the page's first input: each group's first option, or Start, the
+// fields opening with the first example.
+interface Press {
+  group: string;
+  control: HTMLElement | undefined;
+}
+
+// Everything that follows from what the build takes, read once.
+interface Offer {
+  takes: Takes;
+  inputs: RunInput[];
+  namesInOrder: string[];
+  firstPresses: Press[];
+  retry: Retry;
+}
+
+const optionValue = (option: HTMLInputElement) => option.getAttribute("value") ?? "";
+
+function stageOffer(stage: Element, control: Control): Offer {
+  if (control === "input") {
+    const values = stageFields(stage).map(({ name, kind }): NamedValue => ({ name, kind }));
+    return {
+      takes: { shape: "fields", values },
+      inputs: JSON.parse(
+        stage.querySelector(".stage-input")?.getAttribute("data-examples") ?? "[]",
+      ) as Typed[],
+      namesInOrder: values.map(({ name }) => name),
+      firstPresses: [
+        { group: "", control: stage.querySelector<HTMLElement>(".stage-start") ?? undefined },
+      ],
+      retry: values.some(({ kind }) => kind === "text") ? "text" : "numbers",
+    };
   }
-  const values = stageFields(stage).map(({ name, kind }): NamedValue => ({ name, kind }));
-  return { control, takes: { shape: "fields", values } };
+  const groups = stageGroups(stage);
+  if (groups.length === 0) {
+    const options = stageOptions(stage);
+    return {
+      takes: { shape: "option" },
+      inputs: options.map(optionValue),
+      namesInOrder: [],
+      firstPresses: [{ group: "", control: options[0] }],
+      retry: "option",
+    };
+  }
+  return {
+    takes: { shape: "groups", values: groups.map(({ name }) => ({ name, kind: "text" })) },
+    inputs: combinations(groups),
+    namesInOrder: groups.map(({ name }) => name),
+    firstPresses: groups.map(({ name, options }) => ({ group: name, control: options[0] })),
+    retry: "options",
+  };
+}
+
+function stageOptions(stage: Element): HTMLInputElement[] {
+  return [...stage.querySelectorAll<HTMLInputElement>(".stage-option input")];
 }
 
 // A Stage with several choice groups names each group on its row; one group goes unnamed, and its
@@ -185,7 +235,7 @@ function combinations(groups: ChoiceGroup[]): Typed[] {
   return groups.reduce<Typed[]>(
     (chosen, { name, options }) =>
       chosen.flatMap((before) =>
-        options.map((option) => ({ ...before, [name]: option.getAttribute("value") ?? "" })),
+        options.map((option) => ({ ...before, [name]: optionValue(option) })),
       ),
     [{}],
   );
@@ -232,7 +282,7 @@ function typedText(text: string): string {
 
 // A run's name, as the check's failures and `pnpm look` print it: the option, `B`, or the values in
 // the order given, `a = 48, b = 18`.
-export function runName(input: string | Typed): string {
+function runName(input: RunInput): string {
   return typeof input === "string"
     ? input
     : Object.entries(input)
@@ -243,14 +293,23 @@ export function runName(input: string | Typed): string {
 // Each Stage's step line gets its own ID once a refused field needs to name it.
 let refusals = 0;
 
+// The Stage's element, as `pnpm look` and the catalog reach its page through it.
+export type StageHost = HTMLElement & { readonly onPage: StageOnPage | undefined };
+
 // A Stage as its page holds it: its control and inputs, the content as written, and the nodes a
 // shown step paints. A step's colour reaches a part through `recolour`, so the element can fade it.
 export class StageOnPage {
   readonly control: Control;
   readonly takes: Takes;
+  // What the page offers to run: every option, every combination of one option per group, or
+  // every example.
+  readonly inputs: RunInput[];
+  readonly retry: Retry;
   readonly written: Written;
   readonly #stage: Element;
   readonly #nodes: StageNodes;
+  readonly #namesInOrder: string[];
+  readonly #firstPresses: Press[];
   readonly #recolour: (part: Element, recolour: () => void) => void;
   readonly #asWritten = new Map<Element, Node[]>();
   readonly #rowToCopy: Element | undefined;
@@ -266,9 +325,13 @@ export class StageOnPage {
     this.#recolour = recolour;
     this.#nodes = stageNodes(stage);
     this.written = writtenContent(this.#nodes);
-    const { control, takes } = stageControl(stage);
-    this.control = control;
-    this.takes = takes;
+    this.control = stage.getAttribute("data-control") as Control;
+    const offer = stageOffer(stage, this.control);
+    this.takes = offer.takes;
+    this.inputs = offer.inputs;
+    this.retry = offer.retry;
+    this.#namesInOrder = offer.namesInOrder;
+    this.#firstPresses = offer.firstPresses;
     this.#rowToCopy = this.#oneTableRowsAsWritten.at(-1)?.cloneNode(true) as Element | undefined;
     const labels = this.#nodes.parts.flatMap((part) => [...part.querySelectorAll(colourLabel)]);
     const cells = this.#nodes.tables.flatMap(({ rows }) => rows.flat());
@@ -289,24 +352,26 @@ export class StageOnPage {
     return mainLanguage(this.#stage);
   }
 
-  // What the page offers to run: every option, every combination of one option per group, or
-  // every example.
-  get inputs(): (string | Typed)[] {
-    if (this.takes.shape === "fields") {
-      return JSON.parse(
-        this.#stage.querySelector(".stage-input")?.getAttribute("data-examples") ?? "[]",
-      ) as Typed[];
-    }
-    if (this.takes.shape === "groups") return combinations(stageGroups(this.#stage));
-    return this.options.map((input) => input.getAttribute("value") ?? "");
+  get options(): HTMLInputElement[] {
+    return stageOptions(this.#stage);
   }
 
-  get options(): HTMLInputElement[] {
-    return [...this.#stage.querySelectorAll<HTMLInputElement>(".stage-option input")];
+  get start(): HTMLElement | undefined {
+    return this.#stage.querySelector<HTMLElement>(".stage-start") ?? undefined;
+  }
+
+  field(name: string): HTMLInputElement | undefined {
+    return this.#fields.find((field) => field.name === name);
   }
 
   get #fields(): HTMLInputElement[] {
     return [...this.#stage.querySelectorAll<HTMLInputElement>(".stage-field input")];
+  }
+
+  // What `pnpm look` presses to run the first input as the owner would, and that run's name.
+  get firstRun(): { name: string; presses: Press[] } {
+    const [first] = this.inputs;
+    return { name: first === undefined ? "" : this.name(first), presses: this.#firstPresses };
   }
 
   get drawing(): SVGSVGElement | null {
@@ -321,15 +386,15 @@ export class StageOnPage {
   }
 
   // An example reads as its values in the fields' order, as a choice does in the groups' order.
-  name(input: string | Typed): string {
+  name(input: RunInput): string {
     return runName(
-      typeof input === "string" || this.takes.shape === "option"
+      typeof input === "string"
         ? input
-        : (Object.fromEntries(this.takes.values.map(({ name }) => [name, input[name]])) as Typed),
+        : Object.fromEntries(this.#namesInOrder.map((name) => [name, input[name] ?? ""])),
     );
   }
 
-  run(build: Build<string | Typed>, input: string | Typed): Run {
+  run(build: Build<RunInput>, input: RunInput): Run {
     return runBuild(build, this.control, input, this.written, this.lang);
   }
 
@@ -342,11 +407,10 @@ export class StageOnPage {
       field.value = field.defaultValue;
       field.removeAttribute("aria-invalid");
     }
-    this.#part(".stage-controls").hidden = false;
+    partOf(this.#stage, ".stage-controls").hidden = false;
   }
 
-  // With several groups the run waits for every group's choice.
-  chosen(): string | Typed | undefined {
+  chosen(): RunInput | undefined {
     const groups = stageGroups(this.#stage);
     if (groups.length === 0) return this.options.find(({ checked }) => checked)?.value;
     const chosen: Typed = {};
@@ -366,7 +430,8 @@ export class StageOnPage {
     }
     const input: Typed = {};
     for (const field of stageFields(this.#stage)) {
-      const typed = this.#part(
+      const typed = partOf(
+        this.#stage,
         `.stage-field input[name="${CSS.escape(field.name)}"]`,
       ) as HTMLInputElement;
       const value = field.kind === "text" ? typedText(typed.value) : typedNumber(typed.value);
@@ -376,40 +441,30 @@ export class StageOnPage {
     return { input };
   }
 
-  // The host says its step, its count and a refusal, as a Stepper says its count, so a reader such
-  // as `pnpm look` needs none of the Stage's inner markup to follow a run.
+  // The host says a refusal, as its step row says its step and count, so a reader such as
+  // `pnpm look` needs none of the Stage's inner markup to follow a run.
   show(shown: Shown, step: number, count: number, announcement: string) {
     this.#paint(shown);
-    this.#stage.setAttribute("data-current-step", String(step));
-    this.#stage.setAttribute("data-count", String(count));
     this.#stage.removeAttribute("data-refused");
-    this.#part(".stage-counter").hidden = false;
-    this.#part(".stage-current").textContent = String(step);
-    this.#part(".stage-count").textContent = String(count);
-    this.#part(".stage-say").textContent = shown.say;
-    this.#part(".stage-announcement").textContent = announcement;
+    partOf(this.#stage, ".stage-counter").hidden = false;
+    partOf(this.#stage, ".stage-current").textContent = String(step);
+    partOf(this.#stage, ".stage-count").textContent = String(count);
+    partOf(this.#stage, ".stage-say").textContent = shown.say;
+    partOf(this.#stage, ".stage-announcement").textContent = announcement;
   }
 
   // A refused field is drawn dashed, and named by the step's line that gives the reason.
   refuse(why: string, field?: HTMLInputElement) {
     this.#paint(undefined);
-    this.#stage.removeAttribute("data-current-step");
-    this.#stage.removeAttribute("data-count");
     this.#stage.setAttribute("data-refused", why);
-    this.#part(".stage-counter").hidden = true;
-    const say = this.#part(".stage-say");
+    partOf(this.#stage, ".stage-counter").hidden = true;
+    const say = partOf(this.#stage, ".stage-say");
     say.textContent = why;
-    this.#part(".stage-announcement").textContent = why;
+    partOf(this.#stage, ".stage-announcement").textContent = why;
     if (field === undefined) return;
     field.setAttribute("aria-invalid", "true");
     say.id ||= `stage-say-${String(++refusals)}`;
     field.setAttribute("aria-describedby", say.id);
-  }
-
-  #part(selector: string): HTMLElement {
-    const part = this.#stage.querySelector<HTMLElement>(selector);
-    if (part === null) throw new Error(`artifact-stage has no ${selector}`);
-    return part;
   }
 
   get #oneTableRowsAsWritten(): Element[] {
@@ -557,7 +612,7 @@ function contentAsWritten({ tables, code }: Written, lang: Content["lang"]): Con
 
 // A build is the artifact agent's code, cast or not, so what it returns is checked here, where the
 // page and the check both run it.
-export function runBuild<Input extends string | Typed>(
+export function runBuild<Input extends RunInput>(
   build: Build<Input>,
   control: Control,
   input: Input,

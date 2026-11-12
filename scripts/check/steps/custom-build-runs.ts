@@ -7,7 +7,6 @@ import {
   rowTexts,
   StageOnPage,
   type Shown,
-  type Takes,
   type Written,
 } from "@artifactory/design-system/stage-on-page";
 import type { Failure } from "../../../src/check-failure.ts";
@@ -19,12 +18,6 @@ import type { Step } from "../step.ts";
 
 // A build answers in milliseconds, so one that takes this long for an option never returns.
 const timeoutSeconds = 5;
-
-interface StagedBuild {
-  file: string;
-  takes: Takes;
-  stage: StageOnPage;
-}
 
 // Each Stage's build runs on every option or example against the content as the built page holds
 // it, through the same module the page uses, so what passes here is what the page can show.
@@ -38,11 +31,11 @@ export const customBuildRuns: Step = {
   },
 };
 
-async function stagesOnPages(root: string): Promise<StagedBuild[]> {
+async function stagesOnPages(root: string): Promise<StageOnPage[]> {
   const slugs = (await artifactsFolderItems(root))
     .filter((item) => item.isDirectory())
     .map(({ name }) => name);
-  const stages: StagedBuild[] = [];
+  const stages: StageOnPage[] = [];
   for (const slug of slugs) {
     const page = join(root, "dist", slug, "index.html");
     if (!existsSync(page)) continue;
@@ -52,14 +45,14 @@ async function stagesOnPages(root: string): Promise<StagedBuild[]> {
     for (const element of document.querySelectorAll("artifact-stage")) {
       const stage = new StageOnPage(element as unknown as Element);
       if (!existsSync(join(root, stage.build))) continue;
-      stages.push({ file: stage.build, takes: stage.takes, stage });
+      stages.push(stage);
     }
   }
   return stages;
 }
 
-function runStage(root: string, { file, stage }: StagedBuild): Promise<Failure[]> {
-  const { control, inputs, written, lang } = stage;
+function runStage(root: string, stage: StageOnPage): Promise<Failure[]> {
+  const { build: file, control, inputs, written, lang } = stage;
   const failures: Failure[] = [];
   const fail = (message: string, line = 1, column = 1) => {
     failures.push({

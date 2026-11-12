@@ -1,4 +1,15 @@
+import { inPageLanguage } from "./page-language.ts";
+
+const stepOfCount = {
+  en: (step: number, count: number) => `Step ${String(step)} of ${String(count)}.`,
+  pt: (step: number, count: number) => `Passo ${String(step)} de ${String(count)}.`,
+};
+
+// A host tells its row how many steps there are and shows the step the row gives it. The row says
+// that step and the count on the host, as `data-current-step` and `data-count`, so a reader such as
+// `pnpm look` follows a Stage and a Stepper alike; with no steps, it says neither.
 export class StepRow {
+  readonly #host: HTMLElement;
   readonly #back: HTMLButtonElement;
   readonly #forward: HTMLButtonElement;
   readonly #show: (step: number) => void;
@@ -10,6 +21,7 @@ export class StepRow {
     if (back === undefined || forward === undefined) {
       throw new Error(`${host.localName} has no step row`);
     }
+    this.#host = host;
     this.#back = back;
     this.#forward = forward;
     this.#show = show;
@@ -31,12 +43,19 @@ export class StepRow {
     this.#refuseEnds();
   }
 
-  // The row goes to the first step, or to none when there are no steps, and has its host show it.
-  setCount(count: number) {
+  showFirstOf(count: number) {
     this.#count = count;
     this.#step = Math.min(1, count);
     this.#refuseEnds();
-    if (this.#step > 0) this.#show(this.#step);
+    if (this.#step > 0) this.#showStep();
+    else {
+      this.#host.removeAttribute("data-current-step");
+      this.#host.removeAttribute("data-count");
+    }
+  }
+
+  said(step: number): string {
+    return inPageLanguage(this.#host, stepOfCount)(step, this.#count);
   }
 
   #go(by: number) {
@@ -44,7 +63,13 @@ export class StepRow {
     if (this.#count === 0 || step === this.#step) return;
     this.#step = step;
     this.#refuseEnds();
-    this.#show(step);
+    this.#showStep();
+  }
+
+  #showStep() {
+    this.#show(this.#step);
+    this.#host.setAttribute("data-current-step", String(this.#step));
+    this.#host.setAttribute("data-count", String(this.#count));
   }
 
   #refuseEnds() {
