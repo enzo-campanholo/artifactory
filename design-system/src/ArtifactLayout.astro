@@ -80,14 +80,9 @@ const contentHash = createHash("sha256")
 </html>
 
 <script>
+  import { httpTransport } from "./http-transports.ts";
   import { questionsInDocument } from "./question-markers.ts";
-  import {
-    httpTransport,
-    keptAttempts,
-    keptTransport,
-    memoryTransport,
-    startStore,
-  } from "./state.ts";
+  import { keptAttempts, keptTransport, memoryTransport, startStore } from "./state.ts";
 
   const { artifactId, contentHash, viewer } = document.documentElement.dataset;
   if (artifactId === undefined || contentHash === undefined) {

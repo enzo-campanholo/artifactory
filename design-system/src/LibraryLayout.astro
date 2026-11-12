@@ -199,9 +199,9 @@ const publishedOn = (date: Date) => shortDate(date, "en", { timeZone: "UTC" });
 </html>
 
 <script>
+  import { httpLibraryTransport } from "./http-transports.ts";
   import "./library-revisit.ts";
   import {
-    httpLibraryTransport,
     keptLibraryTransport,
     memoryLibraryTransport,
     startLibraryStatuses,

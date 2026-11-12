@@ -6,8 +6,8 @@ import {
   startStore,
   type MemoryTransport,
   type Store,
-  type Transport,
 } from "@artifactory/design-system/state";
+import type { Transport } from "@artifactory/design-system/transport";
 
 export const artifactId = "abcd1234";
 const contentHash = "4f1e9c0d2b7a6e35";

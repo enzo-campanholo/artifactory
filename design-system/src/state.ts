@@ -1,4 +1,3 @@
-import type { Transport } from "./http-transports.ts";
 import { markOwner } from "./owner-mark.ts";
 import { numbered, type NumberedQuestion } from "./question-markers.ts";
 import type { ArtifactState, SavedAnswer, SavedAttempt } from "./saved-state.ts";
@@ -11,8 +10,7 @@ import {
   type Mark,
   type Question,
 } from "./scoring.ts";
-
-export { httpTransport, type Transport } from "./http-transports.ts";
+import type { Transport } from "./transport.ts";
 
 type ForcedOutcome =
   "answered elsewhere" | "save fails" | "load fails" | "artifact updated" | "signed out";

@@ -1,10 +1,8 @@
-import type { LibraryTransport } from "./http-transports.ts";
 import { markOwner } from "./owner-mark.ts";
 import type { LibrarySummaries } from "./saved-state.ts";
 import type { Summary } from "./scoring.ts";
 import { forgetKeptState, keepFresh, keeping, keptKey } from "./state.ts";
-
-export { httpLibraryTransport } from "./http-transports.ts";
+import type { LibraryTransport } from "./transport.ts";
 
 type ForcedOutcome = "load fails" | "signed out" | "library updated";
 
