@@ -12,8 +12,9 @@ import { splitAtRule } from "./split-at-rule.ts";
  *
  * Write the question, a blank line, `---`, another blank line, then the model answer. Without the
  * blank line above it, `---` turns the question into a heading. Both can hold math, code, lists
- * and figures. A figure or diagram in the model answer shows its caption with no number, since the
- * page can't count what the closed model answer hides; one in the question keeps its number:
+ * and figures. A figure or diagram in the model answer shows its caption with no number, since a
+ * number on a figure the page hides would leave a gap in the series; one in the question keeps its
+ * number:
  *
  * ```mdx
  * import OpenQuestion from "@artifactory/design-system/open-question";
