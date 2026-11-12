@@ -49,7 +49,12 @@ export function attributeValue(attributes: string, name: string): string | undef
   return written === undefined ? undefined : unescapedAttribute(written);
 }
 
-export function withInserted(content: string, insertions: { at: number; text: string }[]): string {
+export interface Insertion {
+  at: number;
+  text: string;
+}
+
+export function withInserted(content: string, insertions: Insertion[]): string {
   let written = "";
   let from = 0;
   for (const { at, text } of [...insertions].sort((a, b) => a.at - b.at)) {

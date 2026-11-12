@@ -2,8 +2,8 @@
 import { matchingParts } from "./matching.ts";
 import { unlessRuleBroken } from "./component-rules.ts";
 import Question from "./Question.astro";
-import { questionNumberMarker } from "./page-numbers.ts";
-import { questionAnchor, questionMarkers } from "./question-markers.ts";
+import { questionNumberAttributes } from "./page-numbers.ts";
+import { questionAnchor, questionAttributes } from "./question-markers.ts";
 
 /**
  * Several auto-checked questions, one per item, that share one list of options and are checked
@@ -97,14 +97,18 @@ const itemNumberId = (id: string) => `${questionAnchor(id)}--number`;
     <div class="matching-items">
       {items.map(({ id, key, text }) => (
         <div
-          {...questionMarkers({ id, kind: "single-choice", key })}
+          {...questionAttributes({ id, kind: "single-choice", key })}
           class="matching-item"
           role="group"
           aria-labelledby={itemNumberId(id)}
           aria-describedby={itemTextId(id)}
         >
           <fieldset>
-            <span class="matching-item-number" id={itemNumberId(id)} {...questionNumberMarker(id)}>
+            <span
+              class="matching-item-number"
+              id={itemNumberId(id)}
+              {...questionNumberAttributes(id)}
+            >
               <span class="artifact-visually-hidden">
                 <span data-lang="en">Question</span>
                 <span data-lang="pt">Questão</span>

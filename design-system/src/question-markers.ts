@@ -7,7 +7,7 @@ export function questionAnchor(questionId: string): string {
   return `q-${questionId}`;
 }
 
-export function questionMarkers({ id, kind, key }: Question) {
+export function questionAttributes({ id, kind, key }: Question) {
   return {
     id: questionAnchor(id),
     "data-question-id": id,
@@ -18,7 +18,7 @@ export function questionMarkers({ id, kind, key }: Question) {
 
 // Astro writes attribute values in double quotes and escapes only `&` and `"` in them, and code
 // blocks escape their "<", so only a question's own start tag matches.
-const markers =
+const questionStartTags =
   /<[a-z][\w-]*\sid="q-[^"]*"\sdata-question-id="([^"]*)"\sdata-question-kind="([^"]*)"(?:\sdata-question-key="([^"]*)")?/g;
 
 export function numbered(questions: Question[]): NumberedQuestion[] {
@@ -32,7 +32,7 @@ function markedQuestion(id: string, kind: string, key: string | undefined): Ques
 
 export function readQuestions(html: string): NumberedQuestion[] {
   return numbered(
-    [...html.matchAll(markers)].map(([, id = "", kind = "", key]) =>
+    [...html.matchAll(questionStartTags)].map(([, id = "", kind = "", key]) =>
       markedQuestion(
         unescapedAttribute(id),
         unescapedAttribute(kind),

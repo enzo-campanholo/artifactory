@@ -1,5 +1,5 @@
 import { escapedAttribute, unescapedAttribute } from "./html-attributes.ts";
-import { attributeValue, tags, withInserted } from "./html-tags.ts";
+import { attributeValue, tags, withInserted, type Insertion } from "./html-tags.ts";
 
 // `ptOf` is "of" in Portuguese, agreeing with the label's gender: "Demonstração do Teorema 2.1" but
 // "Demonstração da Proposição 3.2".
@@ -210,7 +210,7 @@ function statementsAndProofs(content: string): {
 function proofReferences(
   proofs: ScannedProof[],
   statements: Map<string, NumberedStatement>,
-): { at: number; text: string }[] {
+): Insertion[] {
   return proofs.flatMap(({ of, followsStatement, tagEnd, opening }) => {
     if (followsStatement) return [{ at: tagEnd, text: " data-follows-statement" }];
     const proven = statements.get(of);
