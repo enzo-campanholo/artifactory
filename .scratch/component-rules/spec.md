@@ -81,3 +81,9 @@ Owner, architecture review session, 2026-11-10 (thread 8d57bee0-37b7-4277-bf58-c
 - **Approved, round 2 Q4:** one fixture repo for every component rule, with the type-error cases kept.
 - **Approved, round 3 Q1:** the two tickets in `issues/`.
 - **Order of work, round 2 Q12:** this feature first, then [Library row statuses](../library-row-statuses/spec.md), [The HTTP transport against the Worker](../http-transport-against-the-worker/spec.md), [The Stage on its page](../stage-on-its-page/spec.md), [Page numbering](../page-numbering/spec.md) and [Question markup in store tests](../question-markup-in-store-tests/spec.md).
+
+### 2026-11-11: owner decision at the code review
+
+Owner, implement-spec orchestration session, 2026-11-11, on the code review of the integration branch (`c6b9706...622fa5d`).
+
+- **Approved, decision 3 (a Stage's drawing rule):** when a Stage holds the drawing, the drawing's rule names the Stage (`Stage: …`) instead of `Figure or Stepper: …`. `.claude/skills/artifact/rules.md` and `stage.md` follow in the same commit, and the `tests/check/component-rules.test.ts` case asserts the new message. This is the one exception to [Out of scope](#out-of-scope)'s "Changing … any message's wording".
