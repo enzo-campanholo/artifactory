@@ -46,7 +46,7 @@
     "./state-notices": "./src/state-notices.ts",
     "./statement": "./src/Statement.astro",
     "./statements": "./src/statements.ts",
-    "./step-applier": "./src/step-applier.ts",
+    "./stage-on-page": "./src/stage-on-page.ts",
     "./stepper": "./src/Stepper.astro",
     "./stepper-element": "./src/stepper-element.ts",
     "./theme-eye-element": "./src/theme-eye-element.ts"

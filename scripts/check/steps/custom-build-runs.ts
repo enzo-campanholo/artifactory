@@ -3,20 +3,13 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 import { Window } from "happy-dom";
-import { mainLanguage } from "@artifactory/design-system/page-language";
-import type { Content, Typed } from "@artifactory/design-system/stage-build";
 import {
   rowTexts,
-  stageControl,
-  stageGroups,
-  stageNodes,
-  writtenContent,
-  type ChoiceGroup,
-  type Control,
+  StageOnPage,
   type Shown,
   type Takes,
   type Written,
-} from "@artifactory/design-system/step-applier";
+} from "@artifactory/design-system/stage-on-page";
 import type { Failure } from "../../../src/check-failure.ts";
 import { hasBrokenComponent } from "../../../src/component-rule-failures.ts";
 import { artifactsFolderItems } from "../../../src/artifacts.ts";
@@ -27,17 +20,14 @@ import type { Step } from "../step.ts";
 // A build answers in milliseconds, so one that takes this long for an option never returns.
 const timeoutSeconds = 5;
 
-interface StageOnPage {
+interface StagedBuild {
   file: string;
-  control: Control;
   takes: Takes;
-  inputs: (string | Typed)[];
-  written: Written;
-  lang: Content["lang"];
+  stage: StageOnPage;
 }
 
 // Each Stage's build runs on every option or example against the content as the built page holds
-// it, through the same step applier the page uses, so what passes here is what the page can show.
+// it, through the same module the page uses, so what passes here is what the page can show.
 export const customBuildRuns: Step = {
   name: "custom build runs",
   async run(root) {
@@ -48,11 +38,11 @@ export const customBuildRuns: Step = {
   },
 };
 
-async function stagesOnPages(root: string): Promise<StageOnPage[]> {
+async function stagesOnPages(root: string): Promise<StagedBuild[]> {
   const slugs = (await artifactsFolderItems(root))
     .filter((item) => item.isDirectory())
     .map(({ name }) => name);
-  const stages: StageOnPage[] = [];
+  const stages: StagedBuild[] = [];
   for (const slug of slugs) {
     const page = join(root, "dist", slug, "index.html");
     if (!existsSync(page)) continue;
@@ -60,48 +50,16 @@ async function stagesOnPages(root: string): Promise<StageOnPage[]> {
     if (!html.includes("<artifact-stage") || hasBrokenComponent(html)) continue;
     const document = new new Window().DOMParser().parseFromString(html, "text/html");
     for (const element of document.querySelectorAll("artifact-stage")) {
-      const file = (element.getAttribute("data-build") ?? "").replace(/^\//, "");
-      if (!existsSync(join(root, file))) continue;
-      const stage = element as unknown as Element;
-      const { control, takes } = stageControl(stage);
-      stages.push({
-        file,
-        control,
-        takes,
-        inputs:
-          takes.shape === "fields"
-            ? (JSON.parse(
-                element.querySelector(".stage-input")?.getAttribute("data-examples") ?? "[]",
-              ) as Typed[])
-            : takes.shape === "groups"
-              ? combinations(stageGroups(stage))
-              : [...element.querySelectorAll(".stage-option input")].map(
-                  (input) => input.getAttribute("value") ?? "",
-                ),
-        written: writtenContent(stageNodes(stage)),
-        lang: mainLanguage(stage),
-      });
+      const stage = new StageOnPage(element as unknown as Element);
+      if (!existsSync(join(root, stage.build))) continue;
+      stages.push({ file: stage.build, takes: stage.takes, stage });
     }
   }
   return stages;
 }
 
-// Every combination, one option from each group, in the groups' order and each group's options'
-// order, so the first is what the page shows on choosing each group's first option.
-function combinations(groups: ChoiceGroup[]): Typed[] {
-  return groups.reduce<Typed[]>(
-    (chosen, { name, options }) =>
-      chosen.flatMap((before) =>
-        options.map((option) => ({ ...before, [name]: option.getAttribute("value") ?? "" })),
-      ),
-    [{}],
-  );
-}
-
-function runStage(
-  root: string,
-  { file, control, takes, inputs, written, lang }: StageOnPage,
-): Promise<Failure[]> {
+function runStage(root: string, { file, stage }: StagedBuild): Promise<Failure[]> {
+  const { control, inputs, written, lang } = stage;
   const failures: Failure[] = [];
   const fail = (message: string, line = 1, column = 1) => {
     failures.push({
@@ -134,7 +92,7 @@ function runStage(
       }
       timer = setTimeout(() => {
         fail(
-          `with \`${named(waiting[0] ?? "", takes)}\`, \`steps\` didn't return within ${String(timeoutSeconds)} seconds`,
+          `with \`${stage.name(waiting[0] ?? "")}\`, \`steps\` didn't return within ${String(timeoutSeconds)} seconds`,
         );
         finish();
       }, timeoutSeconds * 1000);
@@ -148,7 +106,7 @@ function runStage(
       const first = waiting.length === inputs.length;
       waiting.shift();
       const { input, run } = result;
-      const withOption = `with \`${named(input, takes)}\`,`;
+      const withOption = `with \`${stage.name(input)}\`,`;
       if (!("refused" in run)) {
         const last = run.steps.at(-1);
         if (first && control === "input" && last !== undefined) {
@@ -198,13 +156,6 @@ function runStage(
     });
     wait();
   });
-}
-
-// An example reads as its numbers in the fields' order, as `pnpm look` prints it: `a = 48, b = 18`.
-function named(input: string | Typed, takes: Takes): string {
-  return takes.shape === "option"
-    ? (input as string)
-    : takes.values.map(({ name }) => `${name} = ${String((input as Typed)[name])}`).join(", ");
 }
 
 // With `input`, the content as written is the first example's result, so its tables are what that

@@ -3,6 +3,8 @@ import { existsSync } from "node:fs";
 import { readFile, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { ElementHandle, Page, SerializedAXNode } from "puppeteer-core";
+import type { Typed } from "@artifactory/design-system/stage-build";
+import { runName } from "@artifactory/design-system/stage-on-page";
 import { kebabCase } from "../src/artifacts.ts";
 import {
   assertCase,
@@ -636,13 +638,15 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
     const fields = await element.$$eval(".stage-field input", (nodes) =>
       nodes.map((node) => ({ name: node.name, value: node.value })),
     );
-    first = `first example ${fields.map(({ name, value }) => `${name} = ${value}`).join(", ")}`;
+    first = `first example ${runName(Object.fromEntries(fields.map(({ name, value }) => [name, value])))}`;
     actions.push({
       group: "",
       action: required(test, `${name}: Stage action exists`, await element.$(".stage-start")),
     });
   } else {
-    const chosen: string[] = [];
+    // One group goes unnamed, and its option is the run's name.
+    let unnamed: string | undefined;
+    const chosen: Typed = {};
     for (const choice of await element.$$(".stage-choice")) {
       const group = await choice.evaluate((node) => node.getAttribute("data-group") ?? "");
       const action = required(
@@ -651,10 +655,11 @@ async function shootStage(shooting: Shooting): Promise<Shots> {
         await choice.$(".stage-option input"),
       );
       const option = await action.evaluate((node) => node.value);
-      chosen.push(group === "" ? option : `${group} = ${option}`);
+      if (group === "") unnamed = option;
+      else chosen[group] = option;
       actions.push({ group, action });
     }
-    first = `${actions.length === 1 ? "first option" : "first options"} ${chosen.join(", ")}`;
+    first = `${actions.length === 1 ? "first option" : "first options"} ${runName(unnamed ?? chosen)}`;
   }
   for (const { group, action } of actions) {
     assertCase(
