@@ -17,12 +17,22 @@ const container = await experimental_AstroContainer.create({
 type Fixture = Parameters<typeof container.renderToString>[0];
 
 // The page's own scripts load the elements, which the test file imports instead.
-export async function mountQuestion(fixture: Fixture): Promise<void> {
+export async function renderQuestion(
+  fixture: Fixture,
+  props: Record<string, unknown> = {},
+): Promise<DocumentFragment> {
   const template = document.createElement("template");
-  template.innerHTML = (await container.renderToString(fixture)).replaceAll(
+  template.innerHTML = (await container.renderToString(fixture, { props })).replaceAll(
     /<script\b[\s\S]*?<\/script>/g,
     "",
   );
+  return template.content;
+}
+
+export async function mountQuestion(
+  fixture: Fixture,
+  props: Record<string, unknown> = {},
+): Promise<void> {
   // Through a template, so each element connects with its children already in place.
-  document.body.replaceChildren(template.content);
+  document.body.replaceChildren(await renderQuestion(fixture, props));
 }
