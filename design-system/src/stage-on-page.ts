@@ -305,7 +305,7 @@ export class StageOnPage {
     return [...this.#stage.querySelectorAll<HTMLInputElement>(".stage-option input")];
   }
 
-  get fields(): HTMLInputElement[] {
+  get #fields(): HTMLInputElement[] {
     return [...this.#stage.querySelectorAll<HTMLInputElement>(".stage-field input")];
   }
 
@@ -338,7 +338,7 @@ export class StageOnPage {
   // isn't valid on a radio.
   open() {
     for (const option of this.options) option.checked = false;
-    for (const field of this.fields) {
+    for (const field of this.#fields) {
       field.value = field.defaultValue;
       field.removeAttribute("aria-invalid");
     }
@@ -360,7 +360,7 @@ export class StageOnPage {
 
   // What the owner typed, by each field's definition, or the first field whose rule it breaks.
   typed(): { input: Typed } | { refused: HTMLInputElement; field: Field } {
-    for (const field of this.fields) {
+    for (const field of this.#fields) {
       field.removeAttribute("aria-invalid");
       field.removeAttribute("aria-describedby");
     }
