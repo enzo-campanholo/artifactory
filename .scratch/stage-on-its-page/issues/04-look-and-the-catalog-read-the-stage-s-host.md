@@ -1,6 +1,6 @@
 # 04: Look and the catalog read the Stage's host
 
-Status: ready-for-agent
+Status: claimed
 Blocked by: 03
 
 Spec: [The Stage on its page](../spec.md).
