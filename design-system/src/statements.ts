@@ -1,4 +1,5 @@
 import { escapedAttribute, unescapedAttribute } from "./html-attributes.ts";
+import { attributeValue, tags, withInserted } from "./html-tags.ts";
 
 // `ptOf` is "of" in Portuguese, agreeing with the label's gender: "Demonstração do Teorema 2.1" but
 // "Demonstração da Proposição 3.2".
@@ -135,32 +136,6 @@ interface NumberedStatement {
   solution: Solution | undefined;
 }
 
-const voidElements = new Set([
-  "area",
-  "base",
-  "br",
-  "col",
-  "embed",
-  "hr",
-  "img",
-  "input",
-  "link",
-  "meta",
-  "source",
-  "track",
-  "wbr",
-]);
-
-// Astro writes well-formed HTML with every attribute value quoted, and code blocks escape their
-// "<", so a tag is a tag. Script and style bodies, and comments, are skipped whole.
-const token =
-  /<!--[\s\S]*?-->|<(script|style)\b(?:[^>"']|"[^"]*"|'[^']*')*>[\s\S]*?<\/\1\s*>|<\/[a-zA-Z][\w:-]*\s*>|<([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
-
-function attributeValue(attributes: string, name: string): string | undefined {
-  const written = new RegExp(String.raw`\s${name}="([^"]*)"`).exec(attributes)?.[1];
-  return written === undefined ? undefined : unescapedAttribute(written);
-}
-
 interface ScannedProof {
   of: string;
   followsStatement: boolean;
@@ -170,10 +145,9 @@ interface ScannedProof {
   opening: number | undefined;
 }
 
-// The margin counts the main column's own paragraphs, h3s and `[data-statement-id]` elements after
-// an h2, with CSS counters in `ArtifactFrame.astro`. This counts the same elements, so a citation
-// prints the number the margin shows. A statement elsewhere has no number. A proof follows its
-// statement when the main column's element before it is the statement it proves.
+// A statement's number is the one the frame wrote on its first child, and a statement elsewhere has
+// none. A proof follows its statement when the main column's element before it is the statement it
+// proves.
 function statementsAndProofs(content: string): {
   inOrder: NumberedStatement[];
   statements: Map<string, NumberedStatement>;
@@ -183,29 +157,26 @@ function statementsAndProofs(content: string): {
   const statements = new Map<string, NumberedStatement>();
   const proofs: ScannedProof[] = [];
   const openProofs: { proof: ScannedProof; depth: number }[] = [];
-  let depth = 0;
-  let section = 0;
-  let clause = 0;
   let previousStatement: string | undefined;
-  for (const { 0: tag, 1: rawText, 2: name, 3: attributes = "", index } of content.matchAll(
-    token,
-  )) {
-    if (rawText !== undefined || tag.startsWith("<!")) continue;
-    if (name === undefined) {
-      depth = Math.max(0, depth - 1);
-      if (openProofs.at(-1)?.depth === depth) openProofs.pop();
+  let unnumbered: { statement: NumberedStatement; depth: number } | undefined;
+  for (const tag of tags(content)) {
+    if (tag.closing) {
+      if (openProofs.at(-1)?.depth === tag.depth) openProofs.pop();
       continue;
     }
-    const element = name.toLowerCase();
+    const { attributes, depth, end } = tag;
+    if (unnumbered !== undefined && depth === unnumbered.depth + 1) {
+      unnumbered.statement.number = attributeValue(attributes, "data-number");
+    }
+    unnumbered = undefined;
     const statementId = attributeValue(attributes, "data-statement-id");
     const kind = attributeValue(attributes, "data-statement-kind") as StatementKind | undefined;
-    const counted = depth === 0 && section > 0;
     const proofOf = attributeValue(attributes, "data-proof-of");
     if (proofOf !== undefined) {
       const proof: ScannedProof = {
         of: proofOf,
         followsStatement: depth === 0 && previousStatement === proofOf,
-        tagEnd: index + tag.length - 1,
+        tagEnd: end,
         opening: undefined,
       };
       proofs.push(proof);
@@ -216,38 +187,22 @@ function statementsAndProofs(content: string): {
       innermostProof !== undefined &&
       attributeValue(attributes, "data-proof-target") !== undefined
     ) {
-      innermostProof.opening ??= index + tag.length;
+      innermostProof.opening ??= end + 1;
     }
     if (depth === 0) previousStatement = statementId;
-    if (depth === 0 && element === "h2") {
-      section += 1;
-      clause = 0;
-    } else if (counted && (element === "p" || element === "h3" || statementId !== undefined)) {
-      clause += 1;
-    }
     if (statementId !== undefined && kind !== undefined) {
       const statement: NumberedStatement = {
         id: statementId,
         kind,
-        number: counted ? `${String(section)}.${String(clause)}` : undefined,
+        number: undefined,
         solution: attributeValue(attributes, "data-statement-solution") as Solution | undefined,
       };
       inOrder.push(statement);
       if (!statements.has(statementId)) statements.set(statementId, statement);
+      unnumbered = { statement, depth };
     }
-    if (!voidElements.has(element) && !attributes.endsWith("/")) depth += 1;
   }
   return { inOrder, statements, proofs };
-}
-
-function withInserted(content: string, insertions: { at: number; text: string }[]): string {
-  let written = "";
-  let from = 0;
-  for (const { at, text } of [...insertions].sort((a, b) => a.at - b.at)) {
-    written += content.slice(from, at) + text;
-    from = at;
-  }
-  return written + content.slice(from);
 }
 
 // A proof right after its statement is marked so it stands closer to it. Any other proof of a claim

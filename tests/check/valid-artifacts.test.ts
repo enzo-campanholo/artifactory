@@ -2437,6 +2437,65 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       }
     });
 
+    it("writes each section's number on its heading, and each clause's on its paragraph, its h3 or its statement's first line, but none on the lede, a proof or an example's solution", async () => {
+      for (const [slug, expected] of [
+        [
+          "valor-medio",
+          [
+            ["h2", "1"],
+            ["p", "1.1"],
+            ["S-derivavel", "1.2"],
+            ["h3", "1.3"],
+            ["p", "1.4"],
+            ["S-fermat", "1.5"],
+            ["h2", "2"],
+            ["S-valor-medio", "2.1"],
+            ["p", "2.2"],
+            ["S-constante", "2.3"],
+            ["S-troca", "2.4"],
+            ["S-troca-name", "2.5"],
+            ["p", "2.6"],
+            ["S-seno", "2.7"],
+            ["S-cosseno", "2.8"],
+            ["p", "2.9"],
+            ["h2", "3"],
+            ["S-media", "3.1"],
+            ["S-limitada", "3.2"],
+            ["p", "3.3"],
+          ],
+        ],
+        [
+          "mean-value",
+          [
+            ["h2", "1"],
+            ["S-rolle", "1.1"],
+            ["p", "1.2"],
+            ["S-secant", "1.3"],
+            ["h2", "2"],
+            ["S-sign", "2.1"],
+            ["S-increasing", "2.2"],
+            ["p", "2.3"],
+            ["S-cube", "2.4"],
+            ["h2", "3"],
+            ["S-average", "3.1"],
+            ["S-bounded", "3.2"],
+            ["p", "3.3"],
+          ],
+        ],
+      ] as const) {
+        const page = await main(slug);
+        const numbered = [...page.querySelectorAll(":is(h2, h3, p)[data-number]")].map(
+          (element) => [
+            element.parentElement?.matches(".statement") === true
+              ? element.parentElement.id
+              : element.tagName.toLowerCase(),
+            element.getAttribute("data-number"),
+          ],
+        );
+        expect(numbered).toEqual(expected);
+      }
+    });
+
     // happy-dom computes no style from the page's cascade layers, so the test reads the mark the
     // stylesheet sets in italic, and the catalog shows the italic itself.
     it("marks every theorem, proposition, lemma and corollary, and no definition or example, as a claim, whose text reads in italic", async () => {
