@@ -40,3 +40,12 @@ Implementation sub-agent, branch `impl/question-markup-in-store-tests-02`. Commi
 **Shared parts reached:** none. Tests only; production code unchanged.
 
 **Validation:** `eslint tests/store` and `tsc --noEmit` clean after `astro sync`; a full `pnpm check` on the final HEAD, after merging the integration branch.
+
+### 2026-11-11: handoff
+
+Owner: implementation sub-agent for this ticket; no delegated agents.
+Where: `/home/isolino/.t3/worktrees/artifactory-oss/t3-8420bb5b-180606394ec15c12`, `impl/question-markup-in-store-tests-02`, HEAD after `e1b650a` (this handoff's commit).
+Done: the three test files mount through the helper; `vitest run tests/store` 216 passed; check full, about to run.
+Partial: none. Findings: none.
+Decisions: [owner decisions](../spec.md#comments); none unresolved.
+Running: none. Next: a plain full `scripts/heavy pnpm check` on this HEAD.
