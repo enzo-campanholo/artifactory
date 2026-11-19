@@ -6,3 +6,13 @@ savePrefix: ""
 allowBuilds:
   esbuild: false
   workerd: false
+overrides:
+  # micromark-extension-math, under remark-math, asks for katex ^0.16, which GHSA-238p-pmpm-9mq7 affects.
+  katex: 0.18.10
+  # eslint-plugin-sonarjs asks for minimatch ^10, which GHSA-g3hv-75wg-m249 affects.
+  eslint-plugin-sonarjs>minimatch: 11.0.9
+packageExtensions:
+  # astro2tsx pins @emnapi/core 1.11.3 but leaves @emnapi/runtime to a peer, which would otherwise resolve to rolldown's 2.0.0-beta.2 and fail to load.
+  "@astrojs/astro2tsx@0.1.2":
+    dependencies:
+      "@emnapi/runtime": 1.11.3

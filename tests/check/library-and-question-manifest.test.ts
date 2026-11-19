@@ -289,7 +289,6 @@ describe("a repo with published artifacts and drafts, some with questions", () =
         enableJavaScriptEvaluation: true,
         suppressInsecureJavaScriptEnvironmentWarning: true,
         disableJavaScriptFileLoading: true,
-        disableCSSFileLoading: true,
         device: { prefersColorScheme: device.prefersColorScheme ?? "light" },
       },
     });
