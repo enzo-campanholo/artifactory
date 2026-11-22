@@ -19,6 +19,11 @@ interface VitestReport {
   }[];
 }
 
+// A timed-out test's JSON report carries the stack Vitest saved when the test was declared, whose
+// first line is this placeholder, instead of the timeout's message, which only the default reporter
+// prints.
+const placeholderStack = "Error: STACK_TRACE_ERROR";
+
 export const vitest: Step = {
   name: "Vitest",
   // The browser acceptance runs only when asked for, so a pass without it says nothing about it.
@@ -41,12 +46,15 @@ export const vitest: Step = {
     if (report === undefined) return unexplainedExit("vitest", "vitest.config.ts", vitestRun);
     const { testResults } = JSON.parse(report) as VitestReport;
     let printed = false;
+    const printReport = () => {
+      if (!printed) console.log(vitestRun.output);
+      printed = true;
+    };
     const failures = testResults.flatMap(({ name, status, message, assertionResults }) => {
       const file = relative(root, name);
       const failedTests = assertionResults.filter((test) => test.status === "failed");
       if (status === "failed" && failedTests.length === 0) {
-        if (!printed) console.log(vitestRun.output);
-        printed = true;
+        printReport();
         return [
           platformFailure(
             file,
@@ -56,15 +64,21 @@ export const vitest: Step = {
           ),
         ];
       }
-      return failedTests.map((test) =>
-        platformFailure(
+      return failedTests.map((test) => {
+        let reason = firstLine(test.failureMessages[0] ?? "failed");
+        if (reason === placeholderStack) {
+          printReport();
+          reason =
+            "timed out, or failed with a message Vitest's JSON report drops; Vitest's report is printed above";
+        }
+        return platformFailure(
           file,
           "vitest",
-          `${test.fullName}: ${firstLine(test.failureMessages[0] ?? "failed")}`,
+          `${test.fullName}: ${reason}`,
           test.location?.line,
           test.location?.column,
-        ),
-      );
+        );
+      });
     });
     return failures.length > 0
       ? failures

@@ -27,7 +27,9 @@ const protectedApp: AccessApp = {
 
 const limitesOpen = ["/_astro/*", "/favicon.svg", "/limite", "/limite/", "/limites", "/limites/"];
 
-describe("pnpm public-access against Cloudflare's Access API", () => {
+// Each test starts the script up to three times beside git, which takes a second alone but passed
+// Vitest's 5 s default in CI while other test files ran `pnpm check` fixtures.
+describe("pnpm public-access against Cloudflare's Access API", { timeout: 60_000 }, () => {
   let repo: FixtureRepo;
   let api: AccessApiStandIn;
 
