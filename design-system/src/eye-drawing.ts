@@ -49,6 +49,10 @@ const lowerLashes = [
 // lid moves.
 const shortestLash = 1.25;
 const sunkLash = 0.85;
+// The upper lashes shrink to nothing as they turn from standing to hanging, so the lower lashes
+// keep their length until the upper lid's control point comes within `closingGap` of the lower
+// lid's. There they sink while the hanging lashes grow in, and the eye never draws without lashes.
+const closingGap = 4;
 // A shut eye is a lid sagging onto the lower lid with its lashes hanging, so drawn in the open
 // eye's place it sits low in the box. Lift 1 raises it by this much, onto the open eye's centre.
 // Lift goes with the pose the eye rests in rather than with the lid, so a blink or a peek doesn't
@@ -101,7 +105,10 @@ export function drawEye({ lid, hover, look, lift }: EyePose): EyeDrawing {
   const upper = upperOpen + (restingLower - upperOpen) * lid - raised;
   const lowerLid = restingLower - raised;
   const upperScale = Math.max(-1, Math.min(1, (corner - upper) / (restingCorner - upperOpen)));
-  const lowerScale = Math.max(0, 1 - 1.6 * lid);
+  const lowerScale = Math.max(
+    0,
+    Math.min(1 - 1.6 * Math.min(0, lid), (lowerLid - upper) / closingGap),
+  );
   const cx = toHundredths(middle + reach.x * look.x);
   const cy = toHundredths(irisCentre - raised + reach.y * look.y);
   const upperLid = `M${pathPoint(left, corner)}Q${pathPoint(middle, upper)} ${pathPoint(right, corner)}`;
