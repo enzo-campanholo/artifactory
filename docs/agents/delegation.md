@@ -6,7 +6,7 @@ A delegated brief names the ticket, the branch or worktree, the files the child 
 
 A review brief also says who receives the review, who decides on each finding, and how accepted findings reach the implementer: in the implementer's next brief, or appended to the ticket. The child reports completion in its final message.
 
-Before accepting any child's result, run `scripts/heavy --status --json` in the child's worktree. Accept it only when `check.applicability` is `current` for the child's HEAD; [Local evidence](#local-evidence) says what each value means. On any other value, `unknown` from a `--last-passed` run included, resume the child to finish the gate. Resume it even when its final message reports a pass, and leave the gate to the child rather than running it yourself.
+Before accepting any child's result, run `scripts/heavy --status --json` in the child's worktree. Accept it only when `check.applicability` is `current`, or when it is `unknown` from a passing `--last-passed` run on the child's HEAD, with the source unchanged since and compared with a commit CI passed: `check.lastPassedRun.head` equals `git.head`, `check.lastPassedRun.sourceUnchanged` is `true`, and `gh run list --workflow ci.yml --commit <check.lastPassedRun.comparedWith> --status success --limit 1 --json databaseId --jq length` prints `1`. A `--last-passed` run trusts that commit's tests without checking them, so a `comparedWith` that is `null` or that CI didn't pass doesn't count. [Local evidence](#local-evidence) says what each value means. On any other value, any other `unknown` included, resume the child to finish the gate. Resume it even when its final message reports a pass, and leave the gate to the child rather than running it yourself.
 
 ## Ownership
 
@@ -26,6 +26,8 @@ Its `check.applicability` describes the latest local attempt:
 - `stale`: that pass, but HEAD or the source has changed.
 - `unknown`: a scoped or `--last-passed` run, a failure, an interrupted run, or source that changed during the check.
 - `none`: no local check evidence.
+
+When that `unknown` is a passing `--last-passed` run on a HEAD, `check.lastPassedRun` gives the HEAD it checked (`head`), the commit it compared with as a full SHA (`comparedWith`, `null` when that didn't resolve) and whether the source is unchanged since it started (`sourceUnchanged`). Otherwise it is `null`.
 
 A missing result never implies success. Keep the source fixed during verification, and never reuse a check result in place of running the gate.
 

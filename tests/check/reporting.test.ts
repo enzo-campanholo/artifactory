@@ -79,6 +79,7 @@ describe("a repo with an artifact whose math fails, unformatted platform code, a
   it("records full selection, actual failed/skipped steps and nonzero completion without current green evidence", async () => {
     const { status, report } = await evidence(repo);
     expect(status.check.applicability).toBe("unknown");
+    expect(status.check.lastPassedRun).toBeNull();
     expect(report).toMatchObject({
       schemaVersion: 1,
       checkout: repo.root,
@@ -200,9 +201,17 @@ interface CheckEvidence {
 }
 
 interface LocalStatus {
-  git: { dirtyPaths: string[] };
+  git: { head: string | null; dirtyPaths: string[] };
   jobs: { id: string; state: string; exitCode: number | null; checkReportPath: string | null }[];
-  check: { reportPath: string | null; applicability: string };
+  check: {
+    reportPath: string | null;
+    applicability: string;
+    lastPassedRun: {
+      head: string;
+      comparedWith: string | null;
+      sourceUnchanged: boolean;
+    } | null;
+  };
 }
 
 async function statusOf(repo: FixtureRepo): Promise<LocalStatus> {
@@ -232,16 +241,13 @@ describe("check evidence for a working tree", () => {
   let repo: FixtureRepo;
   let full: CheckRun;
   let baseline: CheckEvidence;
-  let reportPath: string;
   let admin: string;
 
   beforeAll(async () => {
     repo = await createFixtureRepo({ ".scratch/input.txt": "first\n" });
     admin = (await repo.run("git", ["rev-parse", "--absolute-git-dir"])).stdout.trim();
     full = await repo.check();
-    const observed = await evidence(repo);
-    baseline = observed.report;
-    reportPath = observed.status.check.reportPath ?? "";
+    baseline = (await evidence(repo)).report;
   }, checkTimeout);
 
   afterAll(() => repo.remove());
@@ -260,7 +266,9 @@ describe("check evidence for a working tree", () => {
     expect(baseline.source.end).toBe(baseline.source.start);
     expect(baseline.source.drifted).toBe(false);
     expect(baseline.source.limit).toContain("do not edit during verification");
-    expect((await statusOf(repo)).check.applicability).toBe("current");
+    const passed = await statusOf(repo);
+    expect(passed.check.applicability).toBe("current");
+    expect(passed.check.lastPassedRun).toBeNull();
     expect((await repo.run("git", ["diff", "--cached", "--name-only"])).stdout).toBe("");
 
     const input = join(repo.root, ".scratch/input.txt");
@@ -294,12 +302,60 @@ describe("check evidence for a working tree", () => {
   });
 
   it(
+    "reports the HEAD a passing last-passed run checked, the commit it compared with and whether the source is unchanged since, and keeps it unknown",
+    async () => {
+      const checked = await headCommit(repo);
+      const run = await repo.check(["--last-passed", "HEAD"]);
+      expect(run.exitCode).toBe(0);
+      expect(run.output).toContain("pnpm check: skipped Vitest:");
+      const passed = await statusOf(repo);
+      expect(passed.check.applicability).toBe("unknown");
+      const unchanged = { head: checked, comparedWith: checked, sourceUnchanged: true };
+      expect(passed.check.lastPassedRun).toEqual(unchanged);
+
+      const tracked = join(repo.root, "README.md");
+      const original = await readFile(tracked, "utf8");
+      await writeFile(tracked, original + "\nAn edit.\n");
+      expect((await statusOf(repo)).check.lastPassedRun).toEqual({
+        ...unchanged,
+        sourceUnchanged: false,
+      });
+      await writeFile(tracked, original);
+      expect((await statusOf(repo)).check.lastPassedRun).toEqual(unchanged);
+
+      await succeeds(
+        repo.run("git", [
+          "-c",
+          "user.name=Fixture",
+          "-c",
+          "user.email=fixture@localhost",
+          "commit",
+          "--quiet",
+          "--allow-empty",
+          "--message",
+          "Move HEAD past the checked commit",
+        ]),
+      );
+      try {
+        const moved = await statusOf(repo);
+        expect(moved.git.head).not.toBe(checked);
+        expect(moved.check.applicability).toBe("unknown");
+        expect(moved.check.lastPassedRun).toEqual(unchanged);
+      } finally {
+        await succeeds(repo.run("git", ["reset", "--quiet", "--soft", checked]));
+      }
+    },
+    checkTimeout,
+  );
+
+  it(
     "records the comparison, actual skipped tests and changes during a last-passed run without replacing command success",
     async () => {
       const lastPassed = await headCommit(repo);
-      const run = repo.check(["--last-passed", lastPassed]);
       const checks = join(admin, "artifactory-heavy/checks");
-      await reportOnceStarted(checks, (name) => join(checks, name) !== reportPath);
+      const previous = new Set(await readdir(checks));
+      const run = repo.check(["--last-passed", lastPassed]);
+      await reportOnceStarted(checks, (name) => !previous.has(name));
       await writeFile(join(repo.root, ".scratch/input.txt"), "changed during verification\n");
       const scoped = await run;
       expect(scoped.exitCode).toBe(0);
@@ -314,8 +370,15 @@ describe("check evidence for a working tree", () => {
       expect(observed.report.source.start).not.toBe(observed.report.source.end);
       expect(observed.report.source.drifted).toBe(true);
       expect(observed.status.check.applicability).not.toBe("current");
+      expect(observed.status.check.lastPassedRun).toEqual({
+        head: lastPassed,
+        comparedWith: lastPassed,
+        sourceUnchanged: false,
+      });
       await writeFile(join(repo.root, ".scratch/input.txt"), "first\n");
-      expect((await statusOf(repo)).check.applicability).not.toBe("current");
+      const restored = await statusOf(repo);
+      expect(restored.check.applicability).not.toBe("current");
+      expect(restored.check.lastPassedRun).toEqual(observed.status.check.lastPassedRun);
     },
     checkTimeout,
   );
@@ -335,6 +398,7 @@ describe("check evidence for a working tree", () => {
       });
       expect(observed.report.source.drifted).toBe(false);
       expect(observed.status.check.applicability).toBe("unknown");
+      expect(observed.status.check.lastPassedRun).toBeNull();
     },
     checkTimeout,
   );

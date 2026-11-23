@@ -10,6 +10,7 @@ import {
   readJson,
   type Job,
 } from "../heavy-state.ts";
+import { vitest } from "./steps/vitest.ts";
 
 interface StepResult {
   name: string;
@@ -25,6 +26,7 @@ interface CheckReport {
   checkout: string;
   head: string | null;
   options: { artifactsOnly: boolean; lastPassed: string | null };
+  comparedWith: string | null;
   scope: "full" | "artifacts-only" | "last-passed";
   startedAt: string;
   endedAt: string | null;
@@ -67,12 +69,16 @@ function fingerprint(): string | null {
   }
 }
 
-export function gitHead(): string | null {
+function commitOf(revision: string): string | null {
   try {
-    return git(["rev-parse", "--verify", "HEAD"]);
+    return git(["rev-parse", "--verify", "--end-of-options", `${revision}^{commit}`]);
   } catch {
     return null;
   }
+}
+
+export function gitHead(): string | null {
+  return commitOf("HEAD");
 }
 
 export function beginCheck(options: { artifactsOnly: boolean; lastPassed: string | null }) {
@@ -85,6 +91,7 @@ export function beginCheck(options: { artifactsOnly: boolean; lastPassed: string
     checkout,
     head: gitHead(),
     options,
+    comparedWith: options.lastPassed === null ? null : commitOf(options.lastPassed),
     scope: options.artifactsOnly
       ? "artifacts-only"
       : options.lastPassed === null
@@ -147,7 +154,7 @@ export function checkEvidence(directory: string, checkout: string, jobs: Job[]) 
   try {
     files = evidenceFiles(join(directory, "checks"));
   } catch {
-    return { reportPath: null, applicability: "unknown" as const };
+    return { reportPath: null, applicability: "unknown" as const, lastPassedRun: null };
   }
   const candidates = new Map<string, string>();
   let unavailable = jobs.some((job) => job.queuedAt === "");
@@ -165,9 +172,10 @@ export function checkEvidence(directory: string, checkout: string, jobs: Job[]) 
     if (job.checkReportPath !== null)
       candidates.set(job.checkReportPath, job.startedAt ?? job.queuedAt);
   const latest = [...candidates].sort((a, b) => b[1].localeCompare(a[1]))[0]?.[0] ?? null;
-  const unknown = { reportPath: latest, applicability: "unknown" as const };
+  const unknown = { reportPath: latest, applicability: "unknown" as const, lastPassedRun: null };
   if (unavailable) return unknown;
-  if (latest === null) return { reportPath: null, applicability: "none" as const };
+  if (latest === null)
+    return { reportPath: null, applicability: "none" as const, lastPassedRun: null };
   const job = jobs.find((candidate) => candidate.checkReportPath === latest);
   if (job !== undefined && (job.state !== "completed" || job.exitCode !== 0 || job.signal !== null))
     return unknown;
@@ -177,33 +185,51 @@ export function checkEvidence(directory: string, checkout: string, jobs: Job[]) 
       !object(report) ||
       report.schemaVersion !== 1 ||
       report.checkout !== checkout ||
+      !(typeof report.head === "string" || report.head === null) ||
       !object(report.source) ||
       !object(report.options) ||
       !Array.isArray(report.steps) ||
       report.steps.length === 0 ||
+      !report.steps.every(object) ||
       report.exitCode !== 0 ||
       report.failureCount !== 0 ||
       typeof report.endedAt !== "string" ||
       typeof report.source.start !== "string" ||
       typeof report.source.end !== "string" ||
-      report.source.drifted !== false ||
-      report.scope !== "full" ||
-      report.options.artifactsOnly !== false ||
-      report.options.lastPassed !== null ||
-      !report.steps.every((step: unknown) => object(step) && step.state === "passed")
+      report.options.artifactsOnly !== false
     )
       return unknown;
     const current = fingerprint();
     if (current === null) return unknown;
-    return {
-      reportPath: latest,
-      applicability:
-        report.source.start === report.source.end &&
-        current === report.source.end &&
-        gitHead() === report.head
-          ? ("current" as const)
-          : ("stale" as const),
-    };
+    const sourceUnchanged =
+      report.source.start === report.source.end && current === report.source.end;
+    if (
+      report.scope === "full" &&
+      report.options.lastPassed === null &&
+      report.source.drifted === false &&
+      report.steps.every((step) => step.state === "passed")
+    )
+      return {
+        reportPath: latest,
+        applicability:
+          sourceUnchanged && gitHead() === report.head ? ("current" as const) : ("stale" as const),
+        lastPassedRun: null,
+      };
+    if (
+      report.scope === "last-passed" &&
+      typeof report.options.lastPassed === "string" &&
+      typeof report.head === "string" &&
+      (typeof report.comparedWith === "string" || report.comparedWith === null) &&
+      report.steps.every(
+        (step) =>
+          step.state === "passed" || (step.state === "skipped" && step.name === vitest.name),
+      )
+    )
+      return {
+        ...unknown,
+        lastPassedRun: { head: report.head, comparedWith: report.comparedWith, sourceUnchanged },
+      };
+    return unknown;
   } catch {
     return unknown;
   }

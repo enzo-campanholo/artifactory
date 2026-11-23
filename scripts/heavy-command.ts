@@ -89,8 +89,13 @@ if (command === "--status") {
         console.log(
           `${job.id}: ${job.state}${job.exitCode === null ? "" : ` exit ${String(job.exitCode)}`}${job.signal === null ? "" : ` ${job.signal}`} — ${job.argv.join(" ")}`,
         );
+      const { lastPassedRun } = status.check;
       console.log(
-        `Check: ${status.check.applicability}; ${status.check.reportPath ?? "no local report"}`,
+        `Check: ${status.check.applicability}${
+          lastPassedRun === null
+            ? ""
+            : ` (passing --last-passed run on ${lastPassedRun.head}, compared with ${lastPassedRun.comparedWith ?? "an unresolved commit"}, source ${lastPassedRun.sourceUnchanged ? "unchanged" : "changed"} since)`
+        }; ${status.check.reportPath ?? "no local report"}`,
       );
     }
   } catch (error) {
