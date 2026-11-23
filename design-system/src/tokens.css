@@ -70,7 +70,7 @@
     --inset: 0.625rem;
     --gutter: 1.25rem;
     --measure: 42.5rem;
-    --hang: 3.25rem;
+    --hang: 1.5rem;
     --target: 2.75rem;
     --sign-size: 1.25rem;
     --sign-tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m3.5 10.5 4.5 4.5 8.5-10' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='square'/%3E%3C/svg%3E");

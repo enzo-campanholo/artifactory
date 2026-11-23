@@ -100,7 +100,7 @@ spacing:
   inset: "0.625rem"
   gutter: "1.25rem"
   measure: "42.5rem"
-  hang: "3.25rem"
+  hang: "1.5rem"
   target: "2.75rem"
   sign-size: "1.25rem"
   block-clearance: "2.75rem"
@@ -311,7 +311,7 @@ Headings use `text-wrap: balance`. Numbers, counts and dates use `tabular-nums`.
 
 One reading column of `--measure` (42.5rem), centred on the screen, with `--gutter` (1.25rem) sides and the safe-area insets.
 
-- **Desktop (`width >= 64rem`):** a three-track grid: the rail (12rem), a 5.5rem gap and the column. Section, clause and h3 numbers hang `--hang` (3.25rem) left of the column's text edge, on one edge, on their text's baseline. The rail is sticky under the notices, and its main button spans the rail.
+- **Desktop (`width >= 64rem`):** a three-track grid: the rail (12rem), a 5.5rem gap and the column. Section, clause and h3 numbers hang in the gap on their text's baseline, set flush right on one edge `--hang` (1.5rem) left of the column's text edge, so each number stands the same distance from its text however many figures it has. The rail is sticky under the notices, and its main button spans the rail.
 - **Wide desktop (`width >= 80rem`):** five tracks, rail | gap | column | gap | notes, with the rail and notes column at `clamp(12.5rem, 15.8vw, 14.25rem)` and the gaps at `clamp(5rem, 6.1vw, 5.5rem)`, so the column stays centred and the margins grow, not the measure. Notes sit in the right column level with their paragraph's first line.
 - **Phone (below 64rem):** numbers sit inline before their text at a 2.125rem minimum, so text starts on one edge. The contents fold into one line between 2px rules under the masthead ("Sumário · N seções" / "Abrir"). A bar fixed to the bottom (4px rule on top, sheet fill) slides in when the owner scrolls up with the masthead out of view, and out when they scroll down: contents and position on the left, Next question on the right. It moves only after the owner's first pointer, touch, wheel or key input, so a reload restoring the scroll position doesn't slide it in. The contents open as a bottom sheet (`dialog`, max `min(85dvh, 44rem)`) over the veil. Questions bleed to the screen edges and lose their side borders; adjacent questions share one rule. Primary actions sit on the right.
 - **Library:** the column alone; a row's status drops under its meta below 40rem.

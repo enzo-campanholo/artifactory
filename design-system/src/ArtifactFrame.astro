@@ -971,8 +971,12 @@ const unansweredResume = {
         display: none;
       }
 
+      /* A box of no width justified to its end overflows toward its start, so every number ends
+         on one edge however many figures it has. */
       .artifact-main > :is(h2, h2 ~ p, h2 ~ h3)::before,
       .artifact-main > h2 ~ [data-statement-id] > :first-child::before {
+        display: inline-flex;
+        justify-content: flex-end;
         position: relative;
         inset-inline-start: calc(-1 * var(--hang));
         inline-size: 0;
