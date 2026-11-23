@@ -1,6 +1,7 @@
 /**
- * MEPA, the stack machine Pascal-like languages compile to in Kowaltowski's textbook: the program
- * counter `i`, the stack top `s`, the display `D` and the memory `M`. Trace it in a Stage with
+ * MEPA, the stack machine Pascal-like languages compile to in Kowaltowski's textbook, with calls
+ * that keep an access link: the program counter `i`, the stack top `s`, the display `D` and the
+ * memory `M`. Trace it in a Stage with
  * `input` whose content is the listing, a registers table and a memory table, with a build of a
  * few lines. This one works out a trapezoid's area, (a + b) × h div 2, in pt-BR, laid out as a
  * compiler lays out a program: a jump over the subroutines to the main program's start, and a
@@ -27,13 +28,13 @@
  * AMEM 3        ; a, b, h
  * DSVS L1       ; salta a função
  * L2: ENPR 1    ; área(bases, altura)
+ * CRVL 1,-6
  * CRVL 1,-5
- * CRVL 1,-4
  * MULT
  * CRCT 2
  * DIVI
- * ARMZ 1,-6     ; o valor de retorno
- * RTPR 1,2
+ * ARMZ 1,-7     ; o valor de retorno
+ * RTPR 2
  * L1: NADA
  * LEIT
  * ARMZ 0,0
@@ -71,10 +72,11 @@
  * | M[4]   |    8 |       |       |      |
  * | M[5]   |    4 |       |       |      |
  * | M[6]   |   24 |       |       |      |
- * | M[7]   |    1 |       |       |      |
- * | M[8]   |    ? |       |       |      |
- * | M[9]   |   16 |       |       |      |
- * | M[10]  |    2 |       |       |      |
+ * | M[7]   |    ? |       |       |      |
+ * | M[8]   |    1 |       |       |      |
+ * | M[9]   |    0 |       |       |      |
+ * | M[10]  |   16 |       |       |      |
+ * | M[11]  |    2 |       |       |      |
  *
  * </Stage>
  * ````
@@ -100,8 +102,8 @@
  * ```
  *
  * The tables as written are what the first example's last step leaves, as for any Stage with
- * `input`: `PARA` keeps `i` on its own line, 26; `RTPR` gave `D[1]` back the value `ENPR` kept in
- * M[8], none; every cell is above `s`, so none shows a role, an offset or `← s`; and M[3] to M[10]
+ * `input`: `PARA` keeps `i` on its own line, 26; `RTPR` gave `D[1]` back the value `CHPR` kept in
+ * M[7], none; every cell is above `s`, so none shows a role, an offset or `← s`; and M[3] to M[11]
  * keep the last values the stack held there.
  *
  * **The listing** is the Stage's one code block, fenced ` ```text start=0 `, so address k is the
@@ -114,7 +116,7 @@
  * - `LEIT` reads the next field, in the order `reads` names them, onto the stack. MEPA reads only
  *   whole numbers, so `reads` names only number fields: a text field fails as `build-input`.
  * - `ARMZ k,n` stores the top in `M[D[k] + n]` and pops it; `CRVL k,n` pushes a copy of it. n may
- *   be negative: `CRVL 1,-5` reads a subroutine's parameter.
+ *   be negative: `CRVL 1,-5` reads a subroutine's last parameter.
  * - `CRCT c` pushes the constant c.
  * - `SOMA`, `MULT` and `DIVI` replace the two cells at the top with their sum, product or quotient
  *   (`DIVI` drops the remainder, as Pascal's `div`).
@@ -122,34 +124,42 @@
  *   yet, so a jump back to an earlier line repeats forever and runs past the Stage's 200 steps.
  * - `NADA` does nothing: it marks a place, usually labelled, for a jump to land on.
  * - `CHPR L,k` calls the subroutine at the label `L`, of level k: it pushes the return address,
- *   the next line's, and k, and jumps to `L`.
- * - `ENPR k` enters level k: it pushes `D[k]` and points `D[k]` at the next cell, the record's
- *   base, offset 0. The caller's arguments sit below the base, the last at −4, and a return value
- *   the caller reserved below the first.
- * - `RTPR k,n` returns from a subroutine with n parameters: `D[k]` gets back the value `ENPR`
- *   pushed, `i` the return address, and `s` drops by n + 3, leaving the return value on top.
+ *   the next line's, `D[k]`, to give back on return, and k, and jumps to `L`.
+ * - `ENPR k` enters level k: it pushes the access link, `D[k-1]`, the base of the level around
+ *   it, and points `D[k]` at the next cell, the record's base, offset 0. Below the base sit the
+ *   access link at −1, the level at −2, the kept `D[k]` at −3 and the return address at −4, then
+ *   the caller's arguments, the last at −5, and a return value the caller reserved below the
+ *   first.
+ * - `RTPR n` returns from a subroutine with n parameters, with `s` on the access link: it reads
+ *   the level t from the record, gives `D[t]` back the value `CHPR` kept, sets `i` to the return
+ *   address and drops `s` by n + 4, leaving the return value on top. Then, from t down to 2, it
+ *   sets `D[t-1]` to the access link below `D[t]`'s record, at `D[t] - 1`, stopping at a `D[t]`
+ *   with no value: no record of that level is left to follow.
  * - `IMPR` pops the top onto the output, and `PARA` stops the machine.
  *
  * **Failures**, each a `stage-run` failure of `pnpm check`. A listing the machine can't read is
- * refused, naming the line: an instruction MEPA doesn't have ("`PUSH 3` isn't a MEPA
- * instruction"), wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers", "`DSVS 3`
- * isn't `DSVS L`, with a label"), a jump or call to a label no line has ("`DSVS L9` jumps to the
- * label `L9`, which the listing doesn't have: it has `L1`", "`CHPR L9,1` calls the label `L9`, …"),
- * a label on two lines ("the label `L1` is already on line 1"), a label with no instruction after
- * it, a fence without `start=0`, `FIM` anywhere but on the last line, and a Stage with no code block
- * or more than one. So is a `roles` or `after` note keyed to an address the listing doesn't have, a
- * `labels` note naming a label no line has ("`labels` names the label `L2`, which the listing
- * doesn't have: it has `L1`"), and a `subroutines` note on a label no `CHPR` calls ("`subroutines`
- * names the label `L2`, which no `CHPR` calls: the listing calls `L1`"). A run is refused, naming
- * the line, when it divides by zero, reads with no field left, drops the stack below its bottom,
- * runs before `INPP` sets `s`, reads a cell or `D[k]` with no value, returns to a cell with no
- * value, reaches a cell below `M[0]`, or reaches `FIM`. A table without a column the view writes
- * into fails as any Stage's does; only `Papel` (`Role`) and `Desl.` (`Offset`) may be left out.
+ * refused, naming the line: an instruction MEPA doesn't have ("`PUSH 3` isn't a MEPA instruction"),
+ * wrong arguments ("`CRVL 0` isn't `CRVL k,n`, with 2 whole numbers", "`DSVS 3` isn't `DSVS L`,
+ * with a label", "`RTPR 1,2` isn't `RTPR n`, with 1 whole number"), a jump or call to a label no
+ * line has ("`DSVS L9` jumps to the label `L9`, which the listing doesn't have: it has `L1`",
+ * "`CHPR L9,1` calls the label `L9`, …"), a label on two lines ("the label `L1` is already on line
+ * 1"), a label with no instruction after it, a fence without `start=0`, `FIM` anywhere but on the
+ * last line, and a Stage with no code block or more than one. So is a `roles` or `after` note keyed
+ * to an address the listing doesn't have, a `labels` note naming a label no line has ("`labels`
+ * names the label `L2`, which the listing doesn't have: it has `L1`"), and a `subroutines` note on
+ * a label no `CHPR` calls ("`subroutines` names the label `L2`, which no `CHPR` calls: the listing
+ * calls `L1`"). A run is refused, naming the line, when it divides by zero, reads with no field
+ * left, drops the stack below its bottom, runs before `INPP` sets `s`, reads a cell or `D[k]` with
+ * no value, returns to a cell with no value, returns with `s` off the access link, where the cell
+ * below holds no level a `CHPR` calls, reaches a cell below `M[0]`, or reaches `FIM`. A table
+ * without a column the view writes into fails as any Stage's does; only `Papel` (`Role`) and
+ * `Desl.` (`Offset`) may be left out.
  *
- * **The registers table** has the rows `i`, `s`, `D[0]` and every other `D[k]` an `ARMZ`, `CRVL`,
- * `ENPR` or `RTPR` names, then the input yet to be read and the output, each listing its values in
- * order, `—` when empty. Its headers and the last two rows' names follow the artifact's main
- * language. In pt-BR, as the example's, and in English, after the same run:
+ * **The registers table** has the rows `i`, `s`, `D[0]`, every other `D[k]` an `ARMZ` or `CRVL`
+ * names, and every level from 1 up to one a `CHPR` or `ENPR` names, then the input yet to be read
+ * and the output, each listing its values in order, `—` when empty. Its headers and the last two
+ * rows' names follow the artifact's main language. In pt-BR, as the example's, and in English,
+ * after the same run:
  *
  * | Register | Value |
  * | -------- | ----: |
@@ -170,9 +180,10 @@
  *
  * `Papel` (`Role`) and `Desl.` (`Offset`) are optional: leave one out and the view doesn't write
  * it. `Desl.` shows each cell of a subroutine's record its offset from the record's base, from its
- * return value and parameters, as `subroutines` gives them, up to the top: −6 for área's return
- * value, −5 and −4 for its parameters, −3 for the return address, −2 for the level, −1 for the
- * kept `D[k]`, then 0 up for its locals. A record holds its cells from its `ENPR` to its `RTPR`,
+ * return value and parameters, as `subroutines` gives them, up to the top: −7 for área's return
+ * value, −6 and −5 for its parameters, −4 for the return address, −3 for the kept `D[k]`, −2 for
+ * the level, −1 for the access link, then 0 up for its locals. Without a `subroutines` entry, a
+ * record starts at its return address. A record holds its cells from its `ENPR` to its `RTPR`,
  * and the topmost record holding a cell gives its offset; a cell outside every record shows none.
  * A cell above `s` is `muted` and shows no role or offset, `← s` marks the top, and a cell with no
  * value shows `?`. The cells each step writes are `strong`, even when one already held that value.
@@ -187,14 +198,14 @@
  * one is said alone. `subroutines`, by the label `CHPR` calls, the subroutine's parameters, first
  * to last, and whether it returns a value (`L2: { params: ["a", "b"], returns: true }`): they give
  * `Desl.` its offsets, and `ENPR` says where each parameter and the return value sit ("Os
- * parâmetros a e b estão em M[3] e M[4], nos deslocamentos menos 5 e menos 4."), as `RTPR` says
+ * parâmetros a e b estão em M[3] e M[4], nos deslocamentos menos 6 e menos 5."), as `RTPR` says
  * the value it leaves on top. `roles`, by address, the role of the cell that instruction writes
  * (`11: "lido"`), or for an `AMEM n` a list of n roles, one per cell it reserves
- * (`1: ["x, global", "y, global"]`), and for a `CHPR` a list of 2. A cell an `ARMZ` writes keeps
- * its role unless the note gives one. Without one, `CHPR`'s cells are the return address and the
- * level ("endereço de retorno", "nível 1") and `ENPR`'s the kept display ("D[1] guardado"), and any
- * other write has no role. `after`, by address, a sentence added to that instruction's step
- * (`14: "As globais x e y estão liberadas."`).
+ * (`1: ["x, global", "y, global"]`), and for a `CHPR` a list of 3. A cell an `ARMZ` writes keeps
+ * its role unless the note gives one. Without one, `CHPR`'s cells are the return address, the kept
+ * display and the level ("endereço de retorno", "D[1] guardado", "nível 1") and `ENPR`'s the
+ * access link ("elo de acesso"), and any other write has no role. `after`, by address, a
+ * sentence added to that instruction's step (`14: "As globais x e y estão liberadas."`).
  */
 import {
   shownNumber,
@@ -212,8 +223,9 @@ import type { CellChange, Content, Mark } from "../stage-build.ts";
 type Instruction =
   | { op: "INPP" | "LEIT" | "SOMA" | "MULT" | "DIVI" | "IMPR" | "NADA" | "PARA" | "FIM" }
   | { op: "AMEM" | "DMEM" | "CRCT"; n: number }
-  | { op: "ARMZ" | "CRVL" | "RTPR"; k: number; n: number }
+  | { op: "ARMZ" | "CRVL"; k: number; n: number }
   | { op: "ENPR"; k: number }
+  | { op: "RTPR"; n: number }
   | { op: "DSVS"; label: string; to: number }
   | { op: "CHPR"; label: string; to: number; level: number };
 
@@ -236,7 +248,7 @@ const operands: Record<Instruction["op"], readonly string[]> = {
   DSVS: ["L"],
   CHPR: ["L", "k"],
   ENPR: ["k"],
-  RTPR: ["k", "n"],
+  RTPR: ["n"],
 };
 
 interface Subroutine {
@@ -260,6 +272,7 @@ interface Program {
   lang: Language;
   listing: Line[];
   displays: number[];
+  called: number[];
   cells: number;
   roleColumn: boolean;
   offsetColumn: boolean;
@@ -317,6 +330,18 @@ interface Written {
   value: string;
 }
 
+// A display a call keeps or a return restores, `undefined` when it has no value.
+interface Kept {
+  cell: string;
+  k: number;
+  value: string | undefined;
+}
+
+interface Restored {
+  k: number;
+  value: string | undefined;
+}
+
 const plural = (count: number, one: string, many: string) =>
   `${String(count)} ${count === 1 ? one : many}`;
 
@@ -354,29 +379,24 @@ const words = {
       label === undefined
         ? "Não faz nada."
         : `Passa por ${placed(label, name)}${name === undefined ? "" : ","} e não faz nada.`,
-    calls: (place: string, back: Written, level: Written, s: string, i: string) =>
-      `Chama ${place}: ${back.cell} recebe ${back.value}, o endereço de retorno, ${level.cell} recebe ${level.value}, o nível, s recebe ${s} e i recebe ${i}.`,
-    enters: (
-      place: string | undefined,
-      k: number,
-      s: string,
-      kept: { cell: string; value: string | undefined },
-      base: string,
-    ) =>
-      `Entra ${place === undefined ? "" : `em ${place}, `}no nível ${String(k)}: s recebe ${s}, ${kept.cell} guarda D[${String(k)}], ${kept.value === undefined ? "ainda sem valor" : `que é ${kept.value}`}, e D[${String(k)}] recebe ${base}.`,
+    calls: (place: string, back: Written, kept: Kept, level: Written, s: string, i: string) =>
+      `Chama ${place}: ${back.cell} recebe ${back.value}, o endereço de retorno, ${kept.cell} guarda D[${String(kept.k)}], ${kept.value === undefined ? "ainda sem valor" : `que é ${kept.value}`}, ${level.cell} recebe ${level.value}, o nível, s recebe ${s} e i recebe ${i}.`,
+    enters: (place: string | undefined, k: number, s: string, link: Written, base: string) =>
+      `Entra ${place === undefined ? "" : `em ${place}, `}no nível ${String(k)}: s recebe ${s}, ${link.cell} recebe ${link.value}, o elo de acesso, D[${String(k - 1)}], e D[${String(k)}] recebe ${base}.`,
     params: (names: string[], cells: string[], offsets: string[]) =>
       names.length === 1
         ? `O parâmetro ${joined(names, "e")} está em ${joined(cells, "e")}, no deslocamento ${joined(offsets, "e")}.`
         : `Os parâmetros ${joined(names, "e")} estão em ${joined(cells, "e")}, nos deslocamentos ${joined(offsets, "e")}.`,
     returnsIn: (cell: string, offset: string) =>
       `O valor de retorno vai em ${cell}, no deslocamento ${offset}.`,
-    returns: (k: number, restored: string | undefined, i: string, s: string) =>
-      `Retorna: ${restored === undefined ? `D[${String(k)}] volta a não ter valor` : `D[${String(k)}] recebe ${restored}`}, i recebe ${i} e s recebe ${s}.`,
+    returns: (displays: Restored[], i: string, s: string) =>
+      `Retorna: ${displays.map(({ k, value }) => (value === undefined ? `D[${String(k)}] volta a não ter valor` : `D[${String(k)}] recebe ${value}`)).join(", ")}, i recebe ${i} e s recebe ${s}.`,
     returned: (value: string, cell: string) =>
       `O valor de retorno, ${value}, fica no topo, em ${cell}.`,
     returnAddress: "endereço de retorno",
     level: (k: string) => `nível ${k}`,
     kept: (k: number) => `D[${String(k)}] guardado`,
+    accessLink: "elo de acesso",
     stops: "O programa para.",
   },
   en: {
@@ -403,29 +423,24 @@ const words = {
       label === undefined
         ? "Does nothing."
         : `Passes ${placed(label, name)}${name === undefined ? "" : ","} and does nothing.`,
-    calls: (place: string, back: Written, level: Written, s: string, i: string) =>
-      `Calls ${place}: ${back.cell} gets ${back.value}, the return address, ${level.cell} gets ${level.value}, the level, s gets ${s} and i gets ${i}.`,
-    enters: (
-      place: string | undefined,
-      k: number,
-      s: string,
-      kept: { cell: string; value: string | undefined },
-      base: string,
-    ) =>
-      `Enters ${place === undefined ? "" : `${place}, `}at level ${String(k)}: s gets ${s}, ${kept.cell} keeps D[${String(k)}], ${kept.value === undefined ? "which has no value yet" : `which is ${kept.value}`}, and D[${String(k)}] gets ${base}.`,
+    calls: (place: string, back: Written, kept: Kept, level: Written, s: string, i: string) =>
+      `Calls ${place}: ${back.cell} gets ${back.value}, the return address, ${kept.cell} keeps D[${String(kept.k)}], ${kept.value === undefined ? "which has no value yet" : `which is ${kept.value}`}, ${level.cell} gets ${level.value}, the level, s gets ${s} and i gets ${i}.`,
+    enters: (place: string | undefined, k: number, s: string, link: Written, base: string) =>
+      `Enters ${place === undefined ? "" : `${place}, `}at level ${String(k)}: s gets ${s}, ${link.cell} gets ${link.value}, the access link, D[${String(k - 1)}], and D[${String(k)}] gets ${base}.`,
     params: (names: string[], cells: string[], offsets: string[]) =>
       names.length === 1
         ? `The parameter ${joined(names, "and")} is in ${joined(cells, "and")}, at offset ${joined(offsets, "and")}.`
         : `The parameters ${joined(names, "and")} are in ${joined(cells, "and")}, at offsets ${joined(offsets, "and")}.`,
     returnsIn: (cell: string, offset: string) =>
       `The return value goes in ${cell}, at offset ${offset}.`,
-    returns: (k: number, restored: string | undefined, i: string, s: string) =>
-      `Returns: ${restored === undefined ? `D[${String(k)}] has no value again` : `D[${String(k)}] gets ${restored}`}, i gets ${i} and s gets ${s}.`,
+    returns: (displays: Restored[], i: string, s: string) =>
+      `Returns: ${displays.map(({ k, value }) => (value === undefined ? `D[${String(k)}] has no value again` : `D[${String(k)}] gets ${value}`)).join(", ")}, i gets ${i} and s gets ${s}.`,
     returned: (value: string, cell: string) =>
       `The return value, ${value}, is left on top, in ${cell}.`,
     returnAddress: "return address",
     level: (k: string) => `level ${k}`,
     kept: (k: number) => `saved D[${String(k)}]`,
+    accessLink: "access link",
     stops: "The program stops.",
   },
 };
@@ -448,6 +463,10 @@ const faults = {
   noCell: (name: string): InEachLanguage => ({
     "pt-BR": `${name} não existe`,
     en: `${name} doesn't exist`,
+  }),
+  notALevel: (cell: string, value: string): InEachLanguage => ({
+    "pt-BR": `${cell} guarda ${value}, que não é um nível que um CHPR chama: RTPR roda com s no elo de acesso`,
+    en: `${cell} holds ${value}, which isn't a level a CHPR calls: RTPR runs with s on the access link`,
   }),
   noPara: {
     "pt-BR": "o programa chega a FIM sem PARA",
@@ -508,9 +527,9 @@ function instruction(
       : { op, label: target, to, level: Number(level) };
   }
   const [k = 0, n = 0] = args.map(Number);
-  if (op === "ARMZ" || op === "CRVL" || op === "RTPR") return { op, k, n };
+  if (op === "ARMZ" || op === "CRVL") return { op, k, n };
   if (op === "ENPR") return { op, k };
-  if (op === "AMEM" || op === "DMEM" || op === "CRCT") return { op, n: k };
+  if (op === "AMEM" || op === "DMEM" || op === "CRCT" || op === "RTPR") return { op, n: k };
   return { op };
 }
 
@@ -600,8 +619,18 @@ function parse(content: Content, notes: Notes): Parsed<Program> {
       lang: content.lang,
       listing: lines,
       displays: [
-        ...new Set([0, ...lines.flatMap(({ read }) => ("k" in read ? [read.k] : []))]),
+        ...new Set([
+          0,
+          ...lines.flatMap(({ read }) =>
+            read.op === "ENPR" || read.op === "CHPR"
+              ? Array.from({ length: "k" in read ? read.k : read.level }, (_, at) => at + 1)
+              : "k" in read
+                ? [read.k]
+                : [],
+          ),
+        ]),
       ].sort((a, b) => a - b),
+      called: lines.flatMap(({ read }) => (read.op === "CHPR" ? [read.level] : [])),
       cells: memory?.rows.length ?? 0,
       roleColumn: memory?.columns.includes(headers[content.lang].role) ?? false,
       offsetColumn: memory?.columns.includes(headers[content.lang].offset) ?? false,
@@ -628,6 +657,10 @@ function start(program: Program, input: number[]): State {
 }
 
 const cellName = (address: number) => `M[${shownNumber(address)}]`;
+
+// The cells between a record's base and its last parameter: the return address, the saved
+// `D[k]` and the level `CHPR` pushes, and the access link `ENPR` pushes.
+const linkage = 4;
 
 function step(state: State): StepOutcome<State> {
   const { program, i } = state;
@@ -748,29 +781,38 @@ function step(state: State): StepOutcome<State> {
       return moved(say.writes(spoken(values[0]), spoken(next.s)));
     }
     case "CHPR": {
+      const kept = state.D[read.level];
       next.M[s + 1] = i + 1;
-      next.M[s + 2] = read.level;
+      next.M[s + 2] = kept;
+      next.M[s + 3] = read.level;
       next.roles[s + 1] = role === undefined ? say.returnAddress : roleOf(0);
-      next.roles[s + 2] = role === undefined ? say.level(shownNumber(read.level)) : roleOf(1);
-      next.wrote = [s + 1, s + 2];
-      next.s = s + 2;
+      next.roles[s + 2] = role === undefined ? say.kept(read.level) : roleOf(1);
+      next.roles[s + 3] = role === undefined ? say.level(shownNumber(read.level)) : roleOf(2);
+      next.wrote = [s + 1, s + 2, s + 3];
+      next.s = s + 3;
       next.i = read.to;
       next.calls.push({ label: read.label, base: undefined });
       return moved(
         say.calls(
           placed(read.label, name(read.label)),
           { cell: cellName(s + 1), value: spoken(i + 1) },
-          { cell: cellName(s + 2), value: spoken(read.level) },
-          spoken(s + 2),
+          {
+            cell: cellName(s + 2),
+            k: read.level,
+            value: kept === undefined ? undefined : spoken(kept),
+          },
+          { cell: cellName(s + 3), value: spoken(read.level) },
+          spoken(s + 3),
           spoken(read.to),
         ),
       );
     }
     case "ENPR": {
-      const kept = state.D[read.k];
+      const link = state.D[read.k - 1];
+      if (link === undefined) return fault(faults.noValue(`D[${String(read.k - 1)}]`));
       const base = s + 2;
-      next.M[s + 1] = kept;
-      next.roles[s + 1] = role === undefined ? say.kept(read.k) : roleOf(0);
+      next.M[s + 1] = link;
+      next.roles[s + 1] = role === undefined ? say.accessLink : roleOf(0);
       next.wrote = [s + 1];
       next.s = s + 1;
       next.D[read.k] = base;
@@ -784,13 +826,13 @@ function step(state: State): StepOutcome<State> {
           entered === undefined ? undefined : placed(entered.label, name(entered.label)),
           read.k,
           spoken(s + 1),
-          { cell: cellName(s + 1), value: kept === undefined ? undefined : spoken(kept) },
+          { cell: cellName(s + 1), value: spoken(link) },
           spoken(base),
         ),
       ];
       if (subroutine !== undefined) {
         const { params, returns } = subroutine;
-        const offsets = params.map((_, at) => at - params.length - 3);
+        const offsets = params.map((_, at) => at - params.length - linkage);
         if (params.length > 0) {
           sentences.push(
             say.params(
@@ -800,7 +842,7 @@ function step(state: State): StepOutcome<State> {
             ),
           );
         }
-        const returnOffset = -params.length - 4;
+        const returnOffset = -params.length - linkage - 1;
         if (returns) {
           sentences.push(say.returnsIn(cellName(base + returnOffset), spoken(returnOffset)));
         }
@@ -808,20 +850,35 @@ function step(state: State): StepOutcome<State> {
       return moved(sentences.join(" "));
     }
     case "RTPR": {
-      const after = s - (read.n + 3);
+      const after = s - (read.n + linkage);
       if (after < -1) return fault(faults.belowBottom);
-      const back = state.M[s - 2];
-      if (back === undefined) return fault(faults.noValue(cellName(s - 2)));
-      const restored = state.M[s];
-      next.D[read.k] = restored;
+      const level = state.M[s - 1];
+      if (level === undefined) return fault(faults.noValue(cellName(s - 1)));
+      if (!program.called.includes(level)) {
+        return fault(faults.notALevel(cellName(s - 1), shownNumber(level)));
+      }
+      const back = state.M[s - 3];
+      if (back === undefined) return fault(faults.noValue(cellName(s - 3)));
+      const restored = [level];
+      next.D[level] = state.M[s - 2];
+      for (let t = level; t >= 2; t--) {
+        const base = next.D[t];
+        if (base === undefined) break;
+        const outer = next.M[base - 1];
+        if (outer === undefined) return fault(faults.noValue(cellName(base - 1)));
+        next.D[t - 1] = outer;
+        restored.push(t - 1);
+      }
       next.i = back;
       next.s = after;
       const call = next.calls.pop();
       const returned =
         call?.base !== undefined && program.notes.subroutines?.[call.label]?.returns === true;
       const sentence = say.returns(
-        read.k,
-        restored === undefined ? undefined : spoken(restored),
+        restored.map((k) => ({
+          k,
+          value: next.D[k] === undefined ? undefined : spoken(next.D[k]),
+        })),
         spoken(back),
         spoken(after),
       );
@@ -863,14 +920,16 @@ const listed = (values: (number | undefined)[]) =>
 
 // Each cell's offset in the topmost record that holds it: a record runs from its return value, or
 // its first parameter, up to the stack top, and a call's record holds the arguments its caller
-// pushed. Without a `subroutines` entry, it starts at the return address, 3 below its base.
+// pushed. Without a `subroutines` entry, it starts at the return address, 4 below its base.
 function recordOffsets({ program, calls }: State, top: number): (number | undefined)[] {
   const offsets: (number | undefined)[] = [];
   for (const { label, base } of calls) {
     if (base === undefined) continue;
     const subroutine = program.notes.subroutines?.[label];
     const below =
-      subroutine === undefined ? 3 : subroutine.params.length + 3 + (subroutine.returns ? 1 : 0);
+      subroutine === undefined
+        ? linkage
+        : subroutine.params.length + linkage + (subroutine.returns ? 1 : 0);
     for (let address = base - below; address <= top; address++) {
       offsets[address] = address - base;
     }
