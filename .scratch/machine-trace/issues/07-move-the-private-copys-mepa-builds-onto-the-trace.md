@@ -1,7 +1,7 @@
 # 07: Move the private copy's MEPA builds onto the trace
 
-Status: ready-for-agent
-Blocked by: 06
+Status: claimed
+Blocked by: 06, 08
 
 **What to build:** the three MEPA builds in the owner's private copy (one in a base artifact, two in a follow-up on subroutine calls) become `trace(mepa, …)` builds of a few lines each, with their programs written once, in their Stages' fences. The work happens in the private copy, after the Sync upstream workflow has brought tickets 01 to 06 in; claim, comment on and close this ticket here, upstream. Being public, this ticket and its closing comment name no private artifact ([Machine trace](../spec.md) › Moving the private copy's builds).
 
@@ -23,3 +23,15 @@ From machine trace 06's implementation (`design-system/src/machines/mepa.ts`; it
 - **`Desl.`:** a record's cells get their offsets from `ENPR` to `RTPR`, from its return value (when `subroutines` says it returns one) or first parameter up to the top; with no `subroutines` entry for the called label, from the return address (−3). Globals and cells above `s` show none.
 - **Narration** of the new instructions is the shared one: "Chama L2, o início de div: M[5] recebe 18, o endereço de retorno, M[6] recebe 1, o nível, s recebe 6 e i recebe 3.", "Entra em L2, o início de div, no nível 1: s recebe 7, M[7] guarda D[1], ainda sem valor, e D[1] recebe 8. Os parâmetros a e b estão em M[3] e M[4], nos deslocamentos menos 5 e menos 4. O valor de retorno vai em M[2], no deslocamento menos 6." and "Retorna: D[1] volta a não ter valor, i recebe 18 e s recebe 2. O valor de retorno, 3, fica no topo, em M[2]." List where these differ from the copies' sentences.
 - **Failures:** a `subroutines` entry on a label no `CHPR` calls ("`subroutines` names the label `L2`, which no `CHPR` calls: the listing calls `L1`") and a call to a missing label ("`CHPR L9,1` calls the label `L9`, …") fail as `stage-run`. MEPA doesn't check `RTPR`'s n against the `subroutines` entry's parameters, so keep them in step by hand.
+
+### 2026-11-23: owner decisions
+
+Claimed by a cloud session (Claude Code), working in a checkout of the private copy and this upstream checkout.
+
+- **Found:** the follow-up's two builds, and its prose, figure, instruction table and questions, teach a call convention other than the one 06 built. `CHPR p,k` pushes the return address, the old `D[k]` and k; `ENPR k` pushes an access link, `D[k-1]`; `RTPR n` drops n + 4 and rebuilds the outer displays; the last parameter sits at −5. Moved as they are, its Stages would contradict its page. The base artifact uses no call and moved as planned.
+- **Approved** (owner, in this session, 2026-11-23): the design system's MEPA follows the course's convention ([08](08-mepa-calls-follow-the-course-s-convention.md)), and the follow-up then moves with its listings as written. Scope: `machines/mepa.ts`, its doc comment, its catalog page, its tests and the `artifact` skill.
+- **Approved** (owner, in this session, 2026-11-23): 08 runs in this cloud session without impeccable, waiving `design-system/CLAUDE.md`'s local-session rule for this change, which touches no component, token or style.
+
+### 2026-11-23: the base artifact moved
+
+The base artifact's build is `trace(mepa, …)` with `reads` and two `after` sentences (the variables reserved and freed), in the private copy's `main` at `8587a28`, whose CI run passed. Its fence takes `start=0` and `FIM`, its input and output rows moved into the registers table, and `Conteúdo` became `Dado`. `pnpm look` before and after: the same 17 steps, each with the same lines marked and the same tables. Every sentence changes, all from the shared narration: the steps no longer open with the address and instruction ("P[10], SOMA: …"), the first step says the machine hasn't run yet rather than what the input holds, the effect is said as "recebe" ("M[3] recebe 5 mais 20, que é 25, e s recebe 3."), loads and stores no longer name the variable, and `PARA` says "O programa para." without the output. A full `pnpm check` passed in the private copy before the push.
