@@ -1,27 +1,28 @@
 import { drawEye, eyePoses, type EyePose } from "./eye-drawing.ts";
 
+// Every value of the pose moves as a spring of this one time constant, so the eye's movements read
+// as one creature's. Only a blink closes faster, in half a beat, as a real one does.
+const beatMs = 50;
+
 // A blink while open, a peek while shut.
 interface Glance {
   lid: number;
-  toLidTau: number;
+  toLidMs: number;
   holdMs: number;
-  backTau: number;
   intervalMs: readonly [number, number];
 }
 
 const blink: Glance = {
   lid: 1,
-  toLidTau: 22,
-  holdMs: 85,
-  backTau: 65,
+  toLidMs: beatMs / 2,
+  holdMs: 30,
   intervalMs: [2500, 7500],
 };
 
 const peek: Glance = {
   lid: 0.3,
-  toLidTau: 90,
-  holdMs: 900,
-  backTau: 110,
+  toLidMs: beatMs,
+  holdMs: 700,
   intervalMs: [6000, 14000],
 };
 
@@ -49,16 +50,29 @@ export interface EyeMotion {
   stop(): void;
 }
 
-const pressTau = 75;
-const hoverTau = 80;
-const pupilTau = 110;
-const lookTau = 90;
+const channels = ["lid", "lift", "hover", "lookX", "lookY"] as const;
+type Channel = (typeof channels)[number];
+
+interface Spring {
+  value: number;
+  velocity: number;
+}
+
 const fullLookPx = 160;
 const tapSlopPx = 10;
+const arrivedWithin = 0.05;
 const settled = 0.002;
 
-const ease = (value: number, target: number, tau: number, dt: number) =>
-  value + (target - value) * (1 - Math.exp(-dt / tau));
+// A critically damped spring rather than easing toward the target, because it keeps its velocity
+// when the target changes: a movement interrupted by another bends into it instead of jumping. It
+// takes the exact solution over the frame, so a long frame can't overshoot.
+function pull(spring: Spring, target: number, tauMs: number, dt: number) {
+  const offset = spring.value - target;
+  const drift = spring.velocity + offset / tauMs;
+  const decay = Math.exp(-dt / tauMs);
+  spring.value = target + (offset + drift * dt) * decay;
+  spring.velocity = (spring.velocity - (drift * dt) / tauMs) * decay;
+}
 
 const between = ([least, most]: readonly [number, number]) =>
   least + Math.random() * (most - least);
@@ -69,25 +83,32 @@ function partOf(drawing: SVGSVGElement, name: keyof EyeParts) {
   return part;
 }
 
-// Every frame each value of the pose eases toward its target from wherever it is, so a new target
-// midway through a blink, a hover or a press never jumps. The loop runs only while something is
-// still moving and the eye can be seen; otherwise a timer waits for the next blink or peek.
+function valuesOf({ lid, lift, hover, look }: EyePose): Record<Channel, number> {
+  return { lid, lift, hover, lookX: look.x, lookY: look.y };
+}
+
+const restingAt = (values: Record<Channel, number>) =>
+  Object.fromEntries(
+    channels.map((channel) => [channel, { value: values[channel], velocity: 0 }]),
+  ) as Record<Channel, Spring>;
+
+// The loop runs only while something is still moving and the eye can be seen; otherwise a timer
+// waits for the next blink or peek.
 class Motion implements EyeMotion {
   readonly #drawing: SVGSVGElement;
   readonly #parts: EyeParts;
   readonly #motionAllowed = matchMedia("(prefers-reduced-motion: no-preference)");
   readonly #inViewObserver: IntersectionObserver;
   readonly #listening = new AbortController();
-  readonly #pose: EyePose;
+  #springs: Record<Channel, Spring>;
   #shut: boolean;
   #inView = false;
   #hovering = false;
   #pressedWhileHovering = false;
   #pointer: { x: number; y: number } | undefined;
   #touchStart: { id: number; x: number; y: number } | undefined;
-  #glance: { until: number; back: boolean } | undefined;
+  #glance: { heldUntil: number | undefined; back: boolean } | undefined;
   #nextGlance: number | undefined;
-  #lidTau = pressTau;
   #lastFrame = 0;
   #frame = 0;
   #timer: ReturnType<typeof setTimeout> | undefined;
@@ -102,7 +123,7 @@ class Motion implements EyeMotion {
       iris: partOf(drawing, "iris"),
       pupil: partOf(drawing, "pupil"),
     };
-    this.#pose = { ...this.#behaviour.rest };
+    this.#springs = restingAt(valuesOf(this.#behaviour.rest));
     this.#paint();
     this.#inViewObserver = new IntersectionObserver(([entry]) => {
       this.#inView = entry?.isIntersecting ?? false;
@@ -127,7 +148,6 @@ class Motion implements EyeMotion {
     if (shut === this.#shut) return;
     this.#shut = shut;
     this.#forgetGlance();
-    this.#lidTau = pressTau;
     this.#update();
   }
 
@@ -157,7 +177,7 @@ class Motion implements EyeMotion {
     }
     this.#halt();
     this.#forgetGlance();
-    Object.assign(this.#pose, this.#behaviour.rest);
+    this.#springs = restingAt(valuesOf(this.#behaviour.rest));
     this.#paint();
   };
 
@@ -180,44 +200,55 @@ class Motion implements EyeMotion {
     this.#lastFrame = now;
     const { rest, hover, glance } = this.#behaviour;
     const hovered = this.#hovering && !this.#pressedWhileHovering;
+    const springs = this.#springs;
     this.#nextGlance ??= now + between(glance.intervalMs);
     if (this.#glance === undefined && now >= this.#nextGlance) {
       if (hovered) this.#nextGlance = now + between(glance.intervalMs);
-      else {
-        this.#glance = { until: now + glance.holdMs, back: false };
-        this.#nextGlance = this.#glance.until + between(glance.intervalMs);
-        this.#lidTau = glance.toLidTau;
+      else this.#glance = { heldUntil: undefined, back: false };
+    }
+    const underway = this.#glance;
+    if (underway !== undefined && !underway.back) {
+      // The hold starts once the lid arrives, not at a fixed time, so a blink always closes before
+      // it reopens.
+      if (
+        underway.heldUntil === undefined &&
+        Math.abs(springs.lid.value - glance.lid) < arrivedWithin
+      )
+        underway.heldUntil = now + glance.holdMs;
+      if (underway.heldUntil !== undefined && now >= underway.heldUntil) {
+        underway.back = true;
+        this.#nextGlance = now + between(glance.intervalMs);
       }
     }
-    if (this.#glance !== undefined && !this.#glance.back && now >= this.#glance.until) {
-      this.#glance.back = true;
-      this.#lidTau = glance.backTau;
-    }
 
-    const glancing = this.#glance !== undefined && !this.#glance.back;
-    const target = {
+    const glancing = underway !== undefined && !underway.back;
+    const look = this.#look();
+    const target: Record<Channel, number> = {
       lid: glancing ? glance.lid : hovered ? hover.lid : rest.lid,
-      hover: hovered ? 1 : 0,
-      look: this.#look(),
       lift: rest.lift,
+      hover: hovered ? 1 : 0,
+      lookX: look.x,
+      lookY: look.y,
     };
-    const pose = this.#pose;
-    pose.lid = ease(pose.lid, target.lid, this.#lidTau, dt);
-    pose.lift = ease(pose.lift, target.lift, pressTau, dt);
-    pose.hover = ease(pose.hover, target.hover, pupilTau, dt);
-    pose.look = {
-      x: ease(pose.look.x, target.look.x, lookTau, dt),
-      y: ease(pose.look.y, target.look.y, lookTau, dt),
-    };
+    for (const channel of channels)
+      pull(
+        springs[channel],
+        target[channel],
+        channel === "lid" && glancing ? glance.toLidMs : beatMs,
+        dt,
+      );
+    // A press while a blink is closing hands the blink's speed on to the press, which would carry the
+    // upper lid a hair past the lower one.
+    if (springs.lid.value > eyePoses.shut.lid)
+      springs.lid = { value: eyePoses.shut.lid, velocity: 0 };
 
-    const still =
-      Math.abs(pose.lid - target.lid) < settled &&
-      Math.abs(pose.lift - target.lift) < settled &&
-      Math.abs(pose.hover - target.hover) < settled &&
-      Math.abs(pose.look.x - target.look.x) < settled &&
-      Math.abs(pose.look.y - target.look.y) < settled;
+    const still = channels.every(
+      (channel) =>
+        Math.abs(springs[channel].value - target[channel]) < settled &&
+        Math.abs(springs[channel].velocity) * beatMs < settled,
+    );
     if (still && !glancing) {
-      Object.assign(pose, target);
+      this.#springs = restingAt(target);
       this.#glance = undefined;
       this.#paint();
       this.#timer = setTimeout(this.#wake, this.#nextGlance - now);
@@ -239,7 +270,13 @@ class Motion implements EyeMotion {
   }
 
   #paint() {
-    const { outline, lashes, iris, pupil } = drawEye(this.#pose);
+    const { lid, lift, hover, lookX, lookY } = this.#springs;
+    const { outline, lashes, iris, pupil } = drawEye({
+      lid: lid.value,
+      lift: lift.value,
+      hover: hover.value,
+      look: { x: lookX.value, y: lookY.value },
+    });
     const parts = this.#parts;
     parts.white.setAttribute("d", outline);
     parts.outline.setAttribute("d", outline);
@@ -284,14 +321,12 @@ class Motion implements EyeMotion {
   readonly #entered = ({ pointerType }: PointerEvent) => {
     if (pointerType === "touch") return;
     this.#hovering = true;
-    this.#lidTau = hoverTau;
     this.#wake();
   };
 
   readonly #left = () => {
     this.#hovering = false;
     this.#pressedWhileHovering = false;
-    this.#lidTau = hoverTau;
     this.#wake();
   };
 

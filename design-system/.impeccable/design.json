@@ -392,7 +392,7 @@
       },
       {
         "name": "eye",
-        "value": "x += (target - x) * (1 - exp(-dt / tau)), tau 22 to 110ms; blink every 2.5 to 7.5s; peek to lid 0.3 for 0.9s every 6 to 14s",
+        "value": "critically damped spring, time constant (the beat) 50ms, about 0.24s to arrive; a blink closes at half a beat and holds 0.03s, every 2.5 to 7.5s; peek to lid 0.3, held 0.7s once open, every 6 to 14s",
         "purpose": "The eye in the running head, the one place with ambient motion and the one place the lid eases: an open eye blinks and a shut eye peeks without moving its lift, the pupil follows the last pointer or tap (a touch that scrolls or drags isn't a tap), hover widens an open eye or opens a shut one a crack and puts off any blink or peek that falls due until the next interval, and a press eases the lid and lift to the other pose while the colours change at once. No frame work while offscreen or the tab is hidden. Only under prefers-reduced-motion: no-preference; under reduce it rests, pupil centred, and changes pose at once."
       }
     ],
