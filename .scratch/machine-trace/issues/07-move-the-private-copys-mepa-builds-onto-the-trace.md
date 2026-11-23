@@ -1,15 +1,15 @@
 # 07: Move the private copy's MEPA builds onto the trace
 
-Status: claimed
+Status: resolved
 Blocked by: 06, 08
 
 **What to build:** the three MEPA builds in the owner's private copy (one in a base artifact, two in a follow-up on subroutine calls) become `trace(mepa, …)` builds of a few lines each, with their programs written once, in their Stages' fences. The work happens in the private copy, after the Sync upstream workflow has brought tickets 01 to 06 in; claim, comment on and close this ticket here, upstream. Being public, this ticket and its closing comment name no private artifact ([Machine trace](../spec.md) › Moving the private copy's builds).
 
-- [ ] Each of the three builds is `trace(mepa, notes)`, with its notes (`reads`, `labels`, `subroutines`, `roles`, `after`) carrying what the copies changed besides the program, and imports only the design system.
-- [ ] Each fence takes `start=0` and drops its typed-in addresses; each Stage's tables take MEPA's headers (the base artifact's `Conteúdo` column becomes `Dado`).
-- [ ] The header comments saying a machine-trace component is due are gone.
-- [ ] Each page shows the same steps as before, compared with `pnpm look` shots taken before and after; where a sentence changes, the change comes from the shared narration, and the closing comment lists those changes without naming the artifacts.
-- [ ] `pnpm check` passes in the private copy.
+- [x] Each of the three builds is `trace(mepa, notes)`, with its notes (`reads`, `labels`, `subroutines`, `roles`, `after`) carrying what the copies changed besides the program, and imports only the design system.
+- [x] Each fence takes `start=0` and drops its typed-in addresses; each Stage's tables take MEPA's headers (the base artifact's `Conteúdo` column becomes `Dado`).
+- [x] The header comments saying a machine-trace component is due are gone.
+- [x] Each page shows the same steps as before, compared with `pnpm look` shots taken before and after; where a sentence changes, the change comes from the shared narration, and the closing comment lists those changes without naming the artifacts.
+- [x] `pnpm check` passes in the private copy.
 
 ## Comments
 
@@ -44,3 +44,21 @@ Done: the follow-up's two builds are `trace(mepa, …)` with `labels`, `subrouti
 Partial: none. Narration changes, all from the shared narration: the steps lose the "P[4], ENPR 1:" opening; `CHPR` says "M[3] guarda D[1], ainda sem valor" for the saved display; `ENPR` says where the parameters sit ("O parâmetro a está em M[1], no deslocamento menos 5.") in place of "O registro está completo: a em D[1] menos 5, M[1]"; `RTPR` says "Retorna: D[1] volta a não ter valor, i recebe 13 e s recebe 0." without the level it read; a muted cell with no value shows `?`; roles and offsets are `strong` on the step they appear.
 Decisions: [owner decisions](#2026-11-23-owner-decisions).
 Running: none. Next: once this branch reaches upstream `main` and the Sync upstream workflow brings it into the private copy, rebase the copy's branch onto its `main`, run `pnpm check`, push to `main`, watch CI, then close this ticket.
+
+### 2026-11-23: closing comment
+
+Cloud session (Claude Code). Upstream: [08](08-mepa-calls-follow-the-course-s-convention.md) merged in #10 (`28b86c7`), and upstream CI passed on it.
+
+**Result:** all three MEPA builds in the private copy are `trace(mepa, …)` builds of a few lines, importing only `trace` and the machine. The base artifact moved in `8587a28`, and the follow-up on subroutine calls in `c4f3664`, after the Sync upstream workflow (started by hand) brought 08 in as `28dcf28`. Each fence takes `start=0` and `FIM`, each Stage's input and output rows joined its registers table, the base artifact's `Conteúdo` became `Dado`, and the copies' header comments are gone.
+
+**Validation:**
+
+- In the private copy, a full `pnpm check` on `c4f3664`: 0 failures. Its CI run passed, deploy and probe included, as did the run on the sync's merge and the base artifact's run on `8587a28`.
+- `pnpm look` before and after, for both artifacts: every step shows the same lines, cells, registers and top as before. The follow-up's Stages gain the trace's starting step (16 and 23 steps, from 15 and 22); the base artifact's already had one (17 steps).
+
+**Sentences that changed**, all from the shared narration (2026-11-23 comments above): each step drops its "P[n], OP:" opening and says its effect as "recebe"; the base artifact's loads and stores no longer name the variable, its first step says the machine hasn't run yet, and `PARA` says "O programa para." without the output; in the follow-up, `CHPR` says the saved display ("M[3] guarda D[1], ainda sem valor"), `ENPR` names where each parameter sits in place of "O registro está completo: …", and `RTPR` no longer says the level it read. The copies' other sentences (the empty stack, the variables reserved and freed, the return value's cell) are `after` notes. A muted cell with no value shows `?`, and roles and offsets are `strong` on the step they appear.
+
+**Decisions:** [owner decisions](#2026-11-23-owner-decisions): MEPA follows the course's call convention (08), with the local-session rule waived for it.
+
+**Left undone:** nothing in scope. 08's closing comment notes the English memory table's `← s` wrapping at 393 px, for a design-system session.
+
