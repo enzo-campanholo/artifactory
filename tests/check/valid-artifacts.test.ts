@@ -8,7 +8,6 @@ import {
   checkTimeout,
   commitArtifacts,
   createFixtureRepo,
-  headCommit,
   succeeds,
   type CheckRun,
   type CommandRun,
@@ -1836,7 +1835,6 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
   let scaffolds: CommandRun[];
   let refusals: CommandRun[];
   let today: Date;
-  let lastPassed: string;
 
   beforeAll(async () => {
     repo = await createFixtureRepo({
@@ -1859,7 +1857,6 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       ...draft,
     });
     await commitArtifacts(repo);
-    lastPassed = await headCommit(repo);
     await succeeds(repo.run("pnpm", ["rename", "derivadas", "derivada"]));
     await succeeds(repo.run("pnpm", ["rename", "derivada", "calculo-de-derivadas"]));
     await succeeds(repo.run("pnpm", ["rename", "calculo-de-derivadas", "derivada"]));
@@ -1881,7 +1878,7 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
       await repo.run("pnpm", ["new", "termodinamica", "--subject", "Física", "--lang", "pt-BR"]),
       await repo.run("pnpm", ["new", "entropia", "--subject", "fisica", "--lang", "pt-BR"]),
     ];
-    run = await repo.check(["--last-passed", lastPassed]);
+    run = await repo.check(["--artifacts-only"]);
   }, checkTimeout);
 
   afterAll(() => repo.remove());
@@ -1893,13 +1890,6 @@ describe("a repo of valid artifacts, one renamed twice and back, and two just sc
   it("passes with no failures", () => {
     expect(run.summary).toEqual(["pnpm check: 0 failures"]);
     expect(run.exitCode).toBe(0);
-  });
-
-  it("skips Vitest when only artifacts changed since the last commit that passed", () => {
-    expect(run.output).toContain(
-      `pnpm check: skipped Vitest: every file changed since ${lastPassed} is under artifacts/, .scratch/ or docs/, which no test reads`,
-    );
-    expect(run.output).not.toContain("pnpm check: Vitest passed");
   });
 
   describe("math and code", () => {

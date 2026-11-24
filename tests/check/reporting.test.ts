@@ -1,10 +1,11 @@
 import { existsSync } from "node:fs";
-import { chmod, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   checkTimeout,
+  commitArtifacts,
   createFixtureRepo,
   headCommit,
   succeeds,
@@ -244,7 +245,22 @@ describe("check evidence for a working tree", () => {
   let admin: string;
 
   beforeAll(async () => {
-    repo = await createFixtureRepo({ ".scratch/input.txt": "first\n" });
+    repo = await createFixtureRepo({
+      ".scratch/input.txt": "first\n",
+      "artifacts/motion/index.mdx": [
+        "---",
+        "id: m0t1on01",
+        "title: Motion",
+        "subject: Physics",
+        "lang: en",
+        "published: 2026-10-15",
+        "---",
+        "",
+        "Speed is distance divided by time.",
+        "",
+      ].join("\n"),
+    });
+    await commitArtifacts(repo);
     admin = (await repo.run("git", ["rev-parse", "--absolute-git-dir"])).stdout.trim();
     full = await repo.check();
     baseline = (await evidence(repo)).report;
@@ -288,9 +304,13 @@ describe("check evidence for a working tree", () => {
       expect(dirty.check.applicability).toBe("stale");
     }
     await writeFile(tracked, original);
-    await chmod(tracked, 0o755);
-    expect((await statusOf(repo)).check.applicability).toBe("stale");
-    await chmod(tracked, 0o644);
+    const { mode } = await stat(tracked);
+    try {
+      await chmod(tracked, mode ^ 0o100);
+      expect((await statusOf(repo)).check.applicability).toBe("stale");
+    } finally {
+      await chmod(tracked, mode);
+    }
     await rename(tracked, join(repo.root, "README-renamed.md"));
     expect((await statusOf(repo)).check.applicability).toBe("stale");
     await rename(join(repo.root, "README-renamed.md"), tracked);
@@ -349,17 +369,23 @@ describe("check evidence for a working tree", () => {
   );
 
   it(
-    "records the comparison, actual skipped tests and changes during a last-passed run without replacing command success",
+    "skips Vitest for an artifact-only change since the last passing commit and records drift during the check",
     async () => {
       const lastPassed = await headCommit(repo);
       const checks = join(admin, "artifactory-heavy/checks");
       const previous = new Set(await readdir(checks));
+      const entry = join(repo.root, "artifacts/motion/index.mdx");
+      const original = await readFile(entry, "utf8");
+      await writeFile(entry, original + "\nVelocity also has a direction.\n");
       const run = repo.check(["--last-passed", lastPassed]);
       await reportOnceStarted(checks, (name) => !previous.has(name));
       await writeFile(join(repo.root, ".scratch/input.txt"), "changed during verification\n");
       const scoped = await run;
       expect(scoped.exitCode).toBe(0);
-      expect(scoped.output).toContain("pnpm check: skipped Vitest:");
+      expect(scoped.output).toContain(
+        `pnpm check: skipped Vitest: every file changed since ${lastPassed} is under artifacts/, .scratch/ or docs/, which no test reads`,
+      );
+      expect(scoped.output).not.toContain("pnpm check: Vitest passed");
       const observed = await evidence(repo);
       expect(observed.report).toMatchObject({
         scope: "last-passed",
@@ -376,6 +402,7 @@ describe("check evidence for a working tree", () => {
         sourceUnchanged: false,
       });
       await writeFile(join(repo.root, ".scratch/input.txt"), "first\n");
+      await writeFile(entry, original);
       const restored = await statusOf(repo);
       expect(restored.check.applicability).not.toBe("current");
       expect(restored.check.lastPassedRun).toEqual(observed.status.check.lastPassedRun);
